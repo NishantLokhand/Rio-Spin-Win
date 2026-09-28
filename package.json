@@ -1,0 +1,7 @@
+{
+  "name": "rio-spin-win-scripts",
+  "private": true,
+  "type": "module",
+  "scripts": { "users": "node scripts/create-users.mjs" },
+  "dependencies": { "@supabase/supabase-js": "^2.45.0" }
+}

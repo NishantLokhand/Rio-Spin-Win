@@ -1,0 +1,15 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+# Proxy Supabase through this domain (protects against ISP blocks of *.supabase.co)
+[[redirects]]
+  from = "/sb/*"
+  to = "https://YOUR-PROJECT-REF.supabase.co/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

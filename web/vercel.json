@@ -1,0 +1,9 @@
+{
+  "rewrites": [
+    { "source": "/sb/:path*", "destination": "https://YOUR-PROJECT-REF.supabase.co/:path*" },
+    { "source": "/((?!sb/|assets/|sw.js|manifest.webmanifest|icon.svg).*)", "destination": "/index.html" }
+  ],
+  "headers": [
+    { "source": "/sw.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
+  ]
+}

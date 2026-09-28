@@ -1,0 +1,10 @@
+{
+  "name": "RIO SPIN & WIN",
+  "short_name": "Rio Spin",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1B0B3A",
+  "theme_color": "#FF2E63",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

@@ -1,0 +1,15 @@
+import { chromium } from 'playwright-core';
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
+const p = await b.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
+await p.goto('http://localhost:5173');
+await p.fill('input[autocomplete=username]', '9876500002'); await p.fill('input[type=password]', '111111');
+await p.click('text=LOG IN');
+await p.click('text=Uttar Pradesh'); await p.click('text=Lucknow Central'); await p.click('text=Amit Verma');
+await p.click('.pick-list >> text=Party Point');
+await p.click('.btn-start', { force: true }); await p.click('.sku >> nth=1'); await p.click('.qty >> text=1');
+await p.click('.handoff'); await p.click('text=SPIN NOW', { force: true });
+await p.waitForTimeout(2600); await p.screenshot({ path: '/tmp/claude-0/shots/10b_landing.png' });
+await p.waitForSelector('text=PRIZE TO BE GIVEN', { timeout: 15000 }); await p.waitForTimeout(900);
+await p.screenshot({ path: '/tmp/claude-0/shots/11_win_jackpot.png' });
+console.log(await p.textContent('.handover-prize'));
+await b.close();
