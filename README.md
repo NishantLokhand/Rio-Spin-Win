@@ -71,13 +71,7 @@ The phone **never** chooses a prize. It makes three idempotent server calls:
 
 ### 2.1 Current rule (configurable per campaign, no code changes)
 
-| Setting | Current value | Other options |
-|---|---|---|
-| Draw strategy | Controlled pool | Weighted random |
-| One pool per | **Promoter** | Outlet, territory, state, campaign |
-| Pool size / mix | 200 spins: 152 × ₹5, 34 × ₹10, 10 Rio Dare, 3 Shades, 1 Speaker | Anything; stored as versioned prize structures, per campaign and optionally per state |
-| Out of stock | **Defer**: the slot is skipped and stays in the pool, so every pool still ends exactly 152/34/10/3/1 | Block until replenished; substitute the nearest cheaper prize |
-| Structure change | Applies from the next pool | Void open pools and regenerate now |
+//kept hidden onPurpose
 
 - **Shuffling:** pools are shuffled with Postgres `gen_random_uuid()`, which uses a cryptographic random generator.
 - **Hidden sequence:** the pool-slot table has **no read access for anyone**, including admins. Admins see only the remaining quantities of each prize.
