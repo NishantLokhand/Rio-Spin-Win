@@ -31,12 +31,6 @@ If `web/.env.local` does not exist, the app starts in **DEMO MODE**. Demo mode i
 - 6 days of sample sales;
 - one-tap demo logins on the login screen.
 
-| Role | Login | PIN |
-|---|---|---|
-| Promoter (Lucknow) | 9876500001 or 9876500002 | 111111 |
-| Supervisor (Lucknow) | sup.lucknow | 222222 |
-| Admin | admin | admin123 |
-
 A few things to know about demo mode:
 
 - **Data is stored only in that browser.** To see a promoter's sales as admin, log out and log in as admin in the **same browser**.
@@ -49,44 +43,9 @@ A few things to know about demo mode:
 
 ## 1. Go-live setup (about 30 minutes)
 
-### 1.1 Supabase project
-1. Create a project at supabase.com. Pick the **Mumbai (ap-south-1)** region. Use the **Pro** plan during live campaigns, because free projects pause after a period of inactivity.
-2. Go to **Authentication → Sign In / Providers → Email**:
-   - Turn **"Allow new users to sign up" OFF**. Only admins create users.
-   - Set the minimum password length to **6**. Promoter PINs are 6 digits.
-3. Run the database files. Use either option:
-   - **SQL Editor:** paste and run each file in `supabase/migrations/` in filename order, then `supabase/seed.sql`. The seed adds the demo outlets, products and prizes; skip it and upload your real Outlet Master instead if you prefer.
-   - **Supabase CLI:** run `supabase link --project-ref <ref>`, then `supabase db push`, then run `seed.sql` in the SQL Editor.
-4. Deploy the user-management function:
-   ```bash
-   supabase functions deploy admin-users
-   ```
-5. Create the first admin from your computer. The service-role key must never go into the web app.
-   ```bash
-   npm install
-   SUPABASE_URL=https://<ref>.supabase.co SUPABASE_SERVICE_ROLE_KEY=<service-role-key> \
-     node scripts/create-users.mjs admin admin <6+ char password> "Campaign Admin"
-   # optional demo users for the seed data (supervisor sup.lucknow/222222, promoters 9876500001 & 9876500002 / 111111)
-   SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... node scripts/create-users.mjs demo
-   ```
-6. *(Recommended)* Scan for stale pending hand-overs every 15 minutes. In the SQL Editor, enable `pg_cron` and run:
-   ```sql
-   select cron.schedule('rio-flag-scan', '*/15 * * * *', 'select public.run_flag_scan()');
-   ```
 
-### 1.2 Web app (Vercel or Netlify)
-1. Import the repository and set the **root directory to `web/`**. The build command is `npm run build` and the output folder is `dist`.
-2. Set these environment variables (see `web/.env.example`):
 
-   | Variable | Value |
-   |---|---|
-   | `VITE_SUPABASE_URL` | `https://<ref>.supabase.co` |
-   | `VITE_SUPABASE_ANON_KEY` | the anon (public) key |
-   | `VITE_USE_PROXY` | `true` (recommended in India — see below) |
-   | `VITE_LOGIN_DOMAIN` | `login.riospinwin.app` (leave as is unless changed everywhere) |
-3. Replace `YOUR-PROJECT-REF` in `web/vercel.json` (or `web/netlify.toml`).
-
-**Why the proxy:** In February 2026 some Indian ISPs blocked `*.supabase.co`. With `VITE_USE_PROXY=true`, the phone only talks to your own domain (`/sb/*`), and your host forwards the traffic to Supabase.
+###
 
 ### 1.3 First-day admin checklist
 1. **Outlets & Masters → Upload Outlet Master.** Download the template, fill it in, and upload it. New States, Territories and TSEs are created automatically.
