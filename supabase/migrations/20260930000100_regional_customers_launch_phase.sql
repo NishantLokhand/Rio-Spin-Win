@@ -182,10 +182,11 @@ begin
     -- ties and near-ties random instead of exposing a fixed sequence.
     update _spin_candidates
        set p_constrained = p_deficit < v_best_deficit - 1.5,
-           p_weight = (p_pct / 100.0) * exp(greatest(-4.0, least(0.0, (p_deficit - v_best_deficit) / 0.75)));
+           p_weight = (p_pct / 100.0) * exp(greatest(-4.0, least(0.0, (p_deficit - v_best_deficit) / 0.75)))
+     where p_id is not null;
     select coalesce(sum(p_weight), 0) into v_total_weight from _spin_candidates where not p_constrained;
     if v_total_weight <= 0 then
-      update _spin_candidates set p_constrained = false;
+      update _spin_candidates set p_constrained = false where p_constrained is distinct from false;
       select sum(p_weight) into v_total_weight from _spin_candidates;
     end if;
     v_r := ((('x' || encode(extensions.gen_random_bytes(6), 'hex'))::bit(48)::bigint)::numeric / 281474976710656) * v_total_weight;
