@@ -78,9 +78,9 @@
 /* ---------- sale ---------- */
 .sale-outlet { font-size: 14px; opacity: .8; margin-bottom: 12px; }
 .sku-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.sku { border: 0; border-radius: 20px; padding: 14px 12px; min-height: 146px; display: grid; place-items: center; gap: 6px; color: #fff; font-size: 16px; box-shadow: 0 6px 0 rgba(0,0,0,.3); }
+.sku { border: 0; border-radius: 20px; padding: 18px 12px; min-height: 130px; display: grid; place-items: center; gap: 6px; color: #fff; font-size: 16px; box-shadow: 0 6px 0 rgba(0,0,0,.3); }
 .sku b { line-height: 1.2; }
-.sku-product-image { display: block; width: 50px; height: 82px; object-fit: contain; filter: drop-shadow(0 3px 3px rgba(0,0,0,.25)); }
+.sku-can { font-size: 34px; line-height: 1; }
 .sku.c0 { background: #A51F32; } .sku.c1 { background: #493719; } .sku.c2 { background: #E6A21B; color: #35250D; } .sku.c3 { background: #17695C; }
 .sku-chosen { background: #F2C45D; color: #35250D; border-radius: 14px; padding: 12px 14px; font-weight: 800; font-size: 18px; margin-bottom: 14px; }
 .qty-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
