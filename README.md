@@ -7,7 +7,7 @@ Customer buys Rio → promoter records the regional SKU and quantity, captures t
 ```
 rio-spin-win/
 ├─ supabase/
-│  ├─ migrations/        ordered schema, security, cumulative allocation, regional SKU and customer capture migrations
+│  ├─ migrations/        ordered schema, security, prize allocation, sales, organizational master and inventory migrations
 │  ├─ seed.sql           demo hierarchy, prizes, campaign + 200-spin prize structure
 │  └─ functions/admin-users/   Edge Function: create users, reset PIN, enable/disable
 ├─ web/                  React (Vite) mobile-first web app — promoter + supervisor + admin

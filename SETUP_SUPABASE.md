@@ -18,7 +18,7 @@ Time needed: about 20 minutes. You need Node.js (already installed) and a web br
 1. In the left sidebar, open **SQL Editor** and click **+ New query**.
 2. On your computer, open `rio-spin-win/supabase/ALL_IN_ONE.sql` in Notepad or VS Code.
 3. Select all (Ctrl+A), copy (Ctrl+C), and paste it into the SQL Editor.
-4. Click **Run**, or press Ctrl+Enter. It takes about 5–10 seconds. The combined script includes the cumulative prize-allocation migrations.
+4. Click **Run**, or press Ctrl+Enter. The combined script includes the current schema, prize-allocation rules, mixed-product sales, master-data and inventory features.
    - Expected result: **"Success. No rows returned"**.
    - If Supabase warns about *"destructive operations"*, click **Run this query**. The warning appears because the script contains `revoke` statements.
 5. To check it worked, open **Table Editor**. You should see tables such as `states`, `outlets`, `campaigns`, `prizes` and `spins`. The `outlets` table should have 15 rows.
@@ -32,8 +32,14 @@ Do not rerun `ALL_IN_ONE.sql` on a project that already has the app schema. In S
 1. `supabase/migrations/20260929000100_cumulative_allocation.sql`
 2. `supabase/migrations/20260929000200_cumulative_campaign_defaults.sql`
 3. `supabase/migrations/20260930000100_regional_customers_launch_phase.sql`
+4. `supabase/migrations/20260930000200_filter_spin_candidate_updates.sql` (only if not already applied)
+5. `supabase/migrations/20260930000300_qualify_spin_update_columns.sql` (only if not already applied)
+6. `supabase/migrations/20260930000400_multi_product_multi_spin_sales.sql` (only if not already applied)
+7. `supabase/migrations/20260930000500_master_inventory_assignments.sql` (only if not already applied)
 
-The first two migrations add cumulative percentage allocation, a private ledger, reporting, and campaign-wide scope. The third adds the regional can catalogue and customer capture, and adds the manual launch toggle. Existing spin and sale records are retained. For the opening promotion, an admin enables **Temporary launch phase** in Campaigns; after senior confirmation, turn it off to resume the saved standard prize allocation.
+Run only migrations that are not already applied; never rerun an applied migration. The first two add cumulative percentage allocation, a private ledger, reporting, and campaign-wide scope. Later files add the regional catalogue, spin updates, mixed-basket sales, and organizational master/inventory support. Existing spin and sale records are retained. The temporary 85%/15% snack allocation remains controlled by the campaign's **Temporary launch phase** setting.
+
+After migration `20260930000500_master_inventory_assignments.sql` succeeds, sign in as Admin and open **Organization & Inventory → Import workbooks**. Select the three supplied workbooks from `source_file` and run the import with the default run key. Then open **Outlet access** and explicitly assign each promoter their authorized outlets; the spreadsheets contain no outlet assignment data. Link any promoter login not matched automatically, then set their optional TSE/MER mapping. The two UP promoters without inventory remain at zero until stock is explicitly issued.
 
 ## Step 3 — Security setting: stop public sign-ups
 1. Go to **Authentication → Sign In / Providers**. In older dashboards this is **Authentication → Providers → Email**.

@@ -157,13 +157,24 @@
 .btn-handover:disabled { opacity: .6; }
 
 /* Mixed SKU bill entry and accessible prize handover on short screens. */
-.sale-basket { max-width: 680px; }
-.basket-add { display: grid; grid-template-columns: minmax(0, 1fr) 140px auto; gap: 10px; align-items: end; }
-.basket-add label, .sale-basket .form label { display: grid; gap: 6px; color: #493719; font-weight: 800; }
-.basket-add select, .basket-add input, .sale-basket .form input { min-width: 0; width: 100%; padding: 12px; border: 1px solid #E0CAA0; border-radius: 12px; background: #fff; color: #35250D; font-size: 16px; }
-.basket-add-btn { min-height: 46px; white-space: nowrap; }
+.sale-basket { max-width: 760px; }
+.sale-basket .form label { display: grid; gap: 6px; color: #493719; font-weight: 800; }
+.sale-basket .form input { min-width: 0; width: 100%; padding: 12px; border: 1px solid #E0CAA0; border-radius: 12px; background: #fff; color: #35250D; font-size: 16px; }
 .basket-lines { display: grid; gap: 8px; margin-top: 16px; }
+.sku-list-heading { display: flex; justify-content: space-between; align-items: end; gap: 12px; padding: 0 4px 4px; }
 .basket-lines h3 { margin: 0; color: #70490D; font-family: var(--display); font-size: 19px; }
+.sku-list-heading p { margin: 4px 0 0; color: #81786B; font-size: 14px; }
+.sku-list-heading > span { color: #81786B; font-size: 12px; font-weight: 900; letter-spacing: .08em; }
+.sku-list { overflow: hidden; border: 1px solid #EAD9B7; border-radius: 16px; background: #FFFDF8; }
+.sku-row { min-height: 62px; display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 10px 14px; border-bottom: 1px solid #EFE6D5; transition: background .16s ease; }
+.sku-row:last-child { border-bottom: 0; }
+.sku-row.selected { background: #FFF5D9; }
+.sku-name { min-width: 0; color: #35250D; font-size: 16px; font-weight: 750; line-height: 1.3; }
+.sku-stepper { display: grid; grid-template-columns: 36px 32px 36px; align-items: center; gap: 6px; flex: 0 0 auto; text-align: center; }
+.sku-stepper button { width: 36px; height: 36px; border: 1px solid #D9BE85; border-radius: 11px; background: #F7E9C8; color: #35250D; font-size: 22px; line-height: 1; font-weight: 800; }
+.sku-stepper button:last-child { border-color: #3E2A0B; background: #3E2A0B; color: #FFF4D8; }
+.sku-stepper button:disabled { border-color: #E6E0D6; background: #F2F0EC; color: #A9A39A; }
+.sku-stepper b { font-variant-numeric: tabular-nums; font-size: 17px; }
 .basket-line { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 12px; background: #F4E8CF; border-radius: 12px; font-weight: 700; }
 .basket-line span { min-width: 0; }
 .basket-line > div { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
@@ -184,11 +195,12 @@
 .spin-progress { color: #8C202D; font-weight: 900; letter-spacing: .06em; }
 
 @media (max-width: 520px) {
-  .basket-add { grid-template-columns: minmax(0, 1fr) 92px; }
-  .basket-add label:first-child { grid-column: 1 / -1; }
-  .basket-add-btn { grid-column: 1 / -1; }
   .basket-line { align-items: flex-start; }
   .basket-line > div { gap: 5px; }
+  .sku-row { padding: 9px 10px; gap: 8px; }
+  .sku-name { font-size: 14px; }
+  .sku-stepper { grid-template-columns: 34px 25px 34px; gap: 3px; }
+  .sku-stepper button { width: 34px; height: 34px; }
 }
 @media (max-height: 760px) {
   .win-screen { gap: 6px; padding: 7px 10px calc(7px + env(safe-area-inset-bottom)); }

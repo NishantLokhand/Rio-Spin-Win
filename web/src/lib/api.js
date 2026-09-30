@@ -6,6 +6,8 @@ const MESSAGES = {
   USER_DISABLED: 'Your account has been disabled. Contact your supervisor.',
   PENDING_HANDOVER: 'Hand over the previous prize first.',
   OUTLET_NOT_ACTIVE: 'This outlet is not active in the outlet master.',
+  OUTLET_NOT_ASSIGNED: 'This outlet is not assigned to your login. Ask an administrator to assign it in Organization & Inventory → Outlet access.',
+  ORG_PROFILE_MISSING: 'Your login is not linked to an organizational promoter record. Ask an administrator to import or create your real promoter record, link your existing login, and assign an outlet.',
   NO_ACTIVE_CAMPAIGN: 'No active campaign covers this outlet.',
   PRODUCT_NOT_ALLOWED: 'This SKU is not part of the campaign.',
   INVALID_QUANTITY: 'Invalid quantity.',
@@ -65,7 +67,9 @@ export async function rpc(fn, args = {}, { retries = 0, timeoutMs = 0 } = {}) {
       throw new ApiError('NETWORK', MESSAGES.NETWORK, null, true);
     }
     const code = error.message;
-    throw new ApiError(code, error.hint || MESSAGES[code] || error.details || code, error.details);
+    const actionableHint = MESSAGES[code];
+    const hint = ['ORG_PROFILE_MISSING', 'OUTLET_NOT_ASSIGNED'].includes(code) ? actionableHint : (error.hint || actionableHint || error.details || code);
+    throw new ApiError(code, hint, error.details);
   }
 }
 

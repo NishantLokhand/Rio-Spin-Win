@@ -8,8 +8,6 @@ const LABELS = { invoice_no: 'Invoice number', receipt_no: 'Receipt number', qr_
 // Add any mix of SKUs to one bill. Each unit in the basket earns one sequential spin.
 export default function SaleFlow({ ctx, products, online, onRecorded, onBack, onPending, say }) {
   const [basket, setBasket] = useState([]);
-  const [sku, setSku] = useState(null);
-  const [qty, setQty] = useState('1');
   const [stage, setStage] = useState('basket');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
@@ -22,17 +20,18 @@ export default function SaleFlow({ ctx, products, online, onRecorded, onBack, on
   const total = useMemo(() => basket.reduce((n, x) => n + x.quantity, 0), [basket]);
   const validationReady = () => required.every(({ k, v }) => v !== 'required' || (validation[k] || '').trim());
 
-  function addItem() {
-    const count = Number.parseInt(qty, 10);
-    if (!sku || !Number.isSafeInteger(count) || count < 1) return;
-    setBasket((items) => {
-      const old = items.find((x) => x.product.id === sku.id);
-      return old ? items.map((x) => x.product.id === sku.id ? { ...x, quantity: x.quantity + count } : x) : [...items, { product: sku, quantity: count }];
-    });
-    setSku(null); setQty('1'); setErr(null); sound.unlock();
-  }
   function changeQty(productId, delta) {
-    setBasket((items) => items.map((x) => x.product.id === productId ? { ...x, quantity: x.quantity + delta } : x).filter((x) => x.quantity > 0));
+    const product = products.find((p) => p.id === productId);
+    if (!product) return;
+    setBasket((items) => {
+      const current = items.find((x) => x.product.id === productId)?.quantity || 0;
+      const next = Math.max(0, current + delta);
+      if (items.some((x) => x.product.id === productId)) {
+        return next ? items.map((x) => x.product.id === productId ? { ...x, quantity: next } : x) : items.filter((x) => x.product.id !== productId);
+      }
+      return next ? [...items, { product, quantity: next }] : items;
+    });
+    setErr(null); sound.unlock();
   }
 
   async function submit() {
@@ -59,18 +58,22 @@ export default function SaleFlow({ ctx, products, online, onRecorded, onBack, on
       <div className="picker-top"><button className="back" onClick={stage === 'customer' ? () => setStage('basket') : onBack}>‹</button><h2>{stage === 'customer' ? 'CUSTOMER DETAILS' : 'RECORD PURCHASE'}</h2></div>
       <div className="sale-outlet">📍 {ctx.outletName} · {ctx.tseName}</div>
       {stage === 'basket' ? <>
-        <div className="basket-add">
-          <label>Rio product<select value={sku?.id || ''} onChange={(e) => setSku(products.find((p) => p.id === e.target.value) || null)}>
-            <option value="">Choose product</option>{products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select></label>
-          <label>Quantity<input type="number" inputMode="numeric" min="1" step="1" value={qty} onChange={(e) => setQty(e.target.value)} /></label>
-          <button className="btn-secondary basket-add-btn" disabled={!sku || !Number.isSafeInteger(Number(qty)) || +qty < 1} onClick={addItem}>ADD TO BILL</button>
-        </div>
-        <section className="basket-lines" aria-label="Purchase basket">
-          <h3>Customer’s bill</h3>
-          {!basket.length ? <p className="muted">Add each Rio product on the bill. Different products can be mixed.</p> : basket.map(({ product, quantity }) => (
-            <div className="basket-line" key={product.id}><span>{product.name}</span><div><button aria-label={`Remove one ${product.name}`} onClick={() => changeQty(product.id, -1)}>−</button><b>{quantity}</b><button aria-label={`Add one ${product.name}`} onClick={() => changeQty(product.id, 1)}>+</button><button className="basket-remove" aria-label={`Remove ${product.name}`} onClick={() => setBasket((items) => items.filter((x) => x.product.id !== product.id))}>×</button></div></div>
-          ))}
+        <section className="basket-lines" aria-label="Rio products on customer bill">
+          <div className="sku-list-heading"><div><h3>Customer’s bill</h3><p>Set the quantity for each product purchased.</p></div><span>QTY</span></div>
+          <div className="sku-list">
+            {products.map((product) => {
+              const quantity = basket.find((item) => item.product.id === product.id)?.quantity || 0;
+              return <div className={`sku-row${quantity ? ' selected' : ''}`} key={product.id}>
+                <span className="sku-name">{product.name}</span>
+                <div className="sku-stepper" aria-label={`${product.name} quantity`}>
+                  <button aria-label={`Remove one ${product.name}`} disabled={!quantity} onClick={() => changeQty(product.id, -1)}>−</button>
+                  <b aria-live="polite">{quantity}</b>
+                  <button aria-label={`Add one ${product.name}`} onClick={() => changeQty(product.id, 1)}>+</button>
+                </div>
+              </div>;
+            })}
+            {!products.length && <p className="muted">No products are available for this outlet’s campaign.</p>}
+          </div>
         </section>
         <div className="basket-total"><span>{total} {total === 1 ? 'item' : 'items'}</span><b>{total} {total === 1 ? 'spin' : 'spins'}</b></div>
         <button className="btn-primary big" disabled={!total} onClick={() => { setStage('customer'); setErr(null); }}>CONTINUE</button>

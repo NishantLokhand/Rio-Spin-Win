@@ -25,7 +25,7 @@ function useOnline() {
 export default function PromoterApp({ profile, onLogout }) {
   const uid = profile.id;
   const online = useOnline();
-  const [masters, setMasters] = useState(cachedMasters());
+  const [masters, setMasters] = useState(() => { const m = cachedMasters(); return m ? { ...m, outlets: [] } : m; });
   const [ctx, setCtx] = useState(() => getCtx(uid));
   const [home, setHome] = useState(() => store.get(`rio.home.${uid}`));
   const [flight, setFlight] = useState(() => getInflight(uid));
@@ -33,7 +33,7 @@ export default function PromoterApp({ profile, onLogout }) {
   const [view, setView] = useState(() => {
     const f = getInflight(uid);
     if (f && (f.stage === 'recorded' || f.stage === 'handover_done') && f.spinNo < f.spinsAllowed) return 'spin';
-    return getCtx(uid) ? 'home' : 'picker-full';
+    return 'picker-outlet';
   });
   const [toast, setToast] = useState(null);
   const [soundOn, setSoundOn] = useState(sound.enabled());
@@ -68,7 +68,7 @@ export default function PromoterApp({ profile, onLogout }) {
   }, [uid, onLogout]);
 
   useEffect(() => {
-    loadMasters().then(setMasters).catch(() => {});
+    Promise.all([loadMasters({ force: true }), rpc('get_promoter_outlets')]).then(([m, outlets]) => setMasters({ ...m, outlets })).catch(() => {});
     refreshHome();
     // campaign sound default on first run
     if (store.get('rio.sound') == null && home?.campaign?.sound_default === false) sound.set(false);
@@ -78,25 +78,21 @@ export default function PromoterApp({ profile, onLogout }) {
   useEffect(() => { if (online) refreshHome(); }, [online, refreshHome]);
 
   async function selectOutlet(outlet) {
-    const m = masters;
-    const tse = m.tses.find((t) => t.id === outlet.tse_id);
-    const terr = m.territories.find((t) => t.id === tse?.territory_id);
-    const st = m.states.find((s) => s.id === terr?.state_id);
-    const next = {
-      stateId: st?.id, stateName: st?.name, territoryId: terr?.id, territoryName: terr?.name,
-      tseId: tse?.id, tseName: tse?.name,
-      outletId: outlet.id, outletName: outlet.name, outletCode: outlet.outlet_code, outletArea: outlet.area, outletCity: outlet.city,
-      campaign: ctx?.campaign || null,
-    };
-    saveCtx(uid, next); setCtx(next); pushRecent(uid, outlet.id);
-    setView('home');
     try {
       const res = await rpc('set_work_context', { p_outlet_id: outlet.id, p_device_ref: deviceRef() }, { retries: 2 });
-      const withCampaign = { ...next, campaign: res.campaign };
-      saveCtx(uid, withCampaign); setCtx(withCampaign);
+      const picked = res.outlet;
+      const next = {
+        stateId: picked.state_id, stateName: picked.state_name,
+        territoryId: picked.territory_id, territoryName: picked.territory_name,
+        tseId: picked.tse_id, tseName: picked.tse_name,
+        outletId: picked.outlet_id, outletName: picked.outlet_name, outletCode: picked.outlet_code,
+        outletArea: picked.area, outletCity: picked.city, campaign: res.campaign || null,
+      };
+      saveCtx(uid, next); setCtx(next); pushRecent(uid, picked.outlet_id);
+      setView('home');
       if (!res.campaign) say('No active campaign covers this outlet yet.', 'warn');
     } catch (e) {
-      if (!e.network) say(friendly(e), 'err');
+      say(e.network ? 'You need an internet connection to load your assigned outlets.' : friendly(e), e.network ? 'warn' : 'err');
     }
   }
 
@@ -163,17 +159,19 @@ export default function PromoterApp({ profile, onLogout }) {
 
       {view === 'home' && (
         <Home profile={profile} home={home} ctx={ctx} online={online}
-              onStart={() => { if (!ctx) setView('picker-full'); else setView('sale'); }}
-              onChangeOutlet={() => setView(ctx ? 'picker-outlet' : 'picker-full')}
-              onChangeHierarchy={() => setView('picker-full')}
+              onStart={() => { if (!ctx) setView('picker-outlet'); else setView('sale'); }}
+              onChangeOutlet={() => setView('picker-outlet')}
+              onChangeHierarchy={() => setView('picker-outlet')}
               onRefresh={refreshHome} />
       )}
 
       {(view === 'picker-outlet' || view === 'picker-full') && masters && (
-        <OutletPicker masters={masters} ctx={ctx} uid={uid} full={view === 'picker-full'}
+        <OutletPicker masters={masters} ctx={ctx} uid={uid} full={view === 'picker-full'} direct={view === 'picker-outlet'}
                       onPick={selectOutlet} onCancel={ctx ? () => setView('home') : null}
                       onNotListed={() => setView('request')}
-                      onReload={() => loadMasters({ force: true }).then(setMasters).catch((e) => say(friendly(e), 'err'))} />
+                      onReload={() => Promise.all([loadMasters({ force: true }), rpc('get_promoter_outlets')])
+                        .then(([m, outlets]) => setMasters({ ...m, outlets }))
+                        .catch((e) => say(friendly(e), 'err'))} />
       )}
 
       {view === 'request' && masters && (

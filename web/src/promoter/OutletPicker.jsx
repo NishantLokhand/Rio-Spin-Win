@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { getRecent } from '../lib/session.js';
 
-export default function OutletPicker({ masters, ctx, uid, full, onPick, onCancel, onNotListed, onReload }) {
-  const [step, setStep] = useState(full || !ctx ? 'state' : 'outlet');
-  const [sel, setSel] = useState(() => (full || !ctx ? {} : { stateId: ctx.stateId, territoryId: ctx.territoryId, tseId: ctx.tseId }));
+export default function OutletPicker({ masters, ctx, uid, full, direct = false, onPick, onCancel, onNotListed, onReload }) {
+  const [step, setStep] = useState(direct ? 'outlet' : (full || !ctx ? 'state' : 'outlet'));
+  const [sel, setSel] = useState(() => (direct || full || !ctx ? {} : { stateId: ctx.stateId, territoryId: ctx.territoryId, tseId: ctx.tseId }));
   const [q, setQ] = useState('');
 
   const state = masters.states.find((s) => s.id === sel.stateId);
@@ -12,7 +12,7 @@ export default function OutletPicker({ masters, ctx, uid, full, onPick, onCancel
 
   const territories = useMemo(() => masters.territories.filter((t) => t.state_id === sel.stateId), [masters, sel.stateId]);
   const tses = useMemo(() => masters.tses.filter((t) => t.territory_id === sel.territoryId), [masters, sel.territoryId]);
-  const outlets = useMemo(() => masters.outlets.filter((o) => o.tse_id === sel.tseId), [masters, sel.tseId]);
+  const outlets = useMemo(() => direct ? masters.outlets : masters.outlets.filter((o) => o.tse_id === sel.tseId), [masters, sel.tseId, direct]);
 
   const recent = useMemo(() => {
     const ids = getRecent(uid);
@@ -28,6 +28,7 @@ export default function OutletPicker({ masters, ctx, uid, full, onPick, onCancel
   const Title = { state: 'SELECT STATE', territory: 'SELECT TERRITORY', tse: 'SELECT MAPPED TSE', outlet: 'SELECT OUTLET' }[step];
 
   const back = () => {
+    if (direct) return;
     if (step === 'territory') setStep('state');
     else if (step === 'tse') setStep('territory');
     else if (step === 'outlet' && (full || !ctx)) setStep('tse');
@@ -37,12 +38,12 @@ export default function OutletPicker({ masters, ctx, uid, full, onPick, onCancel
   return (
     <main className="picker">
       <div className="picker-top">
-        {(step !== 'state' || onCancel) && <button className="back" onClick={step === 'state' ? onCancel : back}>‹</button>}
+        {!direct && (step !== 'state' || onCancel) && <button className="back" onClick={step === 'state' ? onCancel : back}>‹</button>}
         <h2>{Title}</h2>
         {step === 'state' && <button className="link small" onClick={onReload}>↻ Refresh list</button>}
       </div>
 
-      {(state || terr || tse) && (
+      {!direct && (state || terr || tse) && (
         <div className="crumbs">
           {state && <span>{state.name}</span>}
           {terr && <span>{terr.name}</span>}
@@ -95,13 +96,13 @@ export default function OutletPicker({ masters, ctx, uid, full, onPick, onCancel
               </ul>
             </>
           )}
-          <div className="list-h">{q ? `RESULTS (${filtered.length})` : `ALL OUTLETS — ${tse?.name || ''} (${outlets.length})`}</div>
+          <div className="list-h">{q ? `RESULTS (${filtered.length})` : direct ? `YOUR ASSIGNED OUTLETS (${outlets.length})` : `ALL OUTLETS — ${tse?.name || ''} (${outlets.length})`}</div>
           <ul className="pick-list">
             {filtered.map((o) => (
               <li key={o.id}><button className={ctx?.outletId === o.id ? 'current' : ''} onClick={() => onPick(o)}>
                 {o.name}<small>{[o.area, o.city].filter(Boolean).join(', ')} · {o.outlet_code}</small></button></li>
             ))}
-            {!filtered.length && <li className="empty">No outlet found</li>}
+            {!filtered.length && <li className="empty">{direct ? 'No outlets are assigned to this account yet. Ask an administrator to link your promoter record and assign your outlet in Organization & Inventory.' : 'No outlet found'}</li>}
           </ul>
           <button className="btn-notlisted" onClick={onNotListed}>OUTLET NOT LISTED?</button>
         </>

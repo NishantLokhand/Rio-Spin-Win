@@ -43,9 +43,9 @@ export default function Masters({ data, reloadData }) {
         return { ...o, tse_code: t?.code, tse_name: t?.name, territory: tr?.name, state: A.states.find((s) => s.id === tr?.state_id)?.name };
       }),
       fields: [{ key: 'tse_id', label: 'Mapped TSE', type: 'select', options: tseOpts }, { key: 'outlet_code', label: 'Outlet code' }, { key: 'name', label: 'Outlet name' },
-        { key: 'area', label: 'Area' }, { key: 'city', label: 'City' }, { key: 'distributor', label: 'Distributor' }, status, { key: 'external_ref', label: 'External ref' }],
+        { key: 'area', label: 'Area' }, { key: 'beat', label: 'Beat' }, { key: 'city', label: 'City' }, { key: 'distributor', label: 'Distributor' }, status, { key: 'external_ref', label: 'External ref' }],
       columns: [{ key: 'state', label: 'State' }, { key: 'territory', label: 'Territory' }, { key: 'tse_code', label: 'TSE Code' }, { key: 'tse_name', label: 'TSE Name' },
-        { key: 'outlet_code', label: 'Outlet Code' }, { key: 'name', label: 'Outlet Name' }, { key: 'area', label: 'Area' }, { key: 'city', label: 'City' },
+        { key: 'outlet_code', label: 'Outlet Code' }, { key: 'name', label: 'Outlet Name' }, { key: 'area', label: 'Area' }, { key: 'beat', label: 'Beat' }, { key: 'city', label: 'City' },
         { key: 'distributor', label: 'Distributor' }, { key: 'source', label: 'Source' }] },
     products: { table: 'products', rows: A.products, boolStatus: true,
       fields: [{ key: 'sku_code', label: 'SKU code' }, { key: 'name', label: 'Product name' }, { key: 'pack', label: 'Pack' }, { key: 'size_ml', label: 'Size (ml)', type: 'number' },
@@ -151,14 +151,14 @@ function EditModal({ cfg, row, onClose }) {
   );
 }
 
-const TEMPLATE_COLS = ['state', 'territory', 'tse_code', 'tse_name', 'outlet_code', 'outlet_name', 'area', 'city', 'distributor', 'status'];
+const TEMPLATE_COLS = ['state', 'territory', 'tse_code', 'tse_name', 'outlet_code', 'outlet_name', 'area', 'beat', 'city', 'distributor', 'status'];
 
 function OutletUpload({ onDone }) {
   const [res, setRes] = useState(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const template = [{ state: 'Uttar Pradesh', territory: 'Lucknow Central', tse_code: 'TSE-UP-001', tse_name: 'Rahul Sharma', outlet_code: 'LKO-0001',
-    outlet_name: 'Modern Wines', area: 'Hazratganj', city: 'Lucknow', distributor: 'Awadh Beverages', status: 'Active' }];
+    outlet_name: 'Modern Wines', area: 'Hazratganj', beat: 'Hazratganj Beat 1', city: 'Lucknow', distributor: 'Awadh Beverages', status: 'Active' }];
   const cols = TEMPLATE_COLS.map((k) => ({ key: k, label: k }));
 
   async function upload(e) {

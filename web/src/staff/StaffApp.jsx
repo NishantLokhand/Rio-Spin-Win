@@ -16,6 +16,7 @@ import Masters from './Masters.jsx';
 import Users from './Users.jsx';
 import Audit from './Audit.jsx';
 import Exports from './Exports.jsx';
+import OrgData from './OrgData.jsx';
 import '../styles/staff.css';
 
 const NAV = [
@@ -30,6 +31,7 @@ const NAV = [
   { key: 'campaigns', label: 'Campaigns', icon: '⚙', roles: ['admin'] },
   { key: 'masters', label: 'Outlets & Masters', icon: '⌂', roles: ['admin'] },
   { key: 'users', label: 'Users', icon: '♟', roles: ['admin'] },
+  { key: 'orgdata', label: 'Organization & Inventory', icon: '▤', roles: ['admin'], section: 'Data management' },
   { key: 'audit', label: 'Audit Log', icon: '⎙', roles: ['admin'] },
   { key: 'exports', label: 'Data Export', icon: '⇩', roles: ['admin'] },
 ];
@@ -48,7 +50,7 @@ export default function StaffApp({ profile, onLogout }) {
         loadMasters({ force: true }),
         selectAll('campaigns', '*', (q) => q.order('created_at', { ascending: false })),
         selectAll('app_users', 'id,full_name,login_id,is_active,role', (q) => q.eq('role', 'promoter').order('full_name')),
-        selectAll('outlets', 'id,outlet_code,name,area,city,distributor,tse_id,status,source,external_ref', (q) => q.order('name')),
+        selectAll('outlets', 'id,outlet_code,name,area,city,beat,distributor,tse_id,status,source,external_ref', (q) => q.order('name')),
       ]);
       setData({ masters, campaigns, promoters, outletsFull, role, profile });
     } catch (e) { setErr(e.message); }
@@ -60,7 +62,7 @@ export default function StaffApp({ profile, onLogout }) {
   const nav = NAV.filter((n) => n.roles.includes(role));
   const Page = { dashboard: Dashboard, reports: Reports, transactions: Transactions, promoters: Promoters, flags: Flags,
     requests: OutletRequests, pool: PrizePool, prizeconfig: PrizeConfig, campaigns: Campaigns, masters: Masters,
-    users: Users, audit: Audit, exports: Exports }[nav.some((n) => n.key === page) ? page : 'dashboard'];
+    users: Users, orgdata: OrgData, audit: Audit, exports: Exports }[nav.some((n) => n.key === page) ? page : 'dashboard'];
   const current = nav.find((n) => n.key === page) || nav[0];
 
   return (
