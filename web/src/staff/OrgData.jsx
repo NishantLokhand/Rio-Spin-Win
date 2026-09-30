@@ -27,8 +27,8 @@ function parseMH(rows) {
   }));
 }
 function parseInventory(rows) {
-  return rows.slice(1).filter((r) => norm(r[6]) && role(r[7])).map((r) => ({
-    employee_name: norm(r[6]), designation: role(r[7]), fas_id: norm(r[1]), qa_employee_id: norm(r[2]), zone_raw: norm(r[3]),
+  return rows.slice(1).map((r, index) => ({ r, source_row: index + 2 })).filter(({ r }) => norm(r[6]) && role(r[7])).map(({ r, source_row }) => ({
+    source_row, employee_name: norm(r[6]), designation: role(r[7]), fas_id: norm(r[1]), qa_employee_id: norm(r[2]), zone_raw: norm(r[3]),
     state_raw: norm(r[4]), market_raw: norm(r[5]), mobile: norm(r[8]), area_raw: norm(r[9]), snack5: Number(r[10]) || 0, snack10: Number(r[11]) || 0,
   }));
 }

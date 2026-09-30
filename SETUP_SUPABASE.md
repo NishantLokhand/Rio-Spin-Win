@@ -24,6 +24,8 @@ Time needed: about 20 minutes. You need Node.js (already installed) and a web br
 5. To check it worked, open **Table Editor**. You should see tables such as `states`, `outlets`, `campaigns`, `prizes` and `spins`. The `outlets` table should have 15 rows.
 
 > Run `ALL_IN_ONE.sql` only **once**. If you need to start over, create a new project, or ask for a reset script.
+>
+> Before importing workbooks on a new project, also run `supabase/migrations/20261001000100_inventory_source_row_import_fix.sql` once. It adds source-row tracking and updates the workbook import function.
 
 ### Upgrade an existing project
 
@@ -36,10 +38,11 @@ Do not rerun `ALL_IN_ONE.sql` on a project that already has the app schema. In S
 5. `supabase/migrations/20260930000300_qualify_spin_update_columns.sql` (only if not already applied)
 6. `supabase/migrations/20260930000400_multi_product_multi_spin_sales.sql` (only if not already applied)
 7. `supabase/migrations/20260930000500_master_inventory_assignments.sql` (only if not already applied)
+8. `supabase/migrations/20261001000100_inventory_source_row_import_fix.sql` (run once; needed for inventory workbooks with required source-row tracking)
 
-Run only migrations that are not already applied; never rerun an applied migration. The first two add cumulative percentage allocation, a private ledger, reporting, and campaign-wide scope. Later files add the regional catalogue, spin updates, mixed-basket sales, and organizational master/inventory support. Existing spin and sale records are retained. The temporary 85%/15% snack allocation remains controlled by the campaign's **Temporary launch phase** setting.
+Run only migrations that are not already applied; never rerun an applied migration. The first two add cumulative percentage allocation, a private ledger, reporting, and campaign-wide scope. Later files add the regional catalogue, spin updates, mixed-basket sales, organizational master/inventory support, and the required inventory workbook source-row field. Existing spin and sale records are retained. The temporary 85%/15% snack allocation remains controlled by the campaign's **Temporary launch phase** setting.
 
-After migration `20260930000500_master_inventory_assignments.sql` succeeds, sign in as Admin and open **Organization & Inventory → Import workbooks**. Select the three supplied workbooks from `source_file` and run the import with the default run key. Then open **Outlet access** and explicitly assign each promoter their authorized outlets; the spreadsheets contain no outlet assignment data. Link any promoter login not matched automatically, then set their optional TSE/MER mapping. The two UP promoters without inventory remain at zero until stock is explicitly issued.
+After migrations `20260930000500_master_inventory_assignments.sql` and `20261001000100_inventory_source_row_import_fix.sql` are applied, sign in as Admin and open **Organization & Inventory → Import workbooks**. Select the three supplied workbooks from `source_file` and run the import with the default run key. Then open **Outlet access** and explicitly assign each promoter their authorized outlets; the spreadsheets contain no outlet assignment data. Link any promoter login not matched automatically, then set their optional TSE/MER mapping. The two UP promoters without inventory remain at zero until stock is explicitly issued.
 
 ## Step 3 — Security setting: stop public sign-ups
 1. Go to **Authentication → Sign In / Providers**. In older dashboards this is **Authentication → Providers → Email**.
@@ -93,6 +96,10 @@ You should see:
 ### Create the isolated production test promoter
 
 For a single test login `9556600000` with one private outlet named `Demo outlet`, run `npm run test-promoter` from the repository root. Enter the **production** Supabase URL, service-role key, and requested password when prompted. The key and password are hidden and are not saved to the repository. The script reuses an active TSE only to satisfy the outlet hierarchy, leaves the promoter's supervisor unset, assigns only the demo outlet, and creates no prize stock. Admins retain access through the existing policies; other promoters and supervisors do not receive access. No extra SQL Editor change is needed after migration `20260930000500_master_inventory_assignments.sql`.
+
+### Create staff mobile logins from the consolidated roster
+
+After importing the area workbooks into **Organization & Inventory**, run `npm run create-staff-logins` from the repository root. The script reads `source_file/MH-UP inventory DETAILS.xlsx`, matches each PROMOTER/TSE/MER to an existing organizational master row, and creates a mobile-number login with the app role **promoter**. Initial passwords start at `111111` and increment for each matched person in workbook order. TSE and MER keep their organizational designation; they are not given separate app roles. The script skips missing/ambiguous master matches and conflicting existing accounts, and writes the private credentials report to `staff-login-credentials.local.csv` (ignored by Git). It does not create master records, assign outlets, or issue stock. Admins must assign authorized promoter outlets and inventory separately before sales can be recorded. No SQL Editor change is required.
 
 ## Step 7 — Start the app on localhost
 ```
