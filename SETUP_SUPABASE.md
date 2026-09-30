@@ -90,6 +90,10 @@ You should see:
 ✓ Issued one prize kit (152/34/10/3/1) to each new promoter
 ```
 
+### Create the isolated production test promoter
+
+For a single test login `9556600000` with one private outlet named `Demo outlet`, run `npm run test-promoter` from the repository root. Enter the **production** Supabase URL, service-role key, and requested password when prompted. The key and password are hidden and are not saved to the repository. The script reuses an active TSE only to satisfy the outlet hierarchy, leaves the promoter's supervisor unset, assigns only the demo outlet, and creates no prize stock. Admins retain access through the existing policies; other promoters and supervisors do not receive access. No extra SQL Editor change is needed after migration `20260930000500_master_inventory_assignments.sql`.
+
 ## Step 7 — Start the app on localhost
 ```
 cd web

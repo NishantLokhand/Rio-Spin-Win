@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "users": "node scripts/create-users.mjs",
+    "test-promoter": "node scripts/create-isolated-test-promoter.mjs",
     "build": "npm --prefix web install && npm --prefix web run build"
   },
   "dependencies": {
