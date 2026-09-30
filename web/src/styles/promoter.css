@@ -153,6 +153,30 @@
 .btn-handover { border: 0; border-radius: 16px; padding: 18px; font-weight: 900; font-size: 20px; background: var(--green); color: var(--ink); box-shadow: 0 6px 0 #16904a; }
 .btn-handover:disabled { opacity: .6; }
 
+/* Keep the swipe hint and brand credit visible in browser-sized viewports. */
+@media (max-height: 760px) {
+  .spin-screen { padding-top: 7px; padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
+  .spin-head { gap: 0; }
+  .spin-brand { width: min(142px, 38vw); max-height: 42px; }
+  .spin-head h1 { font-size: clamp(25px, 6.4vh, 38px); margin-top: 0; }
+  .spin-head .tag { margin-top: 2px; font-size: clamp(14px, 3vh, 18px); padding: 3px 12px; }
+  .wheel-wrap { width: min(88vw, 48vh, 430px); }
+  .btn-spin { padding: 14px; font-size: 30px; }
+  .btn-spin.small { padding: 12px; font-size: 21px; }
+  .swipe-hint { margin-top: 3px; }
+  .spin-gdwc-logo { width: 24px; height: 24px; margin-top: 4px; }
+}
+
+@media (max-height: 600px) {
+  .spin-screen { padding: 4px 8px calc(5px + env(safe-area-inset-bottom)); }
+  .spin-brand { width: min(122px, 34vw); max-height: 34px; }
+  .spin-head h1 { font-size: clamp(22px, 5.5vh, 31px); }
+  .spin-head .tag { font-size: 13px; padding: 2px 10px; }
+  .wheel-wrap { width: min(76vw, 41vh, 350px); }
+  .btn-spin { padding: 10px; font-size: 25px; }
+  .spin-gdwc-logo { display: none; }
+}
+
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: 120px; z-index: 50; max-width: 92vw; padding: 14px 18px; border-radius: 14px; font-weight: 800; box-shadow: 0 8px 20px rgba(0,0,0,.35); animation: fade .2s; }
 .toast.ok { background: var(--green); color: var(--ink); } .toast.warn { background: var(--yellow); color: var(--ink); }
 .toast.err { background: #d0103a; color: #fff; } .toast.info { background: #fff; color: var(--ink); }
