@@ -21,7 +21,10 @@ export default function Login({ error: initialError }) {
     <div className="login">
       <div className="login-hero">
         <img className="login-brand-logo" src="/brand/rio-logo-white.png" alt="Rio Spin &amp; Win" />
-        <img className="login-gdwc-logo" src="/brand/gdwc-logo-white.png" alt="Good Drop Wine Cellars" />
+        <div className="login-partner-brand">
+          <span>Presented by</span>
+          <img className="login-gdwc-logo" src="/brand/gdwc-logo-white.png" alt="Good Drop Wine Cellars" />
+        </div>
         <p className="brand-sub">Field App</p>
       </div>
       <form className="login-card" onSubmit={submit}>
