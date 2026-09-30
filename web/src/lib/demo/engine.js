@@ -145,9 +145,11 @@ export class Engine {
     if (!c.track_inventory) return null;
     let pool = c.draw_strategy === 'controlled_pool' ? this.openPool(c, key) : null;
     if (pool && pool.config_id !== cfg.id && c.config_change_mode !== 'next_pool') pool = null;
-    const ids = pool ? [...new Set(this.t('prize_pool_slots').filter((s) => s.pool_id === pool.id && !s.used_at).map((s) => s.prize_id))]
+    let ids = pool ? [...new Set(this.t('prize_pool_slots').filter((s) => s.pool_id === pool.id && !s.used_at).map((s) => s.prize_id))]
       : this.t('prize_config_items').filter((i) => i.config_id === cfg.id && i.quantity > 0).map((i) => i.prize_id);
+    if (c.snack_launch_active) ids = ids.filter((id) => ['SNACK5', 'SNACK10'].includes(this.t('prizes').find((p) => p.id === id)?.code));
     const missing = ids.filter((id) => this.avail(pid, id) <= 0).map((id) => this.prizeName(id));
+    if (c.snack_launch_active && missing.length) return missing.join(', ');
     if (c.oos_mode === 'block') return missing.length ? missing.join(', ') : null;
     return ids.some((id) => this.avail(pid, id) > 0) ? null : (missing.join(', ') || 'all prizes');
   }
@@ -178,6 +180,7 @@ export class Engine {
     const r = this.outletCtx(p_outlet_id); if (!r) fail('OUTLET_NOT_ACTIVE');
     const c = this.resolveCampaign(u.id, r.state_id); if (!c) fail('NO_ACTIVE_CAMPAIGN', "No active campaign covers this outlet's state.");
     const p = this.t('products').find((x) => x.id === p_product_id && x.is_active); if (!p) fail('PRODUCT_NOT_ALLOWED');
+    if (p.state_id && p.state_id !== r.state_id) fail('PRODUCT_NOT_ALLOWED', 'This SKU is not available in the selected region.');
     const cps = this.t('campaign_products').filter((x) => x.campaign_id === c.id);
     if (cps.length && !cps.some((x) => x.product_id === p.id)) fail('PRODUCT_NOT_ALLOWED', 'This SKU is not part of the campaign.');
     if (!p_quantity || p_quantity < 1 || p_quantity > c.max_quantity_per_sale) fail('INVALID_QUANTITY', `Quantity must be 1–${c.max_quantity_per_sale}`);
@@ -201,14 +204,29 @@ export class Engine {
     return { sale_id: p_sale_id, status: 'open', spins_allowed: c.spins_per_sale, spins_used: 0, replayed: false };
   }
 
+  capture_sale_customer({ p_sale_id, p_name, p_phone }) {
+    const u = this.requirePromoter();
+    const sale = this.t('sales').find((x) => x.id === p_sale_id && x.promoter_id === u.id);
+    if (!sale) fail('SALE_NOT_FOUND');
+    if (!String(p_name || '').trim()) fail('CUSTOMER_NAME_REQUIRED');
+    if (sale.status !== 'open' || this.t('spins').some((x) => x.sale_id === sale.id)) fail('SALE_ALREADY_SPUN');
+    let consumer = this.t('consumers').find((x) => x.id === sale.consumer_id);
+    if (!consumer) { consumer = { id: uuid(), consent: false, created_at: this.now().toISOString() }; this.t('consumers').push(consumer); sale.consumer_id = consumer.id; }
+    consumer.name = String(p_name).trim(); consumer.mobile = String(p_phone || '').trim() || null;
+    this.audit('CUSTOMER_CAPTURED', 'sales', sale.id, { phone_provided: !!consumer.mobile });
+    return { ok: true };
+  }
+
   getAllocation(c, key) {
     let list = this.t('campaign_allocations');
     if (!list) { list = []; this.db.campaign_allocations = list; }
     let alloc = list.find((a) => a.campaign_id === c.id && a.scope === c.pool_scope && a.scope_key === key);
     if (!alloc) {
       const salesById = new Map(this.t('sales').map((s) => [s.id, s]));
+      const launchLedger = key.endsWith(':snack-launch');
       const existingSpins = this.t('spins').filter((sp) => {
         if (sp.campaign_id !== c.id || sp.redemption_status === 'not_redeemed') return false;
+        if (launchLedger ? sp.allocation_phase !== 'snack_launch' : sp.allocation_phase === 'snack_launch') return false;
         const sale = salesById.get(sp.sale_id);
         return c.pool_scope === 'campaign' || (c.pool_scope === 'promoter' && sp.promoter_id === key)
           || (c.pool_scope === 'outlet' && sale?.outlet_id === key)
@@ -233,9 +251,12 @@ export class Engine {
   }
 
   drawCumulativePrize(c, cfg, promoterId, key) {
-    const alloc = this.getAllocation(c, key);
+    const launch = !!c.snack_launch_active;
+    const alloc = this.getAllocation(c, launch ? `${key}:snack-launch` : key);
     const n = alloc.total_spins + 1;
-    const items = this.t('prize_config_items').filter((i) => i.config_id === cfg.id);
+    const allItems = this.t('prize_config_items').filter((i) => i.config_id === cfg.id);
+    const items = launch ? allItems.filter((i) => ['SNACK5', 'SNACK10'].includes(this.t('prizes').find((p) => p.id === i.prize_id)?.code)) : allItems;
+    if (launch && c.track_inventory && items.some((i) => this.avail(promoterId, i.prize_id) <= 0)) fail('OUT_OF_STOCK', 'Both snack prizes must be in stock during the temporary 85/15 launch phase.');
     const refSize = cfg.pool_size || 200;
 
     if (c.track_inventory && c.oos_mode === 'block'
@@ -252,7 +273,8 @@ export class Engine {
     let bestCost = null;
 
     for (const it of items) {
-      const pct = it.percentage != null && it.percentage > 0 ? Number(it.percentage) : (Number(it.quantity) / refSize) * 100;
+      const code = this.t('prizes').find((p) => p.id === it.prize_id)?.code;
+      const pct = launch ? (code === 'SNACK5' ? 85 : 15) : (it.percentage != null && it.percentage > 0 ? Number(it.percentage) : (Number(it.quantity) / refSize) * 100);
       if (pct <= 0) continue;
       const stock = c.track_inventory ? this.avail(promoterId, it.prize_id) : 99999;
       const actual = Number(alloc.awarded[it.prize_id] || 0);
@@ -344,7 +366,8 @@ export class Engine {
       campaign_id: c.id, promoter_id: u.id, biz_date: istDate(d), created_at: d.toISOString(), strategy: c.draw_strategy, pool_id: null,
       slot_position: null, config_id: cfg.id, config_version: cfg.version, prize_id: pz.id, prize_code: pz.code, prize_name: pz.name,
       prize_tier: pz.tier, prize_cost: Number(cost), original_prize_id: null, substituted: false, redemption_status: 'pending', handed_over_at: null,
-      inventory_status: c.track_inventory ? 'reserved' : 'not_tracked', resolved_by: null, resolution_note: null, device_ref: p_device_ref || s.device_ref };
+      inventory_status: c.track_inventory ? 'reserved' : 'not_tracked', allocation_phase: c.snack_launch_active ? 'snack_launch' : 'standard',
+      resolved_by: null, resolution_note: null, device_ref: p_device_ref || s.device_ref };
     this.t('spins').push(row);
     s.spins_used++; s.status = 'spun';
     this.audit('SPIN', 'spins', spinId, { sale_id: s.id, prize: pz.code, cost: Number(cost), config_version: cfg.version, cumulative_spins: drawn.total_spins });
@@ -705,8 +728,11 @@ export class Engine {
           for (let i = 0; i < n; i++) {
             t += (60 + Math.floor(rnd() * 900)) * 1000; this.clock = t;
             const outlet = outlets[i % outlets.length]; if (i === 0 || i === Math.floor(n / 2)) this.set_work_context({ p_outlet_id: outlet });
+            const o = this.t('outlets').find((x) => x.id === outlet), tse = this.t('tses').find((x) => x.id === o?.tse_id);
+            const territory = this.t('territories').find((x) => x.id === tse?.territory_id);
+            const regionalProducts = products.filter((id) => !this.t('products').find((x) => x.id === id)?.state_id || this.t('products').find((x) => x.id === id)?.state_id === territory?.state_id);
             const sale = uuid();
-            this.record_sale({ p_sale_id: sale, p_outlet_id: outlet, p_product_id: products[Math.floor(rnd() * products.length)], p_quantity: 1 + Math.floor(rnd() * 3) });
+            this.record_sale({ p_sale_id: sale, p_outlet_id: outlet, p_product_id: regionalProducts[Math.floor(rnd() * regionalProducts.length)], p_quantity: 1 + Math.floor(rnd() * 3) });
             this.clock = t + 20000; const r = this.play_spin({ p_sale_id: sale });
             this.clock = t + 45000; this.confirm_handover({ p_spin_id: r.spin_id });
           }

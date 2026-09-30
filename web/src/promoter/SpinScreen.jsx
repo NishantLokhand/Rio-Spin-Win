@@ -30,7 +30,7 @@ export default function SpinScreen({ flight, onResolved, onLanded, onCancelled, 
     const started = Date.now();
     try {
       // Server draws the prize. Same sale id + spin no → same result on every retry.
-      const result = await rpc('play_spin', { p_sale_id: flight.saleId, p_spin_no: flight.spinNo || 1, p_device_ref: deviceRef() }, { retries: 4 });
+      const result = await rpc('play_spin', { p_sale_id: flight.saleId, p_spin_no: flight.spinNo || 1, p_device_ref: deviceRef() }, { retries: 2, timeoutMs: 12000 });
       onResolved(result);
       const wait = Math.max(0, 700 - (Date.now() - started));
       await new Promise((r) => setTimeout(r, wait));
@@ -39,7 +39,7 @@ export default function SpinScreen({ flight, onResolved, onLanded, onCancelled, 
       onLanded();
     } catch (e) {
       busy.current = false;
-      if (e.network) { setPhase('retry'); return; }
+      if (e.network) { wheel.current.pause(); setPhase('retry'); return; }
       wheel.current.reset(); setPhase('ready');
       say(friendly(e), 'err');
       if (e.code === 'SALE_CANCELLED' || e.code === 'SALE_NOT_FOUND') onCancelled();
@@ -71,7 +71,7 @@ export default function SpinScreen({ flight, onResolved, onLanded, onCancelled, 
         {(phase === 'spinning' || phase === 'landing') && <div className="spin-status">Good luck! 🤞</div>}
         {phase === 'retry' && (
           <div className="spin-retry">
-            <p>Weak signal — reconnecting…</p>
+            <p>We haven’t confirmed the result yet. Retry safely; the same sale cannot draw a second prize.</p>
             <button className="btn-spin small" onClick={() => { busy.current = false; spin(); }}>TRY AGAIN</button>
           </div>
         )}

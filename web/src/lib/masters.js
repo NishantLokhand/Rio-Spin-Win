@@ -2,7 +2,9 @@
 import { selectAll } from './api.js';
 import { store } from './store.js';
 
-const KEY = 'rio.masters';
+// Bump cache key when product/state rules change so installed promoter devices
+// refresh the regional SKU catalogue immediately after deployment.
+const KEY = 'rio.masters.v2';
 
 export function cachedMasters() { return store.get(KEY); }
 
@@ -15,7 +17,7 @@ export async function loadMasters({ force = false } = {}) {
       selectAll('territories', 'id,code,name,state_id', (q) => q.eq('status', 'active').order('name')),
       selectAll('tses', 'id,code,name,territory_id', (q) => q.eq('status', 'active').order('name')),
       selectAll('outlets', 'id,outlet_code,name,area,city,tse_id', (q) => q.eq('status', 'active').order('name')),
-      selectAll('products', 'id,sku_code,name,pack,size_ml,sort_order', (q) => q.eq('is_active', true).order('sort_order')),
+      selectAll('products', 'id,sku_code,name,pack,size_ml,state_id,sort_order', (q) => q.eq('is_active', true).order('sort_order')),
       selectAll('prizes', 'id,code,name,short_name,tier,wheel_label,win_title,win_subtitle,image_url,sort_order', (q) => q.eq('is_active', true).order('sort_order')),
     ]);
     const m = { at: Date.now(), states, territories, tses, outlets, products, prizes };

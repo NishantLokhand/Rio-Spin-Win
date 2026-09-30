@@ -31,8 +31,9 @@ Do not rerun `ALL_IN_ONE.sql` on a project that already has the app schema. In S
 
 1. `supabase/migrations/20260929000100_cumulative_allocation.sql`
 2. `supabase/migrations/20260929000200_cumulative_campaign_defaults.sql`
+3. `supabase/migrations/20260930000100_regional_customers_launch_phase.sql`
 
-The first migration adds the percentage configuration, private allocation ledger, atomic spin allocator, and filtered prize-share report. The allocation RPC uses cumulative quotas for all new draws. The second switches active campaigns to a campaign-wide allocation scope. Existing spin rows and historical prize results are retained. Review the active campaign scope change with the campaign owner before resuming live spins.
+The first two migrations add cumulative percentage allocation, a private ledger, reporting, and campaign-wide scope. The third adds the regional can catalogue and customer capture, and adds the manual launch toggle. Existing spin and sale records are retained. For the opening promotion, an admin enables **Temporary launch phase** in Campaigns; after senior confirmation, turn it off to resume the saved standard prize allocation.
 
 ## Step 3 — Security setting: stop public sign-ups
 1. Go to **Authentication → Sign In / Providers**. In older dashboards this is **Authentication → Providers → Email**.

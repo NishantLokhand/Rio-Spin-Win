@@ -1,0 +1,228 @@
+Package Report
+
+-----------------------------------------------------------------------------
+Document:
+Name: Rio Spin and Win 2026.ai
+Color Mode: RGB color
+Color Profile: sRGB IEC61966-2.1
+Ruler Units: pixels
+Artboard Dimensions: 513 px x 513 px
+Show Images in Outline Mode: OFF
+Highlight Substituted Fonts: OFF
+Highlight Substituted Glyphs: OFF
+Preserve Text Editability
+Simulate Colored Paper: OFF
+
+-----------------------------------------------------------------------------
+Spot Color Objects:
+
+-----------------------------------------------------------------------------
+Missing Fonts:NONE
+
+-----------------------------------------------------------------------------
+Protected Fonts that were not packaged:NONE
+
+-----------------------------------------------------------------------------
+Fonts:
+Arial Black (TrueType)
+Bebas Neue Pro (OTF)
+Myriad Pro (OTF)
+
+-----------------------------------------------------------------------------
+Embedded Fonts:
+NONE
+
+-----------------------------------------------------------------------------
+Missing Links:
+NONE
+
+-----------------------------------------------------------------------------
+Linked Images:
+
+D:\$ COMPCARE DONT DEL\USERS\Downloads\ChatGPT Image Sep 29, 2026, 06_14_34 PM.png
+Type: Transparent RGB
+Bits per Pixel: 32
+Channels: 4
+Size: 6141K, 1271 by 1237 pixels
+Dimensions: 426.796 by 420.075 points 
+Resolution: 214.416 by 212.019 pixels per inch
+
+
+D:\$ COMPCARE DONT DEL\USERS\Downloads\ChatGPT Image Sep 29, 2026, 06_09_39 PM.png
+Type: Transparent RGB
+Bits per Pixel: 32
+Channels: 4
+Size: 6142K, 1254 by 1254 pixels
+Dimensions: 450.155 by 450.155 points 
+Resolution: 200.571 by 200.571 pixels per inch
+
+
+D:\$ COMPCARE DONT DEL\USERS\Downloads\ChatGPT Image Sep 29, 2026, 06_09_39 PM.png
+Type: Transparent RGB
+Bits per Pixel: 32
+Channels: 4
+Size: 6142K, 1254 by 1254 pixels
+Dimensions: 591.83 by 591.83 points 
+Resolution: 152.557 by 152.557 pixels per inch
+
+
+D:\$ COMPCARE DONT DEL\USERS\Downloads\Rio 10x10 feet backdrop_Folder\Links\Rio Gold can AI-Gen.png
+Type: Transparent RGB
+Bits per Pixel: 32
+Channels: 4
+Size: 56338K, 3101 by 4651 pixels
+Dimensions: 332.972 by 499.404 points 
+Resolution: 670.543 by 670.543 pixels per inch
+
+
+D:\$ COMPCARE DONT DEL\USERS\Downloads\Rio Backdrop Latest_Folder\Links\Rio Gold UP Bottle shot-04.png
+Type: Transparent RGB
+Bits per Pixel: 32
+Channels: 4
+Size: 73706K, 3167 by 5958 pixels
+Dimensions: 297.218 by 559.149 points 
+Resolution: 767.194 by 767.195 pixels per inch
+
+
+D:\$ COMPCARE DONT DEL\USERS\Downloads\UP Rio Gold Can.png
+Type: Transparent RGB
+Bits per Pixel: 32
+Channels: 4
+Size: 43342K, 2040 by 5439 pixels
+Dimensions: 187.311 by 499.404 points 
+Resolution: 784.15 by 784.15 pixels per inch
+
+
+D:\$ COMPCARE DONT DEL\USERS\Downloads\Rio 10x10 feet backdrop_Folder\Links\Rio Red Can AI-Gen.png
+Type: Transparent RGB
+Bits per Pixel: 32
+Channels: 4
+Size: 56338K, 3101 by 4651 pixels
+Dimensions: 332.972 by 499.404 points 
+Resolution: 670.543 by 670.543 pixels per inch
+
+
+C:\Users\HIMANSHU\OneDrive\Pictures\Screenshot 2026-09-29 161628.png
+Type: Transparent RGB
+Bits per Pixel: 32
+Channels: 4
+Size: 61K, 220 by 72 pixels
+Dimensions: 359.959 by 117.805 points 
+Resolution: 44.005 by 44.005 pixels per inch
+
+
+C:\Users\HIMANSHU\OneDrive\Pictures\Screenshot 2026-09-29 161626.png
+Type: Transparent RGB
+Bits per Pixel: 32
+Channels: 4
+Size: 42K, 200 by 55 pixels
+Dimensions: 327.236 by 89.99 points 
+Resolution: 44.005 by 44.005 pixels per inch
+
+
+C:\Users\HIMANSHU\OneDrive\Pictures\Screenshot 2026-09-29 161623.png
+Type: Transparent RGB
+Bits per Pixel: 32
+Channels: 4
+Size: 53K, 228 by 60 pixels
+Dimensions: 373.049 by 98.171 points 
+Resolution: 44.005 by 44.005 pixels per inch
+
+
+C:\Users\HIMANSHU\OneDrive\Pictures\Screenshot 2026-09-29 161620.png
+Type: Transparent RGB
+Bits per Pixel: 32
+Channels: 4
+Size: 28K, 145 by 50 pixels
+Dimensions: 237.246 by 81.809 points 
+Resolution: 44.005 by 44.005 pixels per inch
+
+
+D:\$ COMPCARE DONT DEL\USERS\Downloads\ChatGPT Image Sep 30, 2026, 10_45_24 AM.png
+Type: RGB
+Bits per Pixel: 25
+Channels: 3
+Size: 4606K, 1254 by 1254 pixels
+Dimensions: 2048 by 2048 points 
+Resolution: 44.086 by 44.086 pixels per inch
+
+
+D:\$ COMPCARE DONT DEL\USERS\Downloads\ChatGPT Image Sep 30, 2026, 10_45_59 AM.png
+Type: RGB
+Bits per Pixel: 25
+Channels: 3
+Size: 4607K, 841 by 1870 pixels
+Dimensions: 1080 by 2401.427 points 
+Resolution: 56.067 by 56.067 pixels per inch
+
+
+D:\$ COMPCARE DONT DEL\USERS\Downloads\ChatGPT Image Sep 30, 2026, 10_46_30 AM.png
+Type: RGB
+Bits per Pixel: 25
+Channels: 3
+Size: 4607K, 841 by 1870 pixels
+Dimensions: 1080 by 2401.427 points 
+Resolution: 56.067 by 56.067 pixels per inch
+
+
+D:\$ COMPCARE DONT DEL\USERS\Downloads\Wineout District Vertical Lokhandwala_Folder\Links\GDWC new logo white.png
+Type: Transparent RGB
+Bits per Pixel: 32
+Channels: 4
+Size: 50625K, 3600 by 3600 pixels
+Dimensions: 232.851 by 232.851 points 
+Resolution: 1113.158 by 1113.158 pixels per inch
+
+
+D:\$ COMPCARE DONT DEL\USERS\Downloads\rio speaker haldiram poster_Folder\Links\Rio logo-03 (2).png
+Type: Transparent RGB
+Bits per Pixel: 32
+Channels: 4
+Size: 218637K, 10772 by 5196 pixels
+Dimensions: 387.32 by 186.828 points 
+Resolution: 2002.44 by 2002.44 pixels per inch
+
+
+C:\Users\HIMANSHU\OneDrive\Pictures\Screenshot 2026-09-29 161617.png
+Type: Transparent RGB
+Bits per Pixel: 32
+Channels: 4
+Size: 45K, 161 by 72 pixels
+Dimensions: 263.425 by 117.805 points 
+Resolution: 44.005 by 44.005 pixels per inch
+
+
+D:\$ COMPCARE DONT DEL\USERS\Downloads\ChatGPT Image Sep 29, 2026, 06_25_04 PM.png
+Type: Transparent RGB
+Bits per Pixel: 32
+Channels: 4
+Size: 6144K, 1312 by 1199 pixels
+Dimensions: 635.83 by 581.067 points 
+Resolution: 148.568 by 148.568 pixels per inch
+
+
+D:\$ COMPCARE DONT DEL\USERS\Downloads\Generative Fill.png
+Type: Transparent RGB
+Bits per Pixel: 32
+Channels: 4
+Size: 4745K, 1953 by 622 pixels
+Dimensions: 630.384 by 570.63 points 
+Resolution: 223.064 by 78.482 pixels per inch
+
+
+D:\$ COMPCARE DONT DEL\USERS\Downloads\ChatGPT Image Sep 29, 2026, 06_46_37 PM.png
+Type: Transparent RGB
+Bits per Pixel: 32
+Channels: 4
+Size: 6144K, 1536 by 1024 pixels
+Dimensions: 788.43 by 679.879 points 
+Resolution: 140.269 by 108.443 pixels per inch
+
+
+D:\$ COMPCARE DONT DEL\USERS\Downloads\ChatGPT Image Sep 30, 2026, 12_56_52 PM.png
+Type: RGB
+Bits per Pixel: 25
+Channels: 3
+Size: 4609K, 941 by 1672 pixels
+Dimensions: 1350.718 by 2400 points 
+Resolution: 50.16 by 50.16 pixels per inch

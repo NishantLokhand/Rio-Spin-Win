@@ -2,13 +2,13 @@
 
 Good Drop Wine Cellars · consumer spot-selling activations · campaign **RIO SPIN & WIN 2026**
 
-Customer buys Rio → promoter records the sale (3 taps) → customer spins the wheel → server decides the prize from a controlled pool → promoter hands it over → stock and reports update.
+Customer buys Rio → promoter records the regional SKU and quantity, captures the customer name (phone optional), then starts the spin → server decides the prize cumulatively → promoter hands it over → stock and reports update.
 
 ```
 rio-spin-win/
 ├─ supabase/
-│  ├─ migrations/        6 SQL files — run in order (schema, core, spin engine, admin API, security, storage)
-│  ├─ seed.sql           demo hierarchy, 4 SKUs, 5 prizes, campaign + 200-spin prize structure
+│  ├─ migrations/        ordered schema, security, cumulative allocation, regional SKU and customer capture migrations
+│  ├─ seed.sql           demo hierarchy, prizes, campaign + 200-spin prize structure
 │  └─ functions/admin-users/   Edge Function: create users, reset PIN, enable/disable
 ├─ web/                  React (Vite) mobile-first web app — promoter + supervisor + admin
 ├─ scripts/create-users.mjs    bootstrap first admin / demo users

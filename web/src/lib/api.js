@@ -26,6 +26,7 @@ const MESSAGES = {
   TSE_REQUIRED: 'Select a TSE for the outlet.',
   OUTLET_CODE_EXISTS: 'That outlet code already exists.',
   VALIDATION_REQUIRED: 'Required sale validation missing.',
+  CUSTOMER_NAME_REQUIRED: 'Customer name is required before the spin.',
 };
 
 export class ApiError extends Error {
@@ -36,14 +37,24 @@ export class ApiError extends Error {
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const isNetwork = (err) => !err?.code && /fetch|network|load failed|timeout/i.test(err?.message || '');
+const isNetwork = (err) => !err?.code && /fetch|network|load failed|timeout|abort/i.test(err?.message || '');
 
 /** Call a Postgres function. Our write RPCs are idempotent, so retries are safe. */
-export async function rpc(fn, args = {}, { retries = 0 } = {}) {
+export async function rpc(fn, args = {}, { retries = 0, timeoutMs = 0 } = {}) {
   for (let attempt = 0; ; attempt++) {
     let res;
     try {
-      res = await supabase.rpc(fn, args);
+      const request = supabase.rpc(fn, args);
+      if (timeoutMs > 0 && typeof AbortController !== 'undefined' && request.abortSignal) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        try { res = await request.abortSignal(controller.signal); }
+        finally { clearTimeout(timer); }
+      } else if (timeoutMs > 0) {
+        let timer;
+        try { res = await Promise.race([request, new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('Request timeout')), timeoutMs); })]); }
+        finally { clearTimeout(timer); }
+      } else res = await request;
     } catch (e) {
       res = { error: { message: String(e?.message || e) } };
     }

@@ -155,7 +155,7 @@ export default function PromoterApp({ profile, onLogout }) {
       )}
 
       {view === 'sale' && ctx && (
-        <SaleFlow ctx={ctx} products={masters?.products || []} online={online}
+        <SaleFlow ctx={ctx} products={(masters?.products || []).filter((p) => !p.state_id || p.state_id === ctx.stateId)} online={online}
                   onRecorded={saleRecorded} onBack={() => setView('home')}
                   onPending={() => refreshHome()} say={say} />
       )}

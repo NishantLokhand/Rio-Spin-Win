@@ -56,7 +56,8 @@ const Wheel = forwardRef(function Wheel({ onSwipe, disabled }, ref) {
   }, []);
 
   useImperativeHandle(ref, () => ({
-    start() { const s = st.current; s.mode = 'free'; s.vel = Math.max(s.vel, 200); },
+    start() { const s = st.current; const wasStopped = s.mode === 'stopped'; s.mode = 'free'; s.vel = Math.max(s.vel, 200); if (wasStopped) s.raf = requestAnimationFrame(loop); },
+    pause() { const s = st.current; s.mode = 'stopped'; cancelAnimationFrame(s.raf); apply(); },
     /** land on one of the allowed segment labels; resolves when stopped */
     landOn(labels) {
       return new Promise((resolve) => {
