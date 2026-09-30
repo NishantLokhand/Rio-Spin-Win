@@ -20,6 +20,7 @@ where product_id is not null and quantity > 0
 on conflict (sale_id, product_id) do nothing;
 
 alter table public.sale_items enable row level security;
+drop policy if exists sale_items_read on public.sale_items;
 create policy sale_items_read on public.sale_items for select to authenticated
   using (exists (select 1 from public.sales s where s.id = sale_id and public.can_see_promoter(s.promoter_id)));
 revoke all on public.sale_items from anon;
