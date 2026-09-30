@@ -8,41 +8,41 @@
 @font-face { font-family: 'Rio Myriad'; src: url('/brand/fonts/myriad-pro-regular.otf') format('opentype'); font-style: normal; font-weight: 400; font-display: swap; }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body, #root { margin: 0; min-height: 100%; }
-body { font-family: var(--sans); background: var(--night); color: #fff; overscroll-behavior-y: none; }
+body { font-family: var(--sans); background: #E3A11A; color: #35250D; overscroll-behavior-y: none; }
 button { font-family: inherit; cursor: pointer; }
 input, select, textarea { font-family: inherit; font-size: 16px; }
 
-.boot { min-height: 100vh; display: grid; place-items: center; align-content: center; gap: 16px; font-family: var(--display); color: var(--yellow); }
+.boot { min-height: 100vh; display: grid; place-items: center; align-content: center; gap: 16px; font-family: var(--display); color: #35250D; background: linear-gradient(145deg, #F5C24D, #D78E0B); }
 .boot-wheel, .mini-wheel { width: 84px; height: 84px; border-radius: 50%;
   background: conic-gradient(var(--pink) 0 45deg, var(--yellow) 0 90deg, var(--purple) 0 135deg, var(--cyan) 0 180deg, var(--orange) 0 225deg, var(--pink) 0 270deg, var(--green) 0 315deg, var(--purple) 0 360deg);
   border: 5px solid var(--yellow); animation: spin 1.6s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ---------- Login ---------- */
-.login { min-height: 100vh; padding: 28px 18px; display: flex; flex-direction: column; gap: 24px; justify-content: center;
-  background: radial-gradient(circle at 20% 0%, #5b1fb8 0, transparent 55%), radial-gradient(circle at 100% 100%, #b3124a 0, transparent 50%), var(--night); }
-.login-hero { text-align: center; display: grid; justify-items: center; gap: 10px; }
+.login { min-height: 100vh; padding: 28px 18px; display: flex; flex-direction: column; gap: 20px; justify-content: center; color: #35250D;
+  background: radial-gradient(ellipse at 50% 0%, rgba(255,226,143,.72), transparent 58%), linear-gradient(145deg, #F3BD43 0%, #E3A11A 54%, #D48A0A 100%); }
+.login-hero { text-align: center; display: grid; justify-items: center; gap: 8px; width: min(340px, 100%); margin: 0 auto; padding: 16px 24px 12px; background: #35250D; border: 1px solid rgba(255,255,255,.16); border-radius: 24px; box-shadow: 0 12px 30px rgba(62,39,4,.2); }
 .login-brand-logo { display: block; width: min(250px, 72vw); max-height: 120px; object-fit: contain; }
-.login-gdwc-logo { display: block; width: 74px; height: 74px; object-fit: contain; opacity: .9; }
+.login-gdwc-logo { display: block; width: 54px; height: 54px; object-fit: contain; opacity: .9; }
 .mini-wheel { animation-duration: 6s; }
-.brand { font-family: var(--display); font-size: 44px; line-height: 1; margin: 0; color: var(--yellow); text-shadow: 4px 4px 0 var(--pink); letter-spacing: 1px; }
-.brand-sub { margin: 0; opacity: .8; font-size: 14px; }
-.login-card { background: #fff; color: var(--ink); border-radius: 22px; padding: 22px; display: grid; gap: 14px; max-width: 420px; width: 100%; margin: 0 auto; box-shadow: 0 16px 40px rgba(0,0,0,.35); }
+.brand { font-family: var(--display); font-size: 44px; line-height: 1; margin: 0; color: #F3BD43; text-shadow: 2px 3px 0 #A51F32; letter-spacing: 1px; }
+.brand-sub { margin: 0; color: #F8E9C7; opacity: .9; font-size: 13px; font-weight: 700; letter-spacing: 1.8px; text-transform: uppercase; }
+.login-card { background: #FFF9EC; color: #35250D; border: 1px solid rgba(93,62,13,.16); border-radius: 22px; padding: 22px; display: grid; gap: 14px; max-width: 420px; width: 100%; margin: 0 auto; box-shadow: 0 18px 42px rgba(62,39,4,.24); }
 .login-card label { display: grid; gap: 6px; font-weight: 700; font-size: 14px; }
-.login-card input { padding: 14px; border: 2px solid #ddd; border-radius: 12px; font-size: 18px; width: 100%; }
-.login-card input:focus { outline: none; border-color: var(--purple); }
+.login-card input { padding: 14px; border: 1.5px solid #D9CBAA; border-radius: 12px; font-size: 18px; width: 100%; background: #fffdfa; color: #35250D; }
+.login-card input:focus { outline: 3px solid rgba(227,161,26,.24); border-color: #B87908; }
 .pin-row { display: flex; gap: 8px; }
-.ghost { background: none; border: 2px solid #ddd; border-radius: 12px; padding: 0 12px; font-weight: 700; color: var(--ink); }
+.ghost { background: #F3E8D0; border: 1px solid #D9CBAA; border-radius: 12px; padding: 0 12px; font-weight: 700; color: #35250D; }
 .err { background: #ffe3ea; color: #b0002f; border-radius: 10px; padding: 10px 12px; font-weight: 600; }
 .err.big { font-size: 17px; margin: 12px 0; }
-.btn-primary { background: var(--pink); color: #fff; border: 0; border-radius: 14px; padding: 14px 18px; font-weight: 800; font-size: 16px; }
-.btn-primary.big { font-size: 20px; padding: 18px; font-family: var(--display); letter-spacing: 1px; box-shadow: 0 6px 0 #b0002f; }
+.btn-primary { background: #A51F32; color: #fff; border: 0; border-radius: 14px; padding: 14px 18px; font-weight: 800; font-size: 16px; }
+.btn-primary.big { font-size: 20px; padding: 18px; font-family: var(--display); letter-spacing: 1px; box-shadow: 0 6px 0 #741326; }
 .btn-primary:disabled { opacity: .6; }
 
 /* ---------- demo mode ---------- */
 .demo-ribbon { position: fixed; bottom: 0; left: 0; right: 0; z-index: 100; text-align: center; font-size: 11px; font-weight: 800; letter-spacing: .5px;
   background: repeating-linear-gradient(45deg, #FFD23F, #FFD23F 10px, #ffe27a 10px, #ffe27a 20px); color: #1B0B3A; padding: 3px; pointer-events: none; }
-.demo-card { background: rgba(255,255,255,.1); border: 2px dashed rgba(255,210,63,.6); border-radius: 18px; padding: 14px; display: grid; gap: 8px; max-width: 420px; width: 100%; margin: 0 auto; }
+.demo-card { background: #35250D; color: #fff5df; border: 1px solid rgba(255,255,255,.2); border-radius: 18px; padding: 14px; display: grid; gap: 8px; max-width: 420px; width: 100%; margin: 0 auto; }
 .demo-card > button { background: #fff; color: #1B0B3A; border: 0; border-radius: 12px; padding: 10px 12px; text-align: left; font-weight: 800; display: grid; }
 .demo-card > button small { font-weight: 600; color: #6b5a8f; }
 .demo-card .demo-reset { background: transparent; color: #ffb3c6; border: 1px solid rgba(255,179,198,.5); text-align: center; }

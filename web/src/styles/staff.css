@@ -1,22 +1,22 @@
 /* ================= SUPERVISOR / ADMIN — clean, data-focused ================= */
 .s-app {
   --bg: #f5f6fa; --surface: #ffffff; --line: #e5e7ef; --text: #1d2033; --text2: #5b6078; --muted: #8a8fa6;
-  --accent: #6d28d9; --accent-soft: #efe8fd; --good: #15803d; --warn: #b45309; --bad: #b91c1c; --bar: #6d28d9;
+  --accent: #94610A; --accent-soft: #FFF1C8; --good: #15803d; --warn: #b45309; --bad: #b91c1c; --bar: #D29314;
   display: flex; min-height: 100vh; background: var(--bg); color: var(--text); font-size: 14px;
 }
 @media (prefers-color-scheme: dark) {
   .s-app { --bg: #12131a; --surface: #1b1d27; --line: #2c2f3d; --text: #e9eaf2; --text2: #b3b6c8; --muted: #7f8399;
-    --accent: #a78bfa; --accent-soft: #2a2342; --good: #4ade80; --warn: #fbbf24; --bad: #f87171; --bar: #a78bfa; }
+    --accent: #E5B342; --accent-soft: #3C3019; --good: #4ade80; --warn: #fbbf24; --bad: #f87171; --bar: #E5B342; }
 }
-.s-side { width: 236px; flex-shrink: 0; background: #1B0B3A; color: #fff; display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; }
-.s-brand { font-family: var(--display); color: var(--yellow); font-size: 17px; padding: 18px 16px 12px; }
-.s-brand small { display: block; font-family: var(--sans); color: #c9bff0; font-size: 12px; font-weight: 600; margin-top: 4px; }
+.s-side { width: 236px; flex-shrink: 0; background: #35250D; color: #fff9ec; display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; }
+.s-brand { font-family: var(--display); color: #F3BD43; font-size: 17px; padding: 18px 16px 12px; }
+.s-brand small { display: block; font-family: var(--sans); color: #E7D6B5; font-size: 12px; font-weight: 600; margin-top: 4px; }
 .s-side nav { flex: 1; overflow-y: auto; padding: 4px 8px; display: grid; gap: 2px; align-content: start; }
-.s-side nav button { text-align: left; background: none; border: 0; color: #ddd6fe; padding: 9px 10px; border-radius: 8px; font-size: 14px; font-weight: 600; display: flex; gap: 10px; align-items: center; }
-.s-side nav button:hover { background: rgba(255,255,255,.07); }
-.s-side nav button.on { background: rgba(255,210,63,.16); color: #fff; }
+.s-side nav button { text-align: left; background: none; border: 0; color: #E8D9BA; padding: 9px 10px; border-radius: 8px; font-size: 14px; font-weight: 600; display: flex; gap: 10px; align-items: center; }
+.s-side nav button:hover { background: rgba(255,255,255,.08); }
+.s-side nav button.on { background: rgba(243,189,67,.2); color: #FFE5A0; }
 .s-nav-ico { width: 18px; text-align: center; opacity: .8; }
-.s-nav-section { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #9d8fd0; padding: 14px 10px 4px; }
+.s-nav-section { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #C6A55F; padding: 14px 10px 4px; }
 .s-user { border-top: 1px solid rgba(255,255,255,.1); padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; gap: 8px; font-weight: 700; }
 .s-user small { display: block; font-weight: 500; color: #b8acdf; font-size: 12px; }
 .s-user .s-btn.ghost { color: #fff; border-color: rgba(255,255,255,.3); }
