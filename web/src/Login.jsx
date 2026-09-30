@@ -20,9 +20,9 @@ export default function Login({ error: initialError }) {
   return (
     <div className="login">
       <div className="login-hero">
-        <div className="mini-wheel" aria-hidden />
-        <h1 className="brand">RIO<br />SPIN &amp; WIN</h1>
-        <p className="brand-sub">Good Drop Wine Cellars · Field App</p>
+        <img className="login-brand-logo" src="/brand/rio-logo-white.png" alt="Rio Spin &amp; Win" />
+        <img className="login-gdwc-logo" src="/brand/gdwc-logo-white.png" alt="Good Drop Wine Cellars" />
+        <p className="brand-sub">Field App</p>
       </div>
       <form className="login-card" onSubmit={submit}>
         <label>Mobile number or username

@@ -10,9 +10,18 @@ const DEFAULTS = {
   jackpot: { title: '🎵 RIO PARTY JACKPOT! 🎵', sub: 'YOU WON A BLUETOOTH SPEAKER!', icon: '🔊' },
 };
 
+const PRIZE_ART = {
+  SNACK5: '/brand/snack-5.png',
+  SNACK10: '/brand/snack-10.png',
+  RIODARE: '/brand/rio-dare-cards.png',
+  SHADES: '/brand/rio-shades.png',
+  SPEAKER: '/brand/party-speaker.png',
+};
+
 export default function WinScreen({ spin, onHandedOver, say }) {
   const p = spin.prize;
   const d = DEFAULTS[p.tier] || DEFAULTS.standard;
+  const prizeImage = p.image_url || PRIZE_ART[p.code];
   const [busy, setBusy] = useState(false);
   const [confirm, setConfirm] = useState(false);
 
@@ -34,12 +43,14 @@ export default function WinScreen({ spin, onHandedOver, say }) {
       <Confetti tier={p.tier} />
       <div className="win-rays" aria-hidden />
       <div className="win-body">
+        <img className="win-brand-logo" src="/brand/rio-logo-white.png" alt="Rio Spin &amp; Win" />
         <h1 className="win-title">{p.win_title || d.title}</h1>
         <div className="win-prize">
-          {p.image_url ? <img src={p.image_url} alt={p.name} /> : <div className="win-icon">{d.icon}</div>}
+          {prizeImage ? <img src={prizeImage} alt={p.name} /> : <div className="win-icon">{d.icon}</div>}
         </div>
         <h2 className="win-sub">{p.win_subtitle || d.sub}</h2>
         <div className="win-name">{p.name}</div>
+        <img className="win-gdwc-logo" src="/brand/gdwc-logo-white.png" alt="Good Drop Wine Cellars" />
       </div>
 
       <div className="handover">

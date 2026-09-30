@@ -58,7 +58,7 @@ export default function SpinScreen({ flight, onResolved, onLanded, onCancelled, 
         <button className="spin-cancel" onClick={() => setConfirmCancel(true)} aria-label="Cancel sale">✕</button>
       )}
       <header className="spin-head">
-        <div className="spin-brand">RIO SPIN &amp; WIN</div>
+        <img className="spin-brand" src="/brand/rio-logo-white.png" alt="Rio Spin &amp; Win" />
         <h1>BUY RIO. SPIN. WIN.</h1>
         <p className="tag">HAR SPIN MEIN PRIZE!</p>
       </header>
@@ -75,6 +75,7 @@ export default function SpinScreen({ flight, onResolved, onLanded, onCancelled, 
             <button className="btn-spin small" onClick={() => { busy.current = false; spin(); }}>TRY AGAIN</button>
           </div>
         )}
+        <img className="spin-gdwc-logo" src="/brand/gdwc-logo-white.png" alt="Good Drop Wine Cellars" />
       </div>
 
       {handoff && phase === 'ready' && (

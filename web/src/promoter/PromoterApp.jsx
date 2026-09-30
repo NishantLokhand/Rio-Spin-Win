@@ -125,7 +125,7 @@ export default function PromoterApp({ profile, onLogout }) {
   return (
     <div className="p-app">
       <header className="p-top">
-        <div className="p-logo">RIO <span>SPIN &amp; WIN</span></div>
+        <img className="p-brand-logo" src="/brand/rio-logo-white.png" alt="Rio Spin &amp; Win" />
         <div className="p-top-right">
           <span className={`net ${online ? 'on' : 'off'}`}>{online ? '● Online' : '● Offline'}</span>
           <button className="icon-btn" onClick={toggleSound} aria-label="Toggle sound">{soundOn ? '🔊' : '🔇'}</button>
