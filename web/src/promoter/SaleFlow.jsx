@@ -6,6 +6,16 @@ import { sound } from '../lib/sound.js';
 const QTY = [1, 2, 3, 4, 5, 6, 8, 12];
 const LABELS = { invoice_no: 'Invoice number', receipt_no: 'Receipt number', qr_code: 'QR code', barcode: 'Product barcode' };
 
+function productImage(product) {
+  const sku = (product.sku_code || '').toUpperCase();
+  const name = (product.name || '').toLowerCase();
+  if (sku.startsWith('RIO-GT-') || name.includes('gold tropical')) return '/products/rio-gold-tropical.png';
+  if (sku.startsWith('RIO-R-') || name.includes('rio red')) return '/products/rio-red.png';
+  if (sku.startsWith('RIO-S-') || name.includes('rio strong')) return '/products/rio-gold.png';
+  if (sku.startsWith('RIO-G-') || name.includes('rio gold')) return '/products/rio-gold.png';
+  return '/products/rio-gold-tropical.png';
+}
+
 // START NEW SALE → select regional SKU and quantity → capture name → customer spins.
 export default function SaleFlow({ ctx, products, online, onRecorded, onBack, onPending, say }) {
   const [sku, setSku] = useState(null);
@@ -56,7 +66,7 @@ export default function SaleFlow({ ctx, products, online, onRecorded, onBack, on
         <div className="sku-grid">
           {products.map((p, i) => (
             <button key={p.id} className={`sku c${i % 4}`} onClick={() => setSku(p)}>
-              <span className="sku-can" aria-hidden>🥫</span>
+              <img className="sku-product-image" src={productImage(p)} alt="" aria-hidden="true" />
               <b>{p.name}</b>
             </button>
           ))}
