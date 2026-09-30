@@ -18,6 +18,7 @@ export class Engine {
   load() {
     try { this.db = JSON.parse(localStorage.getItem(KEY)); } catch { this.db = null; }
     if (!this.db || !this.db.states) { this.db = seedDb(); this.save(); this.generateHistory(); }
+    if (!this.db.sale_items) this.db.sale_items = [];
   }
   save() { try { localStorage.setItem(KEY, JSON.stringify(this.db)); } catch { /* quota */ } }
   reset() { try { localStorage.removeItem(KEY); } catch { /* */ } this.load(); }
@@ -176,6 +177,7 @@ export class Engine {
     const ex = this.t('sales').find((s) => s.id === p_sale_id);
     if (ex) { if (ex.promoter_id !== u.id) fail('SALE_NOT_FOUND'); return { sale_id: ex.id, status: ex.status, spins_allowed: ex.spins_allowed, spins_used: ex.spins_used, replayed: true }; }
     if (this.t('spins').some((s) => s.promoter_id === u.id && s.redemption_status === 'pending')) fail('PENDING_HANDOVER', 'Hand over the previous prize before starting a new sale.');
+    if (this.t('sales').some((s) => s.promoter_id === u.id && !['completed', 'cancelled'].includes(s.status) && s.spins_used > 0 && s.spins_used < s.spins_allowed)) fail('SALE_IN_PROGRESS', 'Complete all spins for the current customer first.');
     const pr = this.t('promoters').find((p) => p.user_id === u.id); if (!pr) fail('PROMOTER_PROFILE_MISSING');
     const r = this.outletCtx(p_outlet_id); if (!r) fail('OUTLET_NOT_ACTIVE');
     const c = this.resolveCampaign(u.id, r.state_id); if (!c) fail('NO_ACTIVE_CAMPAIGN', "No active campaign covers this outlet's state.");
@@ -183,7 +185,7 @@ export class Engine {
     if (p.state_id && p.state_id !== r.state_id) fail('PRODUCT_NOT_ALLOWED', 'This SKU is not available in the selected region.');
     const cps = this.t('campaign_products').filter((x) => x.campaign_id === c.id);
     if (cps.length && !cps.some((x) => x.product_id === p.id)) fail('PRODUCT_NOT_ALLOWED', 'This SKU is not part of the campaign.');
-    if (!p_quantity || p_quantity < 1 || p_quantity > c.max_quantity_per_sale) fail('INVALID_QUANTITY', `Quantity must be 1–${c.max_quantity_per_sale}`);
+    if (!Number.isSafeInteger(p_quantity) || p_quantity < 1) fail('INVALID_QUANTITY', 'Quantity must be a positive whole number.');
     for (const [k, v] of Object.entries(c.validation_rules || {})) if (v === 'required' && !String(p_validation?.[k] || '').trim()) fail('VALIDATION_REQUIRED', `${k.replace(/_/g, ' ')} is required`, k);
     if (c.enforce_budget) {
       const used = this.t('spins').filter((s) => s.campaign_id === c.id && s.redemption_status !== 'not_redeemed');
@@ -198,10 +200,47 @@ export class Engine {
       promoter_id: u.id, promoter_code: pr.promoter_code, promoter_name: u.full_name, promoter_type: pr.promoter_type,
       state_id: r.state_id, state_name: r.state_name, territory_id: r.territory_id, territory_name: r.territory_name, tse_id: r.tse_id, tse_code: r.tse_code, tse_name: r.tse_name,
       outlet_id: r.outlet_id, outlet_code: r.outlet_code, outlet_name: r.outlet_name, outlet_area: r.area, outlet_city: r.city, distributor: r.distributor,
-      product_id: p.id, sku_code: p.sku_code, product_name: p.name, quantity: p_quantity, spins_allowed: c.spins_per_sale, spins_used: 0, status: 'open',
+      product_id: p.id, sku_code: p.sku_code, product_name: p.name, quantity: p_quantity, spins_allowed: p_quantity, spins_used: 0, status: 'open',
       cancelled_reason: null, validation: p_validation || {}, consumer_id: null, device_ref: p_device_ref || null, session_ref: null });
     this.audit('SALE_RECORDED', 'sales', p_sale_id, { outlet_code: r.outlet_code, sku: p.sku_code, qty: p_quantity });
-    return { sale_id: p_sale_id, status: 'open', spins_allowed: c.spins_per_sale, spins_used: 0, replayed: false };
+    return { sale_id: p_sale_id, status: 'open', spins_allowed: p_quantity, spins_used: 0, replayed: false };
+  }
+
+  record_basket_sale({ p_sale_id, p_outlet_id, p_items, p_device_ref, p_validation = {}, p_client_time }) {
+    if (!Array.isArray(p_items) || !p_items.length) fail('EMPTY_BASKET', 'Add at least one product.');
+    const merged = new Map();
+    for (const item of p_items) {
+      const quantity = Number(item.quantity);
+      if (!Number.isSafeInteger(quantity) || quantity < 1) fail('INVALID_BASKET_ITEM', 'Each quantity must be a positive whole number.');
+      merged.set(item.product_id, (merged.get(item.product_id) || 0) + quantity);
+    }
+    const total = [...merged.values()].reduce((n, q) => n + q, 0);
+    if (!Number.isSafeInteger(total) || total > 2147483647) fail('INVALID_QUANTITY', 'Combined bill quantity is too large.');
+    const outlet = this.outletCtx(p_outlet_id); if (!outlet) fail('OUTLET_NOT_ACTIVE');
+    const campaign = this.resolveCampaign(this.uid, outlet.state_id); if (!campaign) fail('NO_ACTIVE_CAMPAIGN');
+    const items = [...merged].map(([product_id, quantity]) => {
+      const product = this.t('products').find((x) => x.id === product_id && x.is_active);
+      if (!product || (product.state_id && product.state_id !== outlet.state_id)) fail('PRODUCT_NOT_ALLOWED', 'A product is unavailable in this region.');
+      const cps = this.t('campaign_products').filter((x) => x.campaign_id === campaign.id);
+      if (cps.length && !cps.some((x) => x.product_id === product.id)) fail('PRODUCT_NOT_ALLOWED', 'A product is not part of this campaign.');
+      return { product, quantity };
+    });
+    const existing = this.t('sales').find((sale) => sale.id === p_sale_id);
+    if (existing) {
+      if (existing.promoter_id !== this.uid) fail('SALE_NOT_FOUND');
+      const prior = this.t('sale_items').filter((item) => item.sale_id === p_sale_id);
+      if (existing.quantity !== total || existing.spins_allowed !== total || prior.length !== items.length || items.some(({ product, quantity }) => !prior.some((item) => item.product_id === product.id && item.quantity === quantity))) fail('SALE_IDEMPOTENCY_CONFLICT', 'This sale ID already belongs to a different bill.');
+      return { sale_id: existing.id, status: existing.status, spins_allowed: existing.spins_allowed, spins_used: existing.spins_used, replayed: true };
+    }
+    const result = this.record_sale({ p_sale_id, p_outlet_id, p_product_id: items[0].product.id, p_quantity: total, p_device_ref, p_validation, p_client_time });
+    const lines = this.t('sale_items');
+    for (const { product, quantity } of items) {
+      const old = lines.find((x) => x.sale_id === p_sale_id && x.product_id === product.id);
+      if (old) old.quantity = quantity;
+      else lines.push({ id: uuid(), sale_id: p_sale_id, product_id: product.id, sku_code: product.sku_code, product_name: product.name, quantity });
+    }
+    this.audit('SALE_BASKET_RECORDED', 'sales', p_sale_id, { line_count: items.length, total_units: total, spins_allowed: total });
+    return { ...result, spins_allowed: total };
   }
 
   capture_sale_customer({ p_sale_id, p_name, p_phone }) {
@@ -732,9 +771,14 @@ export class Engine {
             const territory = this.t('territories').find((x) => x.id === tse?.territory_id);
             const regionalProducts = products.filter((id) => !this.t('products').find((x) => x.id === id)?.state_id || this.t('products').find((x) => x.id === id)?.state_id === territory?.state_id);
             const sale = uuid();
-            this.record_sale({ p_sale_id: sale, p_outlet_id: outlet, p_product_id: regionalProducts[Math.floor(rnd() * regionalProducts.length)], p_quantity: 1 + Math.floor(rnd() * 3) });
-            this.clock = t + 20000; const r = this.play_spin({ p_sale_id: sale });
-            this.clock = t + 45000; this.confirm_handover({ p_spin_id: r.spin_id });
+            const quantity = 1 + Math.floor(rnd() * 3);
+            this.record_sale({ p_sale_id: sale, p_outlet_id: outlet, p_product_id: regionalProducts[Math.floor(rnd() * regionalProducts.length)], p_quantity: quantity });
+            for (let spinNo = 1; spinNo <= quantity; spinNo++) {
+              this.clock = t + 20000 + (spinNo - 1) * 30000;
+              const r = this.play_spin({ p_sale_id: sale, p_spin_no: spinNo });
+              this.clock = t + 25000 + (spinNo - 1) * 30000; this.confirm_handover({ p_spin_id: r.spin_id });
+            }
+            t = Math.max(t, this.clock);
           }
         }
       }

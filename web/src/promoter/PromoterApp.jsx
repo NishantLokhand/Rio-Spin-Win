@@ -32,11 +32,22 @@ export default function PromoterApp({ profile, onLogout }) {
   const [spin, setSpin] = useState(null);
   const [view, setView] = useState(() => {
     const f = getInflight(uid);
-    if (f && f.stage === 'recorded') return 'spin';
+    if (f && (f.stage === 'recorded' || f.stage === 'handover_done') && f.spinNo < f.spinsAllowed) return 'spin';
     return getCtx(uid) ? 'home' : 'picker-full';
   });
   const [toast, setToast] = useState(null);
   const [soundOn, setSoundOn] = useState(sound.enabled());
+
+  useEffect(() => {
+    if (flight?.stage === 'handover_done' && flight.spinNo < flight.spinsAllowed) {
+      const next = { ...flight, stage: 'recorded', spinNo: flight.spinNo + 1, spinId: null };
+      setInflight(uid, next); setFlight(next);
+    } else if (flight?.stage === 'handover_done' && flight.spinNo >= flight.spinsAllowed) {
+      clearInflight(uid); setFlight(null); setView('home');
+    }
+  // Initial recovery only: subsequent handovers are handled by their controls.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const say = (msg, kind = 'info') => { setToast({ msg, kind }); setTimeout(() => setToast(null), 3800); };
 
@@ -99,11 +110,24 @@ export default function PromoterApp({ profile, onLogout }) {
   }
 
   async function handedOver(res) {
-    clearInflight(uid); setFlight(null); setSpin(null);
-    setView('home');
+    const next = { ...flight, stage: 'handover_done' };
+    setInflight(uid, next); setFlight(next);
     if (res?.low_stock) say(`LOW STOCK: ${res.prize_short_name} — only ${res.prize_left} left`, 'warn');
-    else say('Transaction completed ✓', 'ok');
-    refreshHome();
+    else say(flight.spinNo < flight.spinsAllowed ? 'Prize handed over ✓' : 'All prizes handed over ✓', 'ok');
+    await refreshHome();
+  }
+
+  function nextSpin() {
+    const next = { ...flight, stage: 'recorded', spinNo: flight.spinNo + 1, spinId: null };
+    setInflight(uid, next); setFlight(next); setSpin(null); setView('spin');
+  }
+
+  function startNewSale() {
+    clearInflight(uid); setFlight(null); setSpin(null); setView('sale'); refreshHome();
+  }
+
+  function backHome() {
+    clearInflight(uid); setFlight(null); setSpin(null); setView('home'); refreshHome();
   }
 
   function saleCancelled() {
@@ -119,7 +143,9 @@ export default function PromoterApp({ profile, onLogout }) {
                        prizes={masters?.prizes || []} say={say} />;
   }
   if (view === 'win' && spin) {
-    return <WinScreen spin={spin} onHandedOver={handedOver} say={say} />;
+    return <WinScreen spin={spin} spinNo={flight?.spinNo || spin.spin_no || 1} spinsAllowed={flight?.spinsAllowed || 1}
+      handedOver={flight?.stage === 'handover_done'} onHandedOver={handedOver} onNextSpin={nextSpin}
+      onStartNewSale={startNewSale} onBackHome={backHome} say={say} />;
   }
 
   return (

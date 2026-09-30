@@ -11,7 +11,7 @@ const FLAG_RULES = [['min_seconds_between_spins', 'Min seconds between spins'], 
 
 const blank = { code: '', name: '', status: 'draft', start_date: '', end_date: '', target_cost_per_spin: 10, total_budget: '', daily_budget: '',
   enforce_budget: false, pool_scope: 'campaign', draw_strategy: 'controlled_pool', oos_mode: 'defer', config_change_mode: 'next_pool',
-  track_inventory: true, spins_per_sale: 1, max_quantity_per_sale: 24, validation_rules: {}, capture_consumer: false, sound_default: true, snack_launch_active: false,
+  track_inventory: true, validation_rules: {}, capture_consumer: false, sound_default: true, snack_launch_active: false,
   work_start: '09:00', work_end: '22:30', flag_rules: { min_seconds_between_spins: 20, max_spins_per_day: 250, high_value_cost: 100, max_high_value_per_day: 3,
     max_cancelled_per_day: 5, max_outlet_requests_per_day: 3, slow_handover_minutes: 20, stale_pending_minutes: 30 } };
 
@@ -61,7 +61,7 @@ function CampaignModal({ c: initial, data, onClose }) {
         target_cost_per_spin: Number(c.target_cost_per_spin), total_budget: c.total_budget === '' ? null : Number(c.total_budget),
         daily_budget: c.daily_budget === '' || c.daily_budget == null ? null : Number(c.daily_budget), enforce_budget: c.enforce_budget,
         pool_scope: c.pool_scope, draw_strategy: 'controlled_pool', oos_mode: c.oos_mode, config_change_mode: c.config_change_mode,
-        track_inventory: c.track_inventory, spins_per_sale: Number(c.spins_per_sale), max_quantity_per_sale: Number(c.max_quantity_per_sale),
+        track_inventory: c.track_inventory,
         validation_rules: c.validation_rules, capture_consumer: c.capture_consumer, sound_default: c.sound_default, snack_launch_active: !!c.snack_launch_active,
         work_start: c.work_start, work_end: c.work_end, flag_rules: Object.fromEntries(Object.entries(c.flag_rules).map(([k, v]) => [k, Number(v)])) };
       let id = initial.id;
@@ -114,8 +114,7 @@ function CampaignModal({ c: initial, data, onClose }) {
               <option value="block">Pause spins while any configured prize is unavailable</option>
               {c.oos_mode === 'substitute' && <option value="substitute">Legacy setting (treated as continue with available stock)</option>}
             </select></Field>
-            <Field label="Spins per sale">{inp('spins_per_sale', 'number')}</Field>
-            <Field label="Max quantity per sale">{inp('max_quantity_per_sale', 'number')}</Field>
+            <div className="campaign-note">One spin per purchased unit. The promoter records every SKU and quantity on the bill; there is no 24-item sale cap.</div>
             <label className="check"><input type="checkbox" checked={c.track_inventory} onChange={(e) => set('track_inventory', e.target.checked)} /> Enforce promoter prize inventory</label>
             <label className="check"><input type="checkbox" checked={c.sound_default} onChange={(e) => set('sound_default', e.target.checked)} /> Sound on by default</label>
             <label className="check"><input type="checkbox" checked={!!c.snack_launch_active} disabled={c.pool_scope !== 'campaign'} onChange={(e) => set('snack_launch_active', e.target.checked)} /> Temporary launch phase: only ₹5 snacks (85%) and ₹10 snacks (15%) — leave enabled until seniors confirm switch-off</label>

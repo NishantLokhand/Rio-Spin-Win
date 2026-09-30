@@ -78,7 +78,7 @@ export function seedDb() {
     prizes,
     campaigns: [{ id: CAMPAIGN, code: 'RSW-2026', name: 'RIO SPIN & WIN 2026', status: 'active', start_date: '2026-01-01', end_date: '2027-12-31',
       target_cost_per_spin: 10, total_budget: 500000, daily_budget: 25000, enforce_budget: false, pool_scope: 'campaign', draw_strategy: 'controlled_pool', snack_launch_active: false,
-      oos_mode: 'defer', config_change_mode: 'next_pool', track_inventory: true, spins_per_sale: 1, max_quantity_per_sale: 24, validation_rules: {},
+      oos_mode: 'defer', config_change_mode: 'next_pool', track_inventory: true, spins_per_sale: 1, max_quantity_per_sale: 2147483647, validation_rules: {},
       capture_consumer: false, sound_default: true, work_start: '09:00', work_end: '22:30',
       flag_rules: { min_seconds_between_spins: 20, max_spins_per_day: 250, high_value_cost: 100, max_high_value_per_day: 3, max_cancelled_per_day: 5,
         max_outlet_requests_per_day: 3, slow_handover_minutes: 20, stale_pending_minutes: 30 }, created_at: ts, updated_at: ts }],
@@ -90,7 +90,7 @@ export function seedDb() {
       avg_cost: 10, target_cost: 10, exceeds_target: false, override_by: null, is_active: true, notes: 'Initial RIO SPIN & WIN 2026 structure', created_by: U.admin, created_at: ts }],
     prize_config_items: kit.map(([n, q]) => ({ config_id: '70000000-0000-0000-0000-000000000001', prize_id: PR(n), quantity: q, unit_cost: [0, 5, 10, 40, 100, 200][n], percentage: [0, 76.0, 17.0, 5.0, 1.5, 0.5][n] })),
     campaign_allocations: [], prize_pools: [], prize_pool_slots: [], promoter_sessions: [], sales: [], spins: [],
-    promoter_inventory: inv, inventory_movements: moves, outlet_requests: [], activity_flags: [], audit_logs: [],
+    promoter_inventory: inv, inventory_movements: moves, outlet_requests: [], activity_flags: [], audit_logs: [], sale_items: [],
     sale_validations: [], consumers: [], _storage: {}, _seq: 0,
   };
 }

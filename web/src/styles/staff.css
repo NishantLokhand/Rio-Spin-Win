@@ -103,6 +103,7 @@ code.json { font-size: 11px; color: var(--text2); white-space: pre-wrap; word-br
 .s-field small { font-weight: 400; color: var(--muted); }
 .s-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .s-grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; align-items: end; }
+.campaign-note { grid-column: 1 / -1; padding: 10px 12px; border-radius: 8px; background: #fff4d8; color: #624510; font-weight: 700; }
 .s-grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; align-items: end; }
 @media (max-width: 720px) { .s-grid2, .s-grid3, .s-grid4 { grid-template-columns: 1fr; } }
 .s-actions { display: flex; justify-content: flex-end; gap: 8px; }

@@ -5,7 +5,7 @@ import { Engine, DemoError } from './engine.js';
 const LATENCY = 120;
 const wait = (v) => new Promise((r) => setTimeout(() => r(v), LATENCY));
 const clone = (x) => (x == null ? x : JSON.parse(JSON.stringify(x)));
-const RPCS = new Set(['set_work_context', 'record_sale', 'capture_sale_customer', 'play_spin', 'confirm_handover', 'my_pending_spin', 'cancel_open_sale', 'get_promoter_home',
+const RPCS = new Set(['set_work_context', 'record_sale', 'record_basket_sale', 'capture_sale_customer', 'play_spin', 'confirm_handover', 'my_pending_spin', 'cancel_open_sale', 'get_promoter_home',
   'submit_outlet_request', 'adjust_stock', 'issue_stock_kit', 'resolve_spin', 'review_outlet_request', 'review_flag', 'raise_flag', 'report_summary', 'prize_distribution_report',
   'dashboard_kpis', 'run_flag_scan', 'save_prize_config', 'pool_status', 'import_outlets', 'verify_audit_chain']);
 const MASTER = new Set(['states', 'territories', 'tses', 'outlets', 'products', 'prizes', 'campaigns', 'campaign_states', 'campaign_territory_budgets',
@@ -47,8 +47,12 @@ export function createDemoClient() {
       const base = { transaction_id: s.id, campaign_code: camp[s.campaign_id], campaign_id: s.campaign_id, date: s.biz_date, state: s.state_name, territory: s.territory_name,
         tse_id: s.tse_id, tse_code: s.tse_code, tse_name: s.tse_name, outlet_id: s.outlet_id, outlet_code: s.outlet_code, outlet_name: s.outlet_name, area: s.outlet_area,
         city: s.outlet_city, distributor: s.distributor, promoter_id: s.promoter_id, promoter_code: s.promoter_code, promoter_name: s.promoter_name,
-        promoter_type: s.promoter_type, sku_code: s.sku_code, sku: s.product_name, quantity: s.quantity, sale_status: s.status, state_id: s.state_id,
-        territory_id: s.territory_id, product_id: s.product_id };
+        promoter_type: s.promoter_type,
+        sku_code: (E.db.sale_items.filter((i) => i.sale_id === s.id).map((i) => `${i.sku_code} × ${i.quantity}`).join(', ') || s.sku_code),
+        sku: (E.db.sale_items.filter((i) => i.sale_id === s.id).map((i) => `${i.product_name} × ${i.quantity}`).join(', ') || s.product_name),
+        quantity: s.quantity, sale_status: s.status, state_id: s.state_id,
+        territory_id: s.territory_id, product_id: s.product_id,
+        product_ids: [...new Set(E.db.sale_items.filter((i) => i.sale_id === s.id).map((i) => i.product_id).concat(s.product_id).filter(Boolean))] };
       if (!sp.length) out.push({ ...base, spin_id: null, time: null, device_ref: s.device_ref, spun_at: null });
       for (const x of sp) out.push({ ...base, spin_id: x.spin_code, time: new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(new Date(x.created_at)),
         prize_id: x.prize_id, prize_name: x.prize_name, prize_cost: x.prize_cost, substituted: x.substituted, redemption_status: x.redemption_status,
@@ -66,6 +70,7 @@ export function createDemoClient() {
     constructor(table) { this.table = table; this.op = 'select'; this.cols = '*'; this.filters = []; this.orders = []; this.rng = null; this.lim = null; this.one = null; this.payload = null; this.ret = false; }
     select(cols = '*') { if (this.op === 'select') this.cols = cols; else this.ret = true; return this; }
     eq(k, v) { this.filters.push((r) => getPath(r, k) === v || (getPath(r, k) != null && v != null && String(getPath(r, k)) === String(v))); return this; }
+    contains(k, values) { this.filters.push((r) => Array.isArray(getPath(r, k)) && values.every((v) => getPath(r, k).includes(v))); return this; }
     gte(k, v) { this.filters.push((r) => getPath(r, k) >= v); return this; }
     lte(k, v) { this.filters.push((r) => getPath(r, k) <= v); return this; }
     or(expr) {

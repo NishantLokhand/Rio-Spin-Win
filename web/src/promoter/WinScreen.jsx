@@ -26,7 +26,7 @@ const PRIZE_ART = {
   SPEAKER: '/brand/party-speaker.png',
 };
 
-export default function WinScreen({ spin, onHandedOver, say }) {
+export default function WinScreen({ spin, spinNo = 1, spinsAllowed = 1, handedOver = false, onHandedOver, onNextSpin, onStartNewSale, onBackHome, say }) {
   const p = spin.prize;
   const d = DEFAULTS[p.tier] || DEFAULTS.standard;
   const prizeCopy = PRIZE_COPY[p.code] || {};
@@ -63,10 +63,14 @@ export default function WinScreen({ spin, onHandedOver, say }) {
       </div>
 
       <div className="handover">
+        {spinsAllowed > 1 && <div className="spin-progress">SPIN {spinNo} OF {spinsAllowed}</div>}
         <div className="handover-label">PRIZE TO BE GIVEN</div>
         <div className="handover-prize">{p.name}</div>
         <div className="handover-code">Spin ID {spin.spin_code}</div>
-        {!confirm ? (
+        {handedOver ? (spinNo < spinsAllowed ? <button className="btn-handover" onClick={onNextSpin}>NEXT SPIN · {spinNo + 1} OF {spinsAllowed}</button> : <div className="handover-actions">
+          <button className="btn-handover" onClick={onStartNewSale}>START NEW SALE</button>
+          <button className="btn-secondary" onClick={onBackHome}>BACK TO HOME</button>
+        </div>) : !confirm ? (
           <button className="btn-handover" disabled={busy} onClick={() => setConfirm(true)}>✅ PRIZE HANDED OVER</button>
         ) : (
           <div className="row">

@@ -80,6 +80,7 @@ export default function SpinScreen({ flight, onResolved, onLanded, onCancelled, 
         <img className="spin-brand" src="/brand/rio-logo-white.png" alt="Rio Spin &amp; Win" />
         <h1>BUY RIO. SPIN. WIN.</h1>
         <p className="tag">HAR SPIN MEIN PRIZE!</p>
+        {flight.spinsAllowed > 1 && <p className="spin-progress">SPIN {flight.spinNo} OF {flight.spinsAllowed}</p>}
       </header>
 
       <Wheel ref={wheel} onSwipe={spin} disabled={phase !== 'ready'} />

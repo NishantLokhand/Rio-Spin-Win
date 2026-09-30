@@ -156,6 +156,60 @@
 .btn-handover { border: 0; border-radius: 16px; padding: 18px; font-weight: 900; font-size: 20px; background: var(--green); color: var(--ink); box-shadow: 0 6px 0 #16904a; }
 .btn-handover:disabled { opacity: .6; }
 
+/* Mixed SKU bill entry and accessible prize handover on short screens. */
+.sale-basket { max-width: 680px; }
+.basket-add { display: grid; grid-template-columns: minmax(0, 1fr) 140px auto; gap: 10px; align-items: end; }
+.basket-add label, .sale-basket .form label { display: grid; gap: 6px; color: #493719; font-weight: 800; }
+.basket-add select, .basket-add input, .sale-basket .form input { min-width: 0; width: 100%; padding: 12px; border: 1px solid #E0CAA0; border-radius: 12px; background: #fff; color: #35250D; font-size: 16px; }
+.basket-add-btn { min-height: 46px; white-space: nowrap; }
+.basket-lines { display: grid; gap: 8px; margin-top: 16px; }
+.basket-lines h3 { margin: 0; color: #70490D; font-family: var(--display); font-size: 19px; }
+.basket-line { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 12px; background: #F4E8CF; border-radius: 12px; font-weight: 700; }
+.basket-line span { min-width: 0; }
+.basket-line > div { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+.basket-line button { width: 34px; height: 34px; border: 0; border-radius: 50%; background: #35250D; color: #FFF4D8; font-size: 20px; font-weight: 900; }
+.basket-line .basket-remove { background: #A51F32; }
+.basket-line.compact { margin: 0; padding: 8px 10px; font-size: 14px; }
+.basket-total { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 12px 0; padding: 12px 14px; border-radius: 14px; background: #F2C45D; color: #35250D; font-size: 17px; }
+.basket-total b { font-family: var(--display); font-size: 20px; }
+.sale-basket > .btn-primary, .sale-basket .form > .btn-primary { width: 100%; margin-top: 12px; }
+.sale-basket .form { display: grid; gap: 12px; }
+.campaign-note { grid-column: 1 / -1; padding: 10px 12px; border-radius: 10px; background: #fff4d8; color: #624510; font-weight: 700; }
+
+.win-screen { overflow-y: auto; justify-content: flex-start; gap: clamp(8px, 1.8vh, 16px); padding-top: max(10px, env(safe-area-inset-top)); }
+.win-body { flex: 0 0 auto; margin: 0 auto; }
+.handover { flex: 0 0 auto; margin: 0 auto; }
+.handover-actions { display: grid; gap: 8px; }
+.handover-actions .btn-secondary { border-radius: 14px; padding: 13px; font-weight: 900; color: #35250D; background: #F0E2C4; }
+.spin-progress { color: #8C202D; font-weight: 900; letter-spacing: .06em; }
+
+@media (max-width: 520px) {
+  .basket-add { grid-template-columns: minmax(0, 1fr) 92px; }
+  .basket-add label:first-child { grid-column: 1 / -1; }
+  .basket-add-btn { grid-column: 1 / -1; }
+  .basket-line { align-items: flex-start; }
+  .basket-line > div { gap: 5px; }
+}
+@media (max-height: 760px) {
+  .win-screen { gap: 6px; padding: 7px 10px calc(7px + env(safe-area-inset-bottom)); }
+  .win-body { padding: 8px 14px; }
+  .win-brand-logo { width: min(118px, 34vw); max-height: 48px; margin-bottom: 4px; }
+  .win-title { font-size: clamp(24px, 5.5vh, 36px); }
+  .win-prize { width: min(36vh, 170px); margin: 8px auto; border-width: 4px; }
+  .win-sub { font-size: clamp(19px, 4.5vh, 27px); }
+  .win-gdwc-logo { width: 26px; height: 26px; margin-top: 3px; }
+  .handover { padding: 9px 12px; gap: 4px; }
+  .handover-prize { font-size: 18px; }
+  .btn-handover { padding: 12px; font-size: 17px; }
+}
+@media (max-height: 600px) {
+  .win-body { padding: 6px 12px; }
+  .win-brand-logo { width: 100px; max-height: 38px; }
+  .win-title { font-size: 22px; }
+  .win-prize { width: min(30vh, 120px); margin: 5px auto; }
+  .win-sub { font-size: 18px; }
+}
+
 /* Keep the swipe hint and brand credit visible in browser-sized viewports. */
 @media (max-height: 760px) {
   .spin-screen { gap: 4px; padding-top: 7px; padding-bottom: calc(8px + env(safe-area-inset-bottom)); }

@@ -20,9 +20,10 @@ export const TXN_COLUMNS = [
 export function applyTxnFilters(q, f) {
   if (f.date_from) q = q.gte('date', f.date_from);
   if (f.date_to) q = q.lte('date', f.date_to);
-  for (const k of ['campaign_id', 'state_id', 'territory_id', 'tse_id', 'outlet_id', 'promoter_id', 'product_id', 'city', 'distributor']) {
+  for (const k of ['campaign_id', 'state_id', 'territory_id', 'tse_id', 'outlet_id', 'promoter_id', 'city', 'distributor']) {
     if (f[k]) q = q.eq(k, f[k]);
   }
+  if (f.product_id) q = q.contains('product_ids', [f.product_id]);
   return q;
 }
 
