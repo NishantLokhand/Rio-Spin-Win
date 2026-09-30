@@ -18,6 +18,7 @@ export default function SpinScreen({ flight, onResolved, onLanded, onCancelled, 
   const [phase, setPhase] = useState('ready');   // ready | spinning | retry | landing
   const [handoff, setHandoff] = useState(true);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [spinError, setSpinError] = useState('');
   const busy = useRef(false);
 
   useEffect(() => { const t = setTimeout(() => setHandoff(false), 4000); return () => clearTimeout(t); }, []);
@@ -25,23 +26,36 @@ export default function SpinScreen({ flight, onResolved, onLanded, onCancelled, 
   async function spin() {
     if (busy.current) return;
     busy.current = true; setHandoff(false);
+    setSpinError('');
     sound.unlock(); sound.whoosh();
     wheel.current.start(); setPhase('spinning');
     const started = Date.now();
     try {
       // Server draws the prize. Same sale id + spin no → same result on every retry.
       const result = await rpc('play_spin', { p_sale_id: flight.saleId, p_spin_no: flight.spinNo || 1, p_device_ref: deviceRef() }, { retries: 2, timeoutMs: 12000 });
+      if (!result?.spin_id || !result?.prize?.tier) {
+        throw new Error('The server did not return a confirmed prize. Try again; the same sale will not draw a second prize.');
+      }
       onResolved(result);
       const wait = Math.max(0, 700 - (Date.now() - started));
       await new Promise((r) => setTimeout(r, wait));
       setPhase('landing');
-      await wheel.current.landOn(labelsFor(result.prize));
+      try {
+        await Promise.race([
+          wheel.current.landOn(labelsFor(result.prize)),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Wheel animation timed out')), 7000)),
+        ]);
+      } catch {
+        // The server has already confirmed the prize; do not make animation failure look like a failed draw.
+        wheel.current.pause();
+      }
       onLanded();
     } catch (e) {
       busy.current = false;
-      if (e.network) { wheel.current.pause(); setPhase('retry'); return; }
-      wheel.current.reset(); setPhase('ready');
-      say(friendly(e), 'err');
+      wheel.current.pause();
+      setSpinError(friendly(e));
+      if (e.network) { setPhase('retry'); return; }
+      setPhase('ready');
       if (e.code === 'SALE_CANCELLED' || e.code === 'SALE_NOT_FOUND') onCancelled();
     }
   }
@@ -67,15 +81,15 @@ export default function SpinScreen({ flight, onResolved, onLanded, onCancelled, 
 
       <div className="spin-foot">
         {phase === 'ready' && <button className="btn-spin" onClick={spin}>SPIN NOW</button>}
-        {phase === 'ready' && <p className="swipe-hint">or swipe the wheel!</p>}
+        {phase === 'ready' && !spinError && <p className="swipe-hint">or swipe the wheel!</p>}
+        {phase === 'ready' && spinError && <p className="spin-error" role="alert">{spinError}</p>}
         {(phase === 'spinning' || phase === 'landing') && <div className="spin-status">Good luck! 🤞</div>}
         {phase === 'retry' && (
           <div className="spin-retry">
-            <p>We haven’t confirmed the result yet. Retry safely; the same sale cannot draw a second prize.</p>
+            <p className="spin-error" role="alert">{spinError || 'We could not confirm the result. Check your connection and retry safely.'}</p>
             <button className="btn-spin small" onClick={() => { busy.current = false; spin(); }}>TRY AGAIN</button>
           </div>
         )}
-        <img className="spin-gdwc-logo" src="/brand/gdwc-logo-white.png" alt="Good Drop Wine Cellars" />
       </div>
 
       {handoff && phase === 'ready' && (

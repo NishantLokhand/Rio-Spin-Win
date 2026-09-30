@@ -27,7 +27,7 @@ const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
 
 const Wheel = forwardRef(function Wheel({ onSwipe, disabled }, ref) {
   const gRef = useRef(null);
-  const st = useRef({ angle: 0, vel: 0, mode: 'idle', raf: 0, lastSeg: 0, lastT: 0, idleVel: 8 });
+  const st = useRef({ angle: 0, vel: 0, mode: 'idle', raf: 0, lastSeg: 0, lastT: 0, idleVel: 0 });
 
   const apply = () => { if (gRef.current) gRef.current.setAttribute('transform', `rotate(${st.current.angle % 360})`); };
 

@@ -92,31 +92,31 @@
 
 /* ---------- spin screen (customer) ---------- */
 .spin-screen { --ink: #35250D; --night: #35250D; --yellow: #E3A11A; --pink: #A51F32; --purple: #8B5B0A;
-  position: fixed; inset: 0; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 10px 10px calc(14px + env(safe-area-inset-bottom)); }
+  position: fixed; inset: 0; overflow: hidden; display: grid; grid-template-rows: auto minmax(0, 1fr) auto; justify-items: center; align-items: stretch; gap: clamp(4px, 1.4vh, 12px); padding: 10px 10px calc(14px + env(safe-area-inset-bottom)); }
 .spin-bg { position: absolute; inset: 0; z-index: -1; background: radial-gradient(ellipse at 50% 5%, #F9D67B 0, transparent 48%), linear-gradient(145deg, #F3BD43, #E3A11A 58%, #D58B0B); }
 .spin-bg::after { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at center, transparent 35%, rgba(94,58,5,.13) 100%); }
 .spin-cancel { position: absolute; top: 12px; left: 12px; width: 36px; height: 36px; border-radius: 50%; border: 1px solid rgba(255,255,255,.18); background: #35250D; color: #FFF4D8; font-size: 16px; z-index: 3; }
-.spin-head { text-align: center; display: grid; justify-items: center; gap: 2px; }
+.spin-head { text-align: center; display: grid; justify-items: center; gap: 2px; align-self: start; }
 .spin-brand { display: block; width: min(154px, 43vw); max-height: 58px; padding: 7px 16px; object-fit: contain; background: #35250D; border: 1px solid rgba(255,255,255,.18); border-radius: 17px; box-shadow: 0 8px 24px rgba(69,43,4,.2); }
 .spin-head h1 { font-family: var(--display); font-size: clamp(30px, 9vw, 46px); margin: 4px 0 0; color: #35250D; text-shadow: 0 2px 12px rgba(255,255,255,.62); line-height: 1.05; }
 .tag { font-family: var(--display); margin: 6px 0 0; font-size: clamp(16px, 5vw, 22px); color: #fff7e5; background: #A51F32; display: inline-block; padding: 4px 14px; border-radius: 99px; transform: rotate(-2deg); }
-.wheel-wrap { width: min(96vw, 58vh, 520px); aspect-ratio: 430/440; flex-shrink: 0; }
+.wheel-wrap { width: min(90vw, 50vh, 520px); aspect-ratio: 430/440; align-self: center; justify-self: center; }
 .wheel-svg { width: 100%; height: 100%; overflow: visible; }
 .seg-text { font-family: var(--display); font-size: 15px; }
 .hub-text { font-family: var(--display); font-size: 28px; fill: var(--yellow); }
 .bulb { fill: #fff6c7; }
 .bulb.b1 { animation: blink 0.8s steps(1) infinite; } .bulb.b2 { animation: blink 0.8s steps(1) infinite .4s; }
 @keyframes blink { 50% { fill: #7a5a00; } }
-.spin-foot { text-align: center; width: 100%; max-width: 480px; padding: 10px 14px 8px; background: #FFF9EC; border: 1px solid rgba(93,62,13,.2); border-radius: 24px; box-shadow: 0 12px 34px rgba(77,49,7,.2); }
-.spin-gdwc-logo { display: block; width: 32px; height: 32px; padding: 4px; object-fit: contain; background: #35250D; border-radius: 50%; opacity: 1; margin: 7px auto 0; }
+.spin-foot { text-align: center; width: min(100%, 480px); justify-self: center; align-self: end; display: grid; gap: 4px; padding: 9px 14px 10px; background: #FFF9EC; border: 1px solid rgba(93,62,13,.2); border-radius: 24px; box-shadow: 0 12px 34px rgba(77,49,7,.2); }
 .btn-spin { width: 100%; border: 0; border-radius: 99px; padding: 22px; font-family: var(--display); font-size: 34px; letter-spacing: 2px; color: #FFF4D8;
-  background: linear-gradient(100deg, #B32436, #861B2B); box-shadow: 0 8px 0 #641322, 0 0 32px rgba(111,30,25,.24); animation: pulse2 1.4s ease-in-out infinite; }
+  background: linear-gradient(100deg, #B32436, #861B2B); box-shadow: 0 6px 0 #641322, 0 0 28px rgba(111,30,25,.2); animation: pulse2 1.4s ease-in-out infinite; }
 .btn-spin.small { font-size: 22px; padding: 14px; }
 .btn-spin:active { transform: translateY(5px); box-shadow: 0 3px 0 #641322; }
-@keyframes pulse2 { 50% { transform: scale(1.03); } }
-.swipe-hint { margin: 8px 0 0; color: #6C542C; font-weight: 700; }
-.spin-status { font-family: var(--display); font-size: 26px; color: #70490D; padding: 20px; }
-.spin-retry p { font-weight: 700; color: #ffc2d1; }
+@keyframes pulse2 { 50% { box-shadow: 0 6px 0 #641322, 0 0 36px rgba(111,30,25,.34); } }
+.swipe-hint { margin: 0; color: #6C542C; font-weight: 700; line-height: 1.25; }
+.spin-error { margin: 0; padding: 8px 10px; border-radius: 10px; background: #FFF0EC; color: #94202E; font-weight: 700; font-size: 14px; line-height: 1.25; }
+.spin-retry .spin-error { color: #94202E; }
+.spin-status { font-family: var(--display); font-size: 26px; color: #70490D; padding: 14px; }
 .handoff { position: absolute; inset: 0; background: rgba(53,37,13,.84); display: grid; place-items: center; z-index: 4; animation: fade .3s; }
 .handoff-card { background: #FFF9EC; color: #35250D; border: 3px solid #E3A11A; border-radius: 26px; padding: 28px 22px; text-align: center; display: grid; gap: 10px; max-width: 340px; margin: 16px; box-shadow: 0 10px 0 #A56C08; }
 .handoff-card b { font-family: var(--display); font-size: 26px; line-height: 1.1; }
@@ -158,16 +158,15 @@
 
 /* Keep the swipe hint and brand credit visible in browser-sized viewports. */
 @media (max-height: 760px) {
-  .spin-screen { padding-top: 7px; padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
+  .spin-screen { gap: 4px; padding-top: 7px; padding-bottom: calc(8px + env(safe-area-inset-bottom)); }
   .spin-head { gap: 0; }
-  .spin-brand { width: min(142px, 38vw); max-height: 42px; }
-  .spin-head h1 { font-size: clamp(25px, 6.4vh, 38px); margin-top: 0; }
+  .spin-brand { width: min(138px, 38vw); max-height: 40px; }
+  .spin-head h1 { font-size: clamp(25px, 6.2vh, 36px); margin-top: 0; }
   .spin-head .tag { margin-top: 2px; font-size: clamp(14px, 3vh, 18px); padding: 3px 12px; }
-  .wheel-wrap { width: min(88vw, 48vh, 430px); }
-  .btn-spin { padding: 14px; font-size: 30px; }
-  .btn-spin.small { padding: 12px; font-size: 21px; }
-  .swipe-hint { margin-top: 3px; }
-  .spin-gdwc-logo { width: 24px; height: 24px; margin-top: 4px; }
+  .wheel-wrap { width: min(88vw, 43vh, 390px); }
+  .spin-foot { padding: 8px 12px; }
+  .btn-spin { padding: 13px; font-size: 28px; }
+  .btn-spin.small { padding: 11px; font-size: 21px; }
 }
 
 @media (max-height: 600px) {
@@ -175,9 +174,8 @@
   .spin-brand { width: min(122px, 34vw); max-height: 34px; }
   .spin-head h1 { font-size: clamp(22px, 5.5vh, 31px); }
   .spin-head .tag { font-size: 13px; padding: 2px 10px; }
-  .wheel-wrap { width: min(76vw, 41vh, 350px); }
+  .wheel-wrap { width: min(76vw, 36vh, 330px); }
   .btn-spin { padding: 10px; font-size: 25px; }
-  .spin-gdwc-logo { display: none; }
 }
 
 @media (max-width: 700px) {

@@ -22,7 +22,7 @@ input, select, textarea { font-family: inherit; font-size: 16px; }
 .login { min-height: 100vh; padding: 28px 18px; display: flex; flex-direction: column; gap: 20px; justify-content: center; color: #35250D;
   background: radial-gradient(ellipse at 50% 0%, rgba(255,226,143,.72), transparent 58%), linear-gradient(145deg, #F3BD43 0%, #E3A11A 54%, #D48A0A 100%); }
 .login-hero { text-align: center; display: grid; justify-items: center; gap: 8px; width: min(340px, 100%); margin: 0 auto; padding: 16px 24px 12px; background: #35250D; border: 1px solid rgba(255,255,255,.16); border-radius: 24px; box-shadow: 0 12px 30px rgba(62,39,4,.2); }
-.login-brand-logo { display: block; width: min(250px, 72vw); max-height: 120px; object-fit: contain; }
+.login-brand-logo { display: block; width: min(250px, 72vw); max-height: 120px; object-fit: contain; opacity: .76; }
 .login-gdwc-logo { display: block; width: 54px; height: 54px; object-fit: contain; opacity: .9; }
 .mini-wheel { animation-duration: 6s; }
 .brand { font-family: var(--display); font-size: 44px; line-height: 1; margin: 0; color: #F3BD43; text-shadow: 2px 3px 0 #A51F32; letter-spacing: 1px; }
