@@ -102,7 +102,7 @@
 .tag { font-family: var(--display); margin: 6px 0 0; font-size: clamp(16px, 5vw, 22px); color: #fff7e5; background: #A51F32; display: inline-block; padding: 4px 14px; border-radius: 99px; transform: rotate(-2deg); }
 .wheel-wrap { width: min(90vw, 50vh, 520px); aspect-ratio: 430/440; align-self: center; justify-self: center; }
 .wheel-svg { width: 100%; height: 100%; overflow: visible; }
-.seg-text { font-family: var(--display); font-size: 15px; }
+.seg-text { font-family: var(--display); font-size: 16px; font-weight: 700; }
 .hub-text { font-family: var(--display); font-size: 28px; fill: var(--yellow); }
 .bulb { fill: #fff6c7; }
 .bulb.b1 { animation: blink 0.8s steps(1) infinite; } .bulb.b2 { animation: blink 0.8s steps(1) infinite .4s; }

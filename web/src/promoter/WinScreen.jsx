@@ -7,7 +7,15 @@ const DEFAULTS = {
   standard: { title: 'YOU WON! 🎉', sub: 'SNACK TIME!', icon: '🍿' },
   mid: { title: '🔥 YOU WON RIO DARE! 🔥', sub: 'LET THE GAMES BEGIN', icon: '🃏' },
   high: { title: '😎 YOU WON RIO SHADES!', sub: 'LOOKING COOL!', icon: '🕶️' },
-  jackpot: { title: '🎵 RIO PARTY JACKPOT! 🎵', sub: 'YOU WON A BLUETOOTH SPEAKER!', icon: '🔊' },
+  jackpot: { title: 'YOU WON RIO MINI BLUETOOTH SPEAKER!', sub: 'ENJOY YOUR NEW SPEAKER!', icon: '🔊' },
+};
+
+const PRIZE_COPY = {
+  SNACK5: { title: 'YOU WON ₹5 SNACK!', sub: 'SNACK TIME!' },
+  SNACK10: { title: 'YOU WON ₹10 SNACK!', sub: 'SNACK TIME!' },
+  RIODARE: { title: 'YOU WON RIO DARE CARD GAME!', sub: 'LET THE GAMES BEGIN!' },
+  SHADES: { title: 'YOU WON RIO SUNGLASSES!', sub: 'LOOKING COOL!' },
+  SPEAKER: { title: 'YOU WON RIO MINI BLUETOOTH SPEAKER!', sub: 'ENJOY YOUR NEW SPEAKER!' },
 };
 
 const PRIZE_ART = {
@@ -21,6 +29,7 @@ const PRIZE_ART = {
 export default function WinScreen({ spin, onHandedOver, say }) {
   const p = spin.prize;
   const d = DEFAULTS[p.tier] || DEFAULTS.standard;
+  const prizeCopy = PRIZE_COPY[p.code] || {};
   const prizeImage = p.image_url || PRIZE_ART[p.code];
   const [busy, setBusy] = useState(false);
   const [confirm, setConfirm] = useState(false);
@@ -44,11 +53,11 @@ export default function WinScreen({ spin, onHandedOver, say }) {
       <div className="win-rays" aria-hidden />
       <div className="win-body">
         <img className="win-brand-logo" src="/brand/rio-logo-white.png" alt="Rio Spin &amp; Win" />
-        <h1 className="win-title">{p.win_title || d.title}</h1>
+        <h1 className="win-title">{prizeCopy.title || p.win_title || d.title}</h1>
         <div className="win-prize">
           {prizeImage ? <img src={prizeImage} alt={p.name} /> : <div className="win-icon">{d.icon}</div>}
         </div>
-        <h2 className="win-sub">{p.win_subtitle || d.sub}</h2>
+        <h2 className="win-sub">{prizeCopy.sub || p.win_subtitle || d.sub}</h2>
         <div className="win-name">{p.name}</div>
         <img className="win-gdwc-logo" src="/brand/gdwc-logo-white.png" alt="Good Drop Wine Cellars" />
       </div>

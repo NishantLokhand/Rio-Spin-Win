@@ -4,14 +4,11 @@ import { sound } from '../lib/sound.js';
 // Visual wheel ONLY. Segments do not reflect odds — the server decides the prize,
 // and the wheel is steered to land on a segment that matches it.
 export const SEGMENTS = [
-  { label: 'SNACK ATTACK',      color: '#FF2E63', text: '#fff' },
-  { label: 'TREAT YOURSELF',    color: '#FFD23F', text: '#1B0B3A' },
-  { label: 'RIO DARE',          color: '#7B2FF7', text: '#fff' },
-  { label: 'RIO SHADES',        color: '#08D9D6', text: '#1B0B3A' },
-  { label: 'RIO PARTY JACKPOT', color: '#FF8A00', text: '#1B0B3A' },
-  { label: 'CRUNCH TIME',       color: '#FF2E63', text: '#fff' },
-  { label: 'RIO SURPRISE',      color: '#2BD66B', text: '#1B0B3A' },
-  { label: 'WIN BIG',           color: '#7B2FF7', text: '#fff' },
+  { label: '₹5 SNACK', lines: ['₹5', 'SNACK'], color: '#FF2E63', text: '#fff' },
+  { label: '₹10 SNACK', lines: ['₹10', 'SNACK'], color: '#FFD23F', text: '#35250D' },
+  { label: 'RIO DARE CARD GAME', lines: ['RIO DARE', 'CARD GAME'], color: '#7B2FF7', text: '#fff' },
+  { label: 'RIO SUNGLASSES', lines: ['RIO', 'SUNGLASSES'], color: '#08D9D6', text: '#35250D' },
+  { label: 'RIO MINI BLUETOOTH SPEAKER', lines: ['RIO MINI', 'BLUETOOTH', 'SPEAKER'], color: '#FF8A00', text: '#35250D' },
 ];
 const N = SEGMENTS.length;
 const SEG = 360 / N;
@@ -23,7 +20,7 @@ function arc(i) {
   return `M0 0 L${R * Math.cos(a0)} ${R * Math.sin(a0)} A${R} ${R} 0 0 1 ${R * Math.cos(a1)} ${R * Math.sin(a1)} Z`;
 }
 
-const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+const easeOutQuint = (t) => 1 - Math.pow(1 - t, 5);
 
 const Wheel = forwardRef(function Wheel({ onSwipe, disabled }, ref) {
   const gRef = useRef(null);
@@ -36,10 +33,10 @@ const Wheel = forwardRef(function Wheel({ onSwipe, disabled }, ref) {
     const dt = s.lastT ? Math.min((t - s.lastT) / 1000, 0.05) : 0;
     s.lastT = t;
     if (s.mode === 'idle') s.angle += s.idleVel * dt;
-    else if (s.mode === 'free') { s.vel = Math.min(s.vel + 2400 * dt, 900); s.angle += s.vel * dt; }
+    else if (s.mode === 'free') { s.vel = Math.min(s.vel + 900 * dt, 540); s.angle += s.vel * dt; }
     else if (s.mode === 'land') {
       const p = Math.min((t - s.t0) / s.T, 1);
-      s.angle = s.a0 + s.D * easeOutCubic(p);
+      s.angle = s.a0 + s.D * easeOutQuint(p);
       if (p >= 1) { s.mode = 'stopped'; apply();
         const under = (((-s.angle) % 360) + 360) % 360; console.debug('[wheel] landed', SEGMENTS[Math.floor(under / SEG)].label); const done = s.onDone; s.onDone = null; setTimeout(() => done && done(), 250); }
     }
@@ -56,7 +53,7 @@ const Wheel = forwardRef(function Wheel({ onSwipe, disabled }, ref) {
   }, []);
 
   useImperativeHandle(ref, () => ({
-    start() { const s = st.current; const wasStopped = s.mode === 'stopped'; s.mode = 'free'; s.vel = Math.max(s.vel, 200); if (wasStopped) s.raf = requestAnimationFrame(loop); },
+    start() { const s = st.current; const wasStopped = s.mode === 'stopped'; s.mode = 'free'; s.vel = Math.max(s.vel, 160); if (wasStopped) s.raf = requestAnimationFrame(loop); },
     pause() { const s = st.current; s.mode = 'stopped'; cancelAnimationFrame(s.raf); apply(); },
     /** land on one of the allowed segment labels; resolves when stopped */
     landOn(labels) {
@@ -66,13 +63,13 @@ const Wheel = forwardRef(function Wheel({ onSwipe, disabled }, ref) {
         const pick = allowed.length ? allowed[Math.floor(Math.random() * allowed.length)] : { i: 0 };
         const center = pick.i * SEG + SEG / 2;
         const jitter = (Math.random() - 0.5) * SEG * 0.6;
-        const v0 = Math.max(s.vel, 600);
-        // cubic ease-out starting at velocity v0 → duration T = 3D / v0  (≈ 3–4.5 s)
+        const v0 = Math.max(Math.min(s.vel, 540), 420);
+        // Quintic ease-out begins at v0 and eases its acceleration into a gentle stop.
         const base = v0;
         const a0 = s.angle;
         const want = ((((-(center + jitter)) - (a0 + base)) % 360) + 360) % 360;
         const D = base + want;
-        s.a0 = a0; s.D = D; s.T = (3 * D / v0) * 1000; s.t0 = performance.now(); s.mode = 'land'; s.onDone = resolve;
+        s.a0 = a0; s.D = D; s.T = (5 * D / v0) * 1000; s.t0 = performance.now(); s.mode = 'land'; s.onDone = resolve;
       });
     },
     reset() {
@@ -112,14 +109,9 @@ const Wheel = forwardRef(function Wheel({ onSwipe, disabled }, ref) {
             <g key={i}>
               <path d={arc(i)} fill={s.color} stroke="#1B0B3A" strokeWidth="3" />
               <g transform={`rotate(${i * SEG + SEG / 2}) translate(0 -${R * 0.58})`}>
-                {s.label.split(' ').length > 1 && s.label.length > 9 ? (
-                  <text textAnchor="middle" fill={s.text} className="seg-text">
-                    <tspan x="0" dy="-6">{s.label.split(' ').slice(0, Math.ceil(s.label.split(' ').length / 2)).join(' ')}</tspan>
-                    <tspan x="0" dy="19">{s.label.split(' ').slice(Math.ceil(s.label.split(' ').length / 2)).join(' ')}</tspan>
-                  </text>
-                ) : (
-                  <text textAnchor="middle" fill={s.text} className="seg-text" dy="4">{s.label}</text>
-                )}
+                <text textAnchor="middle" fill={s.text} className="seg-text">
+                  {s.lines.map((line, index) => <tspan key={line} x="0" dy={index === 0 ? `${-(s.lines.length - 1) * 8}px` : '16px'}>{line}</tspan>)}
+                </text>
               </g>
             </g>
           ))}

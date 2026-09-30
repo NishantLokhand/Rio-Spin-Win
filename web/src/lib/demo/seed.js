@@ -26,11 +26,11 @@ export function seedDb() {
     outlet_code: code, name, area, city, distributor: dist, source: 'master', latitude: null, longitude: null }));
 
   const prizes = [
-    [1, 'SNACK5', '₹5 Snack', '₹5 Snack', 'standard', 5, 'SNACK ATTACK,TREAT YOURSELF', 'YOU WON! 🎉', 'SNACK TIME!', 15],
-    [2, 'SNACK10', '₹10 Snack', '₹10 Snack', 'standard', 10, 'CRUNCH TIME,RIO SURPRISE', 'YOU WON! 🎉', 'SNACK TIME!', 5],
-    [3, 'RIODARE', 'Rio Dare Card Game', 'Rio Dare', 'mid', 40, 'RIO DARE,WIN BIG', '🔥 YOU WON RIO DARE! 🔥', 'LET THE GAMES BEGIN', 2],
-    [4, 'SHADES', 'Rio Sunglasses', 'Rio Shades', 'high', 100, 'RIO SHADES', '😎 YOU WON RIO SHADES!', 'LOOKING COOL!', 1],
-    [5, 'SPEAKER', 'Rio Mini Bluetooth Speaker', 'Speaker', 'jackpot', 200, 'RIO PARTY JACKPOT', '🎵 RIO PARTY JACKPOT! 🎵', 'YOU WON A BLUETOOTH SPEAKER!', 0],
+    [1, 'SNACK5', '₹5 Snack', '₹5 Snack', 'standard', 5, '₹5 SNACK', 'YOU WON! 🎉', 'SNACK TIME!', 15],
+    [2, 'SNACK10', '₹10 Snack', '₹10 Snack', 'standard', 10, '₹10 SNACK', 'YOU WON! 🎉', 'SNACK TIME!', 5],
+    [3, 'RIODARE', 'Rio Dare Card Game', 'Rio Dare', 'mid', 40, 'RIO DARE CARD GAME', '🔥 YOU WON RIO DARE! 🔥', 'LET THE GAMES BEGIN', 2],
+    [4, 'SHADES', 'Rio Sunglasses', 'Rio Shades', 'high', 100, 'RIO SUNGLASSES', '😎 YOU WON RIO SHADES!', 'LOOKING COOL!', 1],
+    [5, 'SPEAKER', 'Rio Mini Bluetooth Speaker', 'Speaker', 'jackpot', 200, 'RIO MINI BLUETOOTH SPEAKER', '🎵 RIO MINI BLUETOOTH SPEAKER!', 'YOU WON RIO MINI BLUETOOTH SPEAKER!', 0],
   ].map(([n, code, name, short, tier, cost, wl, wt, ws, thr]) => ({ id: PR(n), code, name, short_name: short, tier, default_cost: cost, image_url: null,
     wheel_label: wl, win_title: wt, win_subtitle: ws, low_stock_threshold: thr, is_active: true, sort_order: n, created_at: ts, updated_at: ts }));
 

@@ -1,5 +1,28 @@
--- Fix the prize draw's temporary-table updates for databases enforcing filtered UPDATE statements.
--- The candidate set is intentionally updated in full, so filter by its guaranteed non-null prize id.
+-- Explicitly qualify columns that overlap PL/pgSQL output names while fixing the spin UPDATE guard.
+update public.prizes as p
+   set wheel_label = case p.code
+         when 'SNACK5' then '₹5 SNACK'
+         when 'SNACK10' then '₹10 SNACK'
+         when 'RIODARE' then 'RIO DARE CARD GAME'
+         when 'SHADES' then 'RIO SUNGLASSES'
+         when 'SPEAKER' then 'RIO MINI BLUETOOTH SPEAKER'
+       end,
+       win_title = case p.code
+         when 'SNACK5' then 'YOU WON ₹5 SNACK!'
+         when 'SNACK10' then 'YOU WON ₹10 SNACK!'
+         when 'RIODARE' then 'YOU WON RIO DARE CARD GAME!'
+         when 'SHADES' then 'YOU WON RIO SUNGLASSES!'
+         when 'SPEAKER' then 'YOU WON RIO MINI BLUETOOTH SPEAKER!'
+       end,
+       win_subtitle = case p.code
+         when 'SNACK5' then 'SNACK TIME!'
+         when 'SNACK10' then 'SNACK TIME!'
+         when 'RIODARE' then 'LET THE GAMES BEGIN!'
+         when 'SHADES' then 'LOOKING COOL!'
+         when 'SPEAKER' then 'ENJOY YOUR NEW SPEAKER!'
+       end
+ where p.code in ('SNACK5', 'SNACK10', 'RIODARE', 'SHADES', 'SPEAKER');
+
 create or replace function public._draw_cumulative_prize(
     p_campaign public.campaigns,
     p_config public.prize_configs,

@@ -51,11 +51,11 @@ insert into public.products (id, sku_code, name, pack, size_ml, mrp, sort_order)
 
 -- Prizes (wheel_label = comma list of wheel segments the wheel may land on for this prize)
 insert into public.prizes (id, code, name, short_name, tier, default_cost, wheel_label, win_title, win_subtitle, low_stock_threshold, sort_order) values
-  ('50000000-0000-0000-0000-000000000001', 'SNACK5',   '₹5 Snack',                   '₹5 Snack',  'standard', 5,   'SNACK ATTACK,TREAT YOURSELF',   'YOU WON! 🎉',             'SNACK TIME!',                  15, 1),
-  ('50000000-0000-0000-0000-000000000002', 'SNACK10',  '₹10 Snack',                  '₹10 Snack', 'standard', 10,  'CRUNCH TIME,RIO SURPRISE',      'YOU WON! 🎉',             'SNACK TIME!',                  5,  2),
-  ('50000000-0000-0000-0000-000000000003', 'RIODARE',  'Rio Dare Card Game',         'Rio Dare',  'mid',      40,  'RIO DARE,WIN BIG',              '🔥 YOU WON RIO DARE! 🔥',  'LET THE GAMES BEGIN',          2,  3),
-  ('50000000-0000-0000-0000-000000000004', 'SHADES',   'Rio Sunglasses',             'Rio Shades','high',     100, 'RIO SHADES',                    '😎 YOU WON RIO SHADES!',   'LOOKING COOL!',                1,  4),
-  ('50000000-0000-0000-0000-000000000005', 'SPEAKER',  'Rio Mini Bluetooth Speaker', 'Speaker',   'jackpot',  200, 'RIO PARTY JACKPOT',             '🎵 RIO PARTY JACKPOT! 🎵', 'YOU WON A BLUETOOTH SPEAKER!', 0,  5);
+  ('50000000-0000-0000-0000-000000000001', 'SNACK5',   '₹5 Snack',                   '₹5 Snack',  'standard', 5,   '₹5 SNACK',                       'YOU WON! 🎉',             'SNACK TIME!',                  15, 1),
+  ('50000000-0000-0000-0000-000000000002', 'SNACK10',  '₹10 Snack',                  '₹10 Snack', 'standard', 10,  '₹10 SNACK',                      'YOU WON! 🎉',             'SNACK TIME!',                  5,  2),
+  ('50000000-0000-0000-0000-000000000003', 'RIODARE',  'Rio Dare Card Game',         'Rio Dare',  'mid',      40,  'RIO DARE CARD GAME',              '🔥 YOU WON RIO DARE! 🔥',  'LET THE GAMES BEGIN',          2,  3),
+  ('50000000-0000-0000-0000-000000000004', 'SHADES',   'Rio Sunglasses',             'Rio Shades','high',     100, 'RIO SUNGLASSES',                  '😎 YOU WON RIO SHADES!',   'LOOKING COOL!',                1,  4),
+  ('50000000-0000-0000-0000-000000000005', 'SPEAKER',  'Rio Mini Bluetooth Speaker', 'Speaker',   'jackpot',  200, 'RIO MINI BLUETOOTH SPEAKER',      '🎵 RIO MINI BLUETOOTH SPEAKER!', 'YOU WON RIO MINI BLUETOOTH SPEAKER!', 0,  5);
 
 -- Campaign
 insert into public.campaigns (id, code, name, status, start_date, end_date, target_cost_per_spin,

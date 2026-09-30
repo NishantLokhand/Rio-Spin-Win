@@ -55,7 +55,7 @@ export default function Masters({ data, reloadData }) {
       fields: [{ key: 'code', label: 'Code' }, { key: 'name', label: 'Prize name' }, { key: 'short_name', label: 'Short name' },
         { key: 'tier', label: 'Celebration tier', type: 'select', options: [['standard', 'Standard'], ['mid', 'Mid (Rio Dare)'], ['high', 'High (Shades)'], ['jackpot', 'Jackpot']] },
         { key: 'default_cost', label: 'Default cost (₹)', type: 'number' }, { key: 'low_stock_threshold', label: 'Low-stock threshold', type: 'number' },
-        { key: 'wheel_label', label: 'Wheel segments (comma list)', hint: 'SNACK ATTACK, TREAT YOURSELF, RIO DARE, RIO SHADES, RIO PARTY JACKPOT, CRUNCH TIME, RIO SURPRISE, WIN BIG' },
+        { key: 'wheel_label', label: 'Wheel label (display follows prize code)', hint: 'The customer wheel uses only the five campaign prizes: ₹5 Snack, ₹10 Snack, Rio Dare Card Game, Rio Sunglasses, and Rio Mini Bluetooth Speaker.' },
         { key: 'win_title', label: 'Winner headline' }, { key: 'win_subtitle', label: 'Winner sub-headline' },
         { key: 'sort_order', label: 'Sort order', type: 'number' }, { key: 'is_active', label: 'Active', type: 'checkbox' }],
       columns: [{ key: 'image_url', label: '', noExport: true, render: (r) => (r.image_url ? <img className="thumb" src={r.image_url} alt="" /> : null) },

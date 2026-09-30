@@ -182,13 +182,13 @@ begin
     -- Restrict randomness to categories within 1.5 prizes of the largest
     -- eligible deficit. This bounds cumulative rounding error while keeping
     -- ties and near-ties random instead of exposing a fixed sequence.
-    update _spin_candidates
-       set p_constrained = p_deficit < v_best_deficit - 1.5,
-           p_weight = (p_pct / 100.0) * exp(greatest(-4.0, least(0.0, (p_deficit - v_best_deficit) / 0.75)))
-     where p_id is not null;
+    update _spin_candidates as candidate
+       set p_constrained = candidate.p_deficit < v_best_deficit - 1.5,
+           p_weight = (candidate.p_pct / 100.0) * exp(greatest(-4.0, least(0.0, (candidate.p_deficit - v_best_deficit) / 0.75)))
+     where candidate.p_id is not null;
     select coalesce(sum(p_weight), 0) into v_total_weight from _spin_candidates where not p_constrained;
     if v_total_weight <= 0 then
-      update _spin_candidates set p_constrained = false where p_constrained is distinct from false;
+      update _spin_candidates as candidate set p_constrained = false where candidate.p_constrained is distinct from false;
       select sum(p_weight) into v_total_weight from _spin_candidates;
     end if;
     v_r := ((('x' || encode(extensions.gen_random_bytes(6), 'hex'))::bit(48)::bigint)::numeric / 281474976710656) * v_total_weight;
@@ -208,8 +208,8 @@ begin
     -- and outlets sharing a physical stock row; retry another eligible prize if
     -- another request took the last unit while this draw was being calculated.
     if p_campaign.track_inventory then
-      update public.promoter_inventory set reserved = reserved + 1, updated_at = now()
-       where promoter_id = p_promoter and prize_id = v_won_prize and on_hand - reserved > 0;
+      update public.promoter_inventory as inv set reserved = inv.reserved + 1, updated_at = now()
+       where inv.promoter_id = p_promoter and inv.prize_id = v_won_prize and inv.on_hand - inv.reserved > 0;
       if not found then
         v_excluded := array_append(v_excluded, v_won_prize);
         v_attempt := v_attempt + 1;

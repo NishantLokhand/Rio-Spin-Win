@@ -4,12 +4,17 @@ import { rpc, friendly } from '../lib/api.js';
 import { deviceRef } from '../lib/store.js';
 import { sound } from '../lib/sound.js';
 
-const FALLBACK_LABEL = { standard: ['SNACK ATTACK', 'TREAT YOURSELF', 'CRUNCH TIME'], mid: ['RIO DARE'], high: ['RIO SHADES'], jackpot: ['RIO PARTY JACKPOT'] };
+const PRIZE_WHEEL_LABEL = {
+  SNACK5: '₹5 SNACK',
+  SNACK10: '₹10 SNACK',
+  RIODARE: 'RIO DARE CARD GAME',
+  SHADES: 'RIO SUNGLASSES',
+  SPEAKER: 'RIO MINI BLUETOOTH SPEAKER',
+};
 
 function labelsFor(prize) {
-  const own = (prize.wheel_label || '').split(',').map((s) => s.trim().toUpperCase()).filter(Boolean)
-    .filter((l) => SEGMENTS.some((s) => s.label === l));
-  return own.length ? own : FALLBACK_LABEL[prize.tier] || ['RIO SURPRISE'];
+  const label = PRIZE_WHEEL_LABEL[String(prize?.code || '').toUpperCase()];
+  return label && SEGMENTS.some((segment) => segment.label === label) ? [label] : [];
 }
 
 // CUSTOMER-FACING: brand + wheel only. No management data here.
