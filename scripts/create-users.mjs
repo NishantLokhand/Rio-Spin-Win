@@ -43,7 +43,7 @@ async function create({ role, login, pin, name, mobile = null, approve = false, 
   return id;
 }
 
-// one 200-spin kit: 152 / 34 / 10 / 3 / 1  (prize ids from supabase/seed.sql)
+// Opening stock kit using the 200-spin reference mix (prize ids from supabase/seed.sql)
 const KIT = [['50000000-0000-0000-0000-000000000001', 152], ['50000000-0000-0000-0000-000000000002', 34], ['50000000-0000-0000-0000-000000000003', 10],
   ['50000000-0000-0000-0000-000000000004', 3], ['50000000-0000-0000-0000-000000000005', 1]];
 async function issueKit(promoterId, by) {

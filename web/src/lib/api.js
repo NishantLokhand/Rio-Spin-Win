@@ -9,7 +9,7 @@ const MESSAGES = {
   NO_ACTIVE_CAMPAIGN: 'No active campaign covers this outlet.',
   PRODUCT_NOT_ALLOWED: 'This SKU is not part of the campaign.',
   INVALID_QUANTITY: 'Invalid quantity.',
-  OUT_OF_STOCK: 'Prize stock needed',
+  OUT_OF_STOCK: 'Prize stock is temporarily unavailable. Please contact your supervisor.',
   BUDGET_EXHAUSTED: 'Campaign budget exhausted.',
   NO_PRIZE_CONFIG: 'Prizes are not configured for this campaign.',
   SALE_NOT_FOUND: 'Sale not found.',

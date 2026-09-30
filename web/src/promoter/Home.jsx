@@ -1,5 +1,5 @@
 import React from 'react';
-import { inr, num } from '../lib/store.js';
+import { num } from '../lib/store.js';
 
 export default function Home({ profile, home, ctx, online, onStart, onChangeOutlet, onChangeHierarchy, onRefresh }) {
   const t = home?.today || {};
@@ -12,12 +12,10 @@ export default function Home({ profile, home, ctx, online, onStart, onChangeOutl
 
       <section className="card today">
         <div className="card-h">TODAY <button className="link" onClick={onRefresh}>↻</button></div>
-        <div className="stats">
+        <div className="stats kpi-4">
           <div><b>{num(t.sales ?? 0)}</b><span>Sales</span></div>
           <div><b>{num(t.spins ?? 0)}</b><span>Spins</span></div>
           <div><b>{num(t.prizes_given ?? 0)}</b><span>Prizes given</span></div>
-          <div><b>{inr(t.prize_cost ?? 0)}</b><span>Prize cost</span></div>
-          <div><b>{inr(t.avg_cost ?? 0, 2)}</b><span>Avg / spin</span></div>
           <div><b>{num(t.units ?? 0)}</b><span>Units sold</span></div>
         </div>
       </section>

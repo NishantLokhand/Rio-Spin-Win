@@ -9,7 +9,8 @@ export default function PrizeConfig({ data }) {
   const c = data.campaigns.find((x) => x.id === campaign);
   const prizes = useAsync(() => selectAll('prizes', '*', (q) => q.eq('is_active', true).order('sort_order')), []);
   const hist = useAsync(async () => {
-    const { data: rows, error } = await supabase.from('prize_configs').select('*, prize_config_items(prize_id,quantity,unit_cost)')
+    const { data: rows, error } = await supabase.from('prize_configs')
+      .select('*, prize_config_items(prize_id,quantity,unit_cost,percentage)')
       .eq('campaign_id', campaign).order('version', { ascending: false });
     if (error) throw error; return rows;
   }, [campaign]);
@@ -26,35 +27,83 @@ export default function PrizeConfig({ data }) {
     if (!hist.data || !prizes.data) return;
     const active = hist.data.find((h) => h.is_active && (h.state_id || '') === stateId)
       || hist.data.find((h) => h.is_active && !h.state_id);
-    const base = Object.fromEntries(prizes.data.map((p) => [p.id, { quantity: 0, unit_cost: Number(p.default_cost) }]));
+
+    const defaultDistribution = {
+      SNACK5: { pct: 76.0, qty: 152, cost: 5 },
+      SNACK10: { pct: 17.0, qty: 34, cost: 10 },
+      RIODARE: { pct: 5.0, qty: 10, cost: 40 },
+      SHADES: { pct: 1.5, qty: 3, cost: 100 },
+      SPEAKER: { pct: 0.5, qty: 1, cost: 200 },
+    };
+
+    const base = {};
+    prizes.data.forEach((p) => {
+      const def = defaultDistribution[p.code] || { pct: 0, qty: 0, cost: Number(p.default_cost) };
+      base[p.id] = { quantity: def.qty, percentage: def.pct, unit_cost: def.cost };
+    });
+
     if (active) {
-      setPoolSize(active.pool_size);
-      active.prize_config_items.forEach((i) => { base[i.prize_id] = { quantity: i.quantity, unit_cost: Number(i.unit_cost) }; });
+      setPoolSize(active.pool_size || 200);
+      active.prize_config_items.forEach((i) => {
+        const pct = i.percentage != null && Number(i.percentage) > 0
+          ? Number(i.percentage)
+          : Number((Number(i.quantity) / (active.pool_size || 200)) * 100);
+        base[i.prize_id] = { quantity: i.quantity, percentage: pct, unit_cost: Number(i.unit_cost) };
+      });
     }
     setItems(base); setOverride(false); setMsg(null);
   }, [hist.data, prizes.data, stateId]);
 
   if (!prizes.data || !hist.data) return <div className="s-page"><Loading state={prizes.error ? prizes : hist} /></div>;
 
-  const rows = prizes.data.map((p) => ({ ...p, ...(items[p.id] || { quantity: 0, unit_cost: 0 }) }));
-  const totalQty = rows.reduce((a, r) => a + Number(r.quantity || 0), 0);
-  const totalCost = rows.reduce((a, r) => a + Number(r.quantity || 0) * Number(r.unit_cost || 0), 0);
-  const avg = poolSize > 0 ? totalCost / poolSize : 0;
+  const rows = prizes.data.map((p) => ({
+    ...p,
+    ...(items[p.id] || { quantity: 0, percentage: 0, unit_cost: Number(p.default_cost) }),
+  }));
+
+  const totalPct = rows.reduce((a, r) => a + Number(r.percentage || 0), 0);
+  const totalRefQty = rows.reduce((a, r) => a + Number(r.quantity || 0), 0);
+  const avg = rows.reduce((a, r) => a + (Number(r.percentage || 0) / 100) * Number(r.unit_cost || 0), 0);
+  const totalRefCost = rows.reduce((a, r) => a + Number(r.quantity || 0) * Number(r.unit_cost || 0), 0);
+
   const target = Number(c?.target_cost_per_spin || 10);
-  const over = avg > target + 1e-9;
-  const mismatch = totalQty !== Number(poolSize);
+  const over = avg > target + 1e-4;
+  const mismatch = Math.abs(totalPct - 100.0) > 0.05;
   const canOverride = data.profile.can_override_cost_target;
-  const set = (id, k, v) => setItems({ ...items, [id]: { ...items[id], [k]: v } });
+
+  const updatePct = (id, newPct) => {
+    const pVal = Number(newPct) || 0;
+    const qVal = Math.round((pVal / 100) * poolSize);
+    setItems({ ...items, [id]: { ...items[id], percentage: newPct, quantity: qVal } });
+  };
+
+  const updateQty = (id, newQty) => {
+    const qVal = Number(newQty) || 0;
+    const pVal = poolSize > 0 ? (qVal / poolSize) * 100 : 0;
+    setItems({ ...items, [id]: { ...items[id], quantity: newQty, percentage: pVal } });
+  };
+
+  const updateCost = (id, newCost) => {
+    setItems({ ...items, [id]: { ...items[id], unit_cost: newCost } });
+  };
 
   async function save() {
     setBusy(true); setMsg(null);
     try {
       const res = await rpc('save_prize_config', {
-        p_campaign: campaign, p_state: stateId || null, p_pool_size: Number(poolSize),
-        p_items: rows.filter((r) => Number(r.quantity) > 0).map((r) => ({ prize_id: r.id, quantity: Number(r.quantity), unit_cost: Number(r.unit_cost) })),
-        p_override: override, p_notes: notes || null,
+        p_campaign: campaign,
+        p_state: stateId || null,
+        p_pool_size: Number(poolSize) || 200,
+        p_items: rows.map((r) => ({
+          prize_id: r.id,
+          percentage: Number(r.percentage) || 0,
+          quantity: Number(r.quantity) || 0,
+          unit_cost: Number(r.unit_cost) || 0,
+        })),
+        p_override: override,
+        p_notes: notes || null,
       });
-      setMsg({ ok: true, text: `Saved as version ${res.version}. New pools will use it${c?.config_change_mode === 'regenerate_now' ? ' immediately (open pools are voided and regenerated).' : ' (open pools finish on the previous structure).'}` });
+      setMsg({ ok: true, text: `Saved as version ${res.version}. Continuous cumulative allocation will maintain this distribution across all campaign spins.` });
       setNotes(''); hist.reload();
     } catch (e) { setMsg({ ok: false, text: friendly(e) }); } finally { setBusy(false); }
   }
@@ -73,32 +122,65 @@ export default function PrizeConfig({ data }) {
         </select>
       </div></div>
 
-      <Panel title={`Prize structure — ${stateName(stateId)}`}>
+      <Panel title={`Prize Distribution & Target Percentages — ${stateName(stateId)}`}>
         <div className="s-form">
-          <Field label="Pool size (spins per pool)"><input type="number" min="1" value={poolSize} onChange={(e) => setPoolSize(e.target.value)} className="num" /></Field>
+          <p className="muted" style={{ margin: '0 0 12px' }}>
+            The system continuously allocates prizes using <b>Controlled Cumulative Random Allocation</b> across any spin volume (200, 500, 1000+ spins).
+            Percentages must sum to exactly 100%. Reference quantities correspond to the 200-spin benchmark.
+          </p>
           <table className="mini cfg">
-            <thead><tr><th>Prize</th><th className="r">Cost (₹)</th><th className="r">Quantity per pool</th><th className="r">Line cost</th><th className="r">Mix %</th></tr></thead>
-            <tbody>{rows.map((r) => (
-              <tr key={r.id}>
-                <td><b>{r.name}</b> <small className="muted">{r.tier}</small></td>
-                <td className="r"><input type="number" min="0" step="0.5" className="num" value={r.unit_cost} onChange={(e) => set(r.id, 'unit_cost', e.target.value)} /></td>
-                <td className="r"><input type="number" min="0" className="num" value={r.quantity} onChange={(e) => set(r.id, 'quantity', e.target.value)} /></td>
-                <td className="r">{fmt.inr(Number(r.quantity) * Number(r.unit_cost))}</td>
-                <td className="r">{poolSize > 0 ? fmt.pct((Number(r.quantity) / poolSize) * 100) : '—'}</td>
-              </tr>))}</tbody>
-            <tfoot><tr><td>Total</td><td /><td className={`r ${mismatch ? 'txt-bad' : ''}`}><b>{totalQty}</b> / {poolSize}</td><td className="r"><b>{fmt.inr(totalCost)}</b></td><td /></tr></tfoot>
+            <thead>
+              <tr>
+                <th>Prize</th>
+                <th className="r">Unit Cost (₹)</th>
+                <th className="r">Target %</th>
+                <th className="r">Ref Qty / 200 Spins</th>
+                <th className="r">Expected Cost / Spin</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => {
+                const expCost = (Number(r.percentage || 0) / 100) * Number(r.unit_cost || 0);
+                return (
+                  <tr key={r.id}>
+                    <td><b>{r.name}</b> <small className="muted">{r.tier}</small></td>
+                    <td className="r">
+                      <input type="number" min="0" step="0.5" className="num" value={r.unit_cost} onChange={(e) => updateCost(r.id, e.target.value)} />
+                    </td>
+                    <td className="r">
+                      <input type="number" min="0" max="100" step="0.1" className="num" value={r.percentage} onChange={(e) => updatePct(r.id, e.target.value)} /> %
+                    </td>
+                    <td className="r">
+                      <input type="number" min="0" className="num" value={r.quantity} onChange={(e) => updateQty(r.id, e.target.value)} />
+                    </td>
+                    <td className="r">{fmt.inr2(expCost)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td><b>Total</b></td>
+                <td />
+                <td className={`r ${mismatch ? 'txt-bad' : ''}`}><b>{totalPct.toFixed(1)}%</b> / 100%</td>
+                <td className="r"><b>{totalRefQty}</b> / {poolSize}</td>
+                <td className="r"><b>{fmt.inr2(avg)}</b></td>
+              </tr>
+            </tfoot>
           </table>
 
           <div className={`economics ${over ? 'bad' : 'good'}`}>
-            <div>Total Prize Cost ÷ Number of Spins = <b>{fmt.inr(totalCost)} ÷ {poolSize}</b></div>
-            <div className="econ-big">Average Cost Per Spin: {fmt.inr2(avg)}</div>
+            <div>
+              Expected Giveaway Formula: <b>∑ (Target % × Unit Cost)</b> = <b>{fmt.inr(totalRefCost)} ÷ {poolSize}</b>
+            </div>
+            <div className="econ-big">Expected Average Cost Per Spin: {fmt.inr2(avg)}</div>
             {over && <div className="econ-warn">WARNING: This prize configuration exceeds the {fmt.inr(target)} campaign target.</div>}
           </div>
-          {mismatch && <div className="s-err">Quantities add up to {totalQty}; they must equal the pool size ({poolSize}).</div>}
+          {mismatch && <div className="s-err">Target percentages add up to {totalPct.toFixed(1)}%; they must equal 100.0%.</div>}
           {over && (canOverride
             ? <label className="check"><input type="checkbox" checked={override} onChange={(e) => setOverride(e.target.checked)} /> I am authorised and override the cost target</label>
             : <div className="s-note">You are not authorised to override the cost target.</div>)}
-          <Field label="Change note"><input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Why is the structure changing?" /></Field>
+          <Field label="Change note"><input value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Reason for updating prize distribution" /></Field>
           {msg && <div className={msg.ok ? 's-ok' : 's-err'}>{msg.text}</div>}
           <div className="s-actions"><button className="s-btn" disabled={busy || mismatch || (over && !override)} onClick={save}>Save as new version</button></div>
         </div>
@@ -106,12 +188,13 @@ export default function PrizeConfig({ data }) {
 
       <Panel title="Version history">
         <DataTable rows={hist.data.map((h) => ({ ...h, scope: stateName(h.state_id) }))} columns={[
-          { key: 'version', label: 'Version', align: 'r' }, { key: 'scope', label: 'Applies to' },
-          { key: 'pool_size', label: 'Pool size', align: 'r' }, { key: 'total_cost', label: 'Total cost', align: 'r', fmt: fmt.inr },
-          { key: 'avg_cost', label: 'Avg/spin', align: 'r', fmt: fmt.inr2 },
+          { key: 'version', label: 'Version', align: 'r' },
+          { key: 'scope', label: 'Applies to' },
+          { key: 'avg_cost', label: 'Expected Cost/Spin', align: 'r', fmt: fmt.inr2 },
           { key: 'exceeds_target', label: 'Override', fmt: (v) => (v ? 'Yes' : '') },
           { key: 'is_active', label: 'Active', fmt: (v) => (v ? '● active' : '') },
-          { key: 'created_at', label: 'Saved', fmt: fmt.dt }, { key: 'notes', label: 'Note' },
+          { key: 'created_at', label: 'Saved', fmt: fmt.dt },
+          { key: 'notes', label: 'Note' },
         ]} />
       </Panel>
     </div>

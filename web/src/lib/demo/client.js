@@ -6,7 +6,7 @@ const LATENCY = 120;
 const wait = (v) => new Promise((r) => setTimeout(() => r(v), LATENCY));
 const clone = (x) => (x == null ? x : JSON.parse(JSON.stringify(x)));
 const RPCS = new Set(['set_work_context', 'record_sale', 'play_spin', 'confirm_handover', 'my_pending_spin', 'cancel_open_sale', 'get_promoter_home',
-  'submit_outlet_request', 'adjust_stock', 'issue_stock_kit', 'resolve_spin', 'review_outlet_request', 'review_flag', 'raise_flag', 'report_summary',
+  'submit_outlet_request', 'adjust_stock', 'issue_stock_kit', 'resolve_spin', 'review_outlet_request', 'review_flag', 'raise_flag', 'report_summary', 'prize_distribution_report',
   'dashboard_kpis', 'run_flag_scan', 'save_prize_config', 'pool_status', 'import_outlets', 'verify_audit_chain']);
 const MASTER = new Set(['states', 'territories', 'tses', 'outlets', 'products', 'prizes', 'campaigns', 'campaign_states', 'campaign_territory_budgets',
   'campaign_products', 'campaign_promoters', 'app_users', 'promoters']);

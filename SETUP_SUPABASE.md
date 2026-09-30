@@ -18,12 +18,21 @@ Time needed: about 20 minutes. You need Node.js (already installed) and a web br
 1. In the left sidebar, open **SQL Editor** and click **+ New query**.
 2. On your computer, open `rio-spin-win/supabase/ALL_IN_ONE.sql` in Notepad or VS Code.
 3. Select all (Ctrl+A), copy (Ctrl+C), and paste it into the SQL Editor.
-4. Click **Run**, or press Ctrl+Enter. It takes about 5–10 seconds.
+4. Click **Run**, or press Ctrl+Enter. It takes about 5–10 seconds. The combined script includes the cumulative prize-allocation migrations.
    - Expected result: **"Success. No rows returned"**.
    - If Supabase warns about *"destructive operations"*, click **Run this query**. The warning appears because the script contains `revoke` statements.
 5. To check it worked, open **Table Editor**. You should see tables such as `states`, `outlets`, `campaigns`, `prizes` and `spins`. The `outlets` table should have 15 rows.
 
 > Run `ALL_IN_ONE.sql` only **once**. If you need to start over, create a new project, or ask for a reset script.
+
+### Upgrade an existing project
+
+Do not rerun `ALL_IN_ONE.sql` on a project that already has the app schema. In Supabase **SQL Editor**, run these files in order:
+
+1. `supabase/migrations/20260929000100_cumulative_allocation.sql`
+2. `supabase/migrations/20260929000200_cumulative_campaign_defaults.sql`
+
+The first migration adds the percentage configuration, private allocation ledger, atomic spin allocator, and filtered prize-share report. The allocation RPC uses cumulative quotas for all new draws. The second switches active campaigns to a campaign-wide allocation scope. Existing spin rows and historical prize results are retained. Review the active campaign scope change with the campaign owner before resuming live spins.
 
 ## Step 3 — Security setting: stop public sign-ups
 1. Go to **Authentication → Sign In / Providers**. In older dashboards this is **Authentication → Providers → Email**.
@@ -91,7 +100,7 @@ The yellow **DEMO MODE** strip should **not** appear. If it does, `.env.local` w
    - Tap SPIN NOW, then PRIZE HANDED OVER.
 2. **Admin:** log out, then log in as `admin` / `admin123`.
    - Dashboard, Reports and Transactions should show the sale.
-   - Prize Pool should show Ravi's pool at 1 / 200.
+   - Prize Pool should show one total campaign spin and its actual prize distribution; 200 is the reference mix, not a cap.
 3. **Supervisor:** log in as `sup.lucknow` / `222222`. You should see only Ravi and Sneha.
 
 To test on your phone on the same Wi-Fi: run `npm run dev -- --host` and open the "Network" address it prints, e.g. `http://192.168.1.5:5173`.

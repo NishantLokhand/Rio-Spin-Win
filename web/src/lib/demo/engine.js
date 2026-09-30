@@ -201,6 +201,127 @@ export class Engine {
     return { sale_id: p_sale_id, status: 'open', spins_allowed: c.spins_per_sale, spins_used: 0, replayed: false };
   }
 
+  getAllocation(c, key) {
+    let list = this.t('campaign_allocations');
+    if (!list) { list = []; this.db.campaign_allocations = list; }
+    let alloc = list.find((a) => a.campaign_id === c.id && a.scope === c.pool_scope && a.scope_key === key);
+    if (!alloc) {
+      const salesById = new Map(this.t('sales').map((s) => [s.id, s]));
+      const existingSpins = this.t('spins').filter((sp) => {
+        if (sp.campaign_id !== c.id || sp.redemption_status === 'not_redeemed') return false;
+        const sale = salesById.get(sp.sale_id);
+        return c.pool_scope === 'campaign' || (c.pool_scope === 'promoter' && sp.promoter_id === key)
+          || (c.pool_scope === 'outlet' && sale?.outlet_id === key)
+          || (c.pool_scope === 'territory' && sale?.territory_id === key)
+          || (c.pool_scope === 'state' && sale?.state_id === key);
+      });
+      const awarded = {};
+      for (const sp of existingSpins) awarded[sp.prize_id] = (awarded[sp.prize_id] || 0) + 1;
+      alloc = {
+        id: uuid(),
+        campaign_id: c.id,
+        scope: c.pool_scope,
+        scope_key: key,
+        total_spins: existingSpins.length,
+        awarded,
+        created_at: this.now().toISOString(),
+        updated_at: this.now().toISOString(),
+      };
+      list.push(alloc);
+    }
+    return alloc;
+  }
+
+  drawCumulativePrize(c, cfg, promoterId, key) {
+    const alloc = this.getAllocation(c, key);
+    const n = alloc.total_spins + 1;
+    const items = this.t('prize_config_items').filter((i) => i.config_id === cfg.id);
+    const refSize = cfg.pool_size || 200;
+
+    if (c.track_inventory && c.oos_mode === 'block'
+      && items.some((item) => Number(item.percentage ?? (Number(item.quantity) / refSize * 100)) > 0
+        && this.avail(promoterId, item.prize_id) <= 0)) {
+      fail('OUT_OF_STOCK', 'Prize stock is temporarily unavailable. Please contact the supervisor.');
+    }
+
+    const candidates = [];
+    let eligibleCount = 0;
+    let totalWeight = 0;
+    let bestDeficit = -999999;
+    let bestPrize = null;
+    let bestCost = null;
+
+    for (const it of items) {
+      const pct = it.percentage != null && it.percentage > 0 ? Number(it.percentage) : (Number(it.quantity) / refSize) * 100;
+      if (pct <= 0) continue;
+      const stock = c.track_inventory ? this.avail(promoterId, it.prize_id) : 99999;
+      const actual = Number(alloc.awarded[it.prize_id] || 0);
+      const target = (n * pct) / 100;
+      const deficit = target - actual;
+
+      if (stock > 0) {
+        eligibleCount++;
+        if (deficit > bestDeficit) {
+          bestDeficit = deficit;
+          bestPrize = it.prize_id;
+          bestCost = it.unit_cost;
+        }
+
+        candidates.push({ prize_id: it.prize_id, unit_cost: it.unit_cost, pct, deficit });
+      }
+    }
+
+    if (eligibleCount === 0) fail('OUT_OF_STOCK', 'All configured prizes are currently out of stock with promoter.');
+
+    // Randomise among the near-largest deficits. Restricting the pool to a
+    // 1.5-prize window keeps cumulative rounding error bounded.
+    const maxDeficit = Math.max(...candidates.map((candidate) => candidate.deficit));
+    for (const candidate of candidates) {
+      candidate.isConstrained = candidate.deficit < maxDeficit - 1.5;
+      candidate.weight = (candidate.pct / 100) * Math.exp(Math.max(-4, Math.min(0, (candidate.deficit - maxDeficit) / 0.75)));
+      if (!candidate.isConstrained) totalWeight += candidate.weight;
+    }
+
+    if (totalWeight <= 0) {
+      candidates.forEach((cd) => { cd.isConstrained = false; });
+      totalWeight = candidates.reduce((sum, cd) => sum + cd.weight, 0);
+    }
+
+    let wonPrize = null;
+    let wonCost = null;
+
+    if (totalWeight <= 0) {
+      wonPrize = bestPrize;
+      wonCost = bestCost;
+    } else {
+      let r = rnd() * totalWeight;
+      const active = candidates.filter((cd) => !cd.isConstrained);
+      for (const cd of active) {
+        r -= cd.weight;
+        if (r <= 0) {
+          wonPrize = cd.prize_id;
+          wonCost = cd.unit_cost;
+          break;
+        }
+      }
+      if (!wonPrize && active.length > 0) {
+        wonPrize = active[active.length - 1].prize_id;
+        wonCost = active[active.length - 1].unit_cost;
+      }
+    }
+
+    if (c.track_inventory) {
+      const inv = this.inv(promoterId, wonPrize);
+      if (inv.on_hand - inv.reserved <= 0) fail('OUT_OF_STOCK', 'Selected prize stock changed before reservation.');
+      inv.reserved++;
+    }
+    alloc.total_spins = n;
+    alloc.awarded[wonPrize] = (alloc.awarded[wonPrize] || 0) + 1;
+    alloc.updated_at = this.now().toISOString();
+
+    return { prize_id: wonPrize, unit_cost: wonCost, total_spins: n };
+  }
+
   play_spin({ p_sale_id, p_spin_no = 1, p_device_ref }) {
     const u = this.requirePromoter();
     const s = this.t('sales').find((x) => x.id === p_sale_id); if (!s || s.promoter_id !== u.id) fail('SALE_NOT_FOUND');
@@ -211,50 +332,22 @@ export class Engine {
     const c = this.t('campaigns').find((x) => x.id === s.campaign_id); if (c.status !== 'active') fail('CAMPAIGN_NOT_ACTIVE');
     const cfg = this.activeConfig(c.id, s.state_id); if (!cfg) fail('NO_PRIZE_CONFIG');
     const key = this.poolKey(c.pool_scope, s); const spinId = uuid();
-    let pool = null, slot = null, prize, cost, orig = null, sub = false;
-    if (c.draw_strategy === 'controlled_pool') {
-      pool = this.currentPool(c, cfg, key);
-      const open = this.t('prize_pool_slots').filter((x) => x.pool_id === pool.id && !x.used_at).sort((a, b) => a.position - b.position);
-      if (!c.track_inventory) slot = open[0];
-      else if (c.oos_mode === 'defer') {
-        slot = open.find((x) => this.avail(u.id, x.prize_id) > 0);
-        for (const d of open) {
-          if (slot && d.position >= slot.position) break;
-          if (!d.deferred_at) { d.deferred_at = this.now().toISOString(); this.audit('PRIZE_DEFERRED', 'prize_pools', pool.id, { prize_id: d.prize_id, promoter_id: u.id, reason: 'promoter out of stock' }); }
-        }
-      } else {
-        slot = open[0];
-        if (slot && this.avail(u.id, slot.prize_id) <= 0) {
-          if (c.oos_mode === 'block') fail('OUT_OF_STOCK', 'Replenish prize stock before continuing.');
-          orig = slot.prize_id;
-          const alt = this.t('prize_config_items').filter((i) => i.config_id === cfg.id && i.prize_id !== orig && this.avail(u.id, i.prize_id) > 0)
-            .sort((a, b) => ((b.unit_cost <= slot.unit_cost) - (a.unit_cost <= slot.unit_cost)) || (a.unit_cost <= slot.unit_cost ? b.unit_cost - a.unit_cost : a.unit_cost - b.unit_cost))[0];
-          if (!alt) fail('OUT_OF_STOCK'); sub = true; prize = alt.prize_id; cost = alt.unit_cost;
-        }
-      }
-      if (!slot) fail('OUT_OF_STOCK', 'No prize available in stock for the remaining pool.');
-      if (!sub) { prize = slot.prize_id; cost = slot.unit_cost; }
-      slot.used_at = this.now().toISOString(); slot.spin_id = spinId;
-      pool.used++; if (pool.used >= pool.size) pool.exhausted_at = this.now().toISOString();
-    } else {
-      const items = this.t('prize_config_items').filter((i) => i.config_id === cfg.id && i.quantity > 0 && (!c.track_inventory || this.avail(u.id, i.prize_id) > 0));
-      const total = items.reduce((a, i) => a + i.quantity, 0); if (!total) fail('OUT_OF_STOCK');
-      let r = rnd() * total; const pick = items.find((i) => (r -= i.quantity) < 0) || items[items.length - 1];
-      prize = pick.prize_id; cost = pick.unit_cost;
-    }
+
+    const drawn = this.drawCumulativePrize(c, cfg, u.id, key);
+    const prize = drawn.prize_id;
+    const cost = drawn.unit_cost;
+
     const pz = this.t('prizes').find((x) => x.id === prize);
-    if (c.track_inventory) { const i = this.inv(u.id, prize); if (i.on_hand - i.reserved <= 0) fail('OUT_OF_STOCK'); i.reserved++; }
     this.db._seq++;
     const d = this.now();
     const row = { id: spinId, spin_code: `SPN${istDate(d).slice(2).replace(/-/g, '')}-${String(this.db._seq).padStart(6, '0')}`, sale_id: s.id, spin_no: p_spin_no,
-      campaign_id: c.id, promoter_id: u.id, biz_date: istDate(d), created_at: d.toISOString(), strategy: c.draw_strategy, pool_id: pool?.id || null,
-      slot_position: slot?.position || null, config_id: cfg.id, config_version: cfg.version, prize_id: pz.id, prize_code: pz.code, prize_name: pz.name,
-      prize_tier: pz.tier, prize_cost: Number(cost), original_prize_id: orig, substituted: sub, redemption_status: 'pending', handed_over_at: null,
+      campaign_id: c.id, promoter_id: u.id, biz_date: istDate(d), created_at: d.toISOString(), strategy: c.draw_strategy, pool_id: null,
+      slot_position: null, config_id: cfg.id, config_version: cfg.version, prize_id: pz.id, prize_code: pz.code, prize_name: pz.name,
+      prize_tier: pz.tier, prize_cost: Number(cost), original_prize_id: null, substituted: false, redemption_status: 'pending', handed_over_at: null,
       inventory_status: c.track_inventory ? 'reserved' : 'not_tracked', resolved_by: null, resolution_note: null, device_ref: p_device_ref || s.device_ref };
     this.t('spins').push(row);
     s.spins_used++; s.status = 'spun';
-    this.audit('SPIN', 'spins', spinId, { sale_id: s.id, prize: pz.code, cost: Number(cost), pool_no: pool?.pool_no, substituted: sub });
-    if (sub) this.audit('PRIZE_SUBSTITUTED', 'spins', spinId, { original_prize_id: orig, awarded_prize_id: prize });
+    this.audit('SPIN', 'spins', spinId, { sale_id: s.id, prize: pz.code, cost: Number(cost), config_version: cfg.version, cumulative_spins: drawn.total_spins });
     this.checkAfterSpin(row);
     return { ...this.spinJson(spinId), replayed: false };
   }
@@ -291,12 +384,10 @@ export class Engine {
     const u = this.requirePromoter(); const pr = this.t('promoters').find((p) => p.user_id === u.id); const today = istDate(this.now());
     const sales = this.t('sales').filter((s) => s.promoter_id === u.id && s.biz_date === today && s.status !== 'cancelled');
     const spins = this.t('spins').filter((s) => s.promoter_id === u.id && s.biz_date === today);
-    const counted = spins.filter((s) => s.redemption_status !== 'not_redeemed'); const cost = counted.reduce((a, s) => a + s.prize_cost, 0);
     const sess = this.t('promoter_sessions').find((s) => s.promoter_id === u.id && s.work_date === today);
     return {
       user: { id: u.id, name: u.full_name, login_id: u.login_id, promoter_code: pr?.promoter_code, promoter_type: pr?.promoter_type },
-      today: { sales: sales.length, units: sales.reduce((a, s) => a + s.quantity, 0), spins: spins.length, prizes_given: spins.filter((s) => s.redemption_status === 'handed_over').length,
-        prize_cost: cost, avg_cost: counted.length ? r2(cost / counted.length) : 0 },
+      today: { sales: sales.length, units: sales.reduce((a, s) => a + s.quantity, 0), spins: spins.length, prizes_given: spins.filter((s) => s.redemption_status === 'handed_over').length },
       stock: this.t('prizes').filter((p) => p.is_active).sort((a, b) => a.sort_order - b.sort_order).map((p) => {
         const i = this.t('promoter_inventory').find((x) => x.promoter_id === u.id && x.prize_id === p.id) || { on_hand: 0, reserved: 0 };
         return { prize_id: p.id, name: p.name, short_name: p.short_name, tier: p.tier, on_hand: i.on_hand, reserved: i.reserved, threshold: p.low_stock_threshold, low: i.on_hand <= p.low_stock_threshold };
@@ -410,6 +501,38 @@ export class Engine {
     return Object.values(g).map(({ _o, _p, _st, _tr, ...r }) => ({ ...r, ...(p_group === 'promoter' ? { state: [..._st].join(', '), territory: [..._tr].join(', ') } : {}),
       active_outlets: _o.size, promoters: _p.size, avg_cost: r.spins ? r2(r.giveaway_cost / r.spins) : null })).sort((a, b) => b.spins - a.spins);
   }
+  prize_distribution_report({ p_filters }) {
+    this.requireStaff();
+    const sales = this.scopedSales(p_filters);
+    const bySale = this.spinsBySale();
+    const spins = sales.flatMap((sale) => bySale[sale.id] || []).filter((spin) => spin.redemption_status !== 'not_redeemed');
+    const totalCost = spins.reduce((sum, spin) => sum + Number(spin.prize_cost || 0), 0);
+    const targetCounts = {};
+    for (const spin of spins) {
+      const cfg = this.t('prize_configs').find((config) => config.id === spin.config_id);
+      const items = this.t('prize_config_items').filter((item) => item.config_id === cfg?.id);
+      for (const item of items) {
+        const pct = item.percentage != null ? Number(item.percentage) : Number(item.quantity) / (cfg?.pool_size || 200) * 100;
+        targetCounts[item.prize_id] = (targetCounts[item.prize_id] || 0) + pct / 100;
+      }
+    }
+    return this.t('prizes').filter((prize) => prize.is_active).map((prize) => {
+      const awarded = spins.filter((spin) => spin.prize_id === prize.id);
+      const quantity = awarded.length;
+      const actualPct = spins.length ? r2(quantity * 100 / spins.length) : 0;
+      const targetPct = spins.length ? r2((targetCounts[prize.id] || 0) * 100 / spins.length) : 0;
+      return {
+        key: prize.id, label: prize.name, quantity,
+        unit_cost: quantity ? r2(awarded.reduce((sum, spin) => sum + spin.prize_cost, 0) / quantity) : prize.default_cost,
+        total_cost: awarded.reduce((sum, spin) => sum + spin.prize_cost, 0),
+        pct: actualPct, target_pct: targetPct, variance_pct: r2(actualPct - targetPct),
+        handed_over: awarded.filter((spin) => spin.redemption_status === 'handed_over').length,
+        pending: awarded.filter((spin) => spin.redemption_status === 'pending').length,
+        total_spins: spins.length, giveaway_cost: totalCost,
+        avg_giveaway_cost: spins.length ? r2(totalCost / spins.length) : 0,
+      };
+    }).sort((a, b) => b.unit_cost - a.unit_cost);
+  }
   dashboard_kpis({ p_filters }) {
     const u = this.requireStaff(); this.run_flag_scan(); const f = p_filters || {};
     const sales = this.scopedSales(f); const bySale = this.spinsBySale(); const spins = sales.flatMap((s) => bySale[s.id] || []);
@@ -447,18 +570,31 @@ export class Engine {
   // ---------- admin ----------
   save_prize_config({ p_campaign, p_state, p_pool_size, p_items, p_override, p_notes }) {
     const u = this.requireAdmin(); const c = this.t('campaigns').find((x) => x.id === p_campaign); if (!c) fail('CAMPAIGN_NOT_FOUND');
-    const qty = p_items.reduce((a, i) => a + Number(i.quantity), 0); const total = p_items.reduce((a, i) => a + i.quantity * i.unit_cost, 0);
-    if (qty !== Number(p_pool_size)) fail('POOL_SIZE_MISMATCH', `Prize quantities add up to ${qty} but pool size is ${p_pool_size}`);
-    const avg = total / p_pool_size; const over = avg > c.target_cost_per_spin;
+    const refSize = Number(p_pool_size) || 200;
+    let totPct = 0;
+    let avg = 0;
+    for (const i of p_items) {
+      const pct = i.percentage != null && i.percentage !== '' ? Number(i.percentage) : (Number(i.quantity) / refSize) * 100;
+      if (pct < 0 || Number(i.unit_cost) < 0) fail('INVALID_ITEMS');
+      totPct += pct;
+      avg += (pct / 100) * Number(i.unit_cost);
+    }
+    if (Math.abs(totPct - 100.0) > 0.05) fail('PERCENTAGE_MISMATCH', `Prize percentages add up to ${totPct.toFixed(2)}%; they must equal 100%`);
+    const total = r2(avg * refSize);
+    const over = avg > c.target_cost_per_spin;
     if (over && !p_override) fail('COST_ABOVE_TARGET', `Average cost per spin ₹${avg.toFixed(2)} exceeds the ₹${c.target_cost_per_spin} campaign target.`);
     if (over && !u.can_override_cost_target) fail('OVERRIDE_NOT_AUTHORISED');
     const ver = Math.max(0, ...this.t('prize_configs').filter((x) => x.campaign_id === p_campaign).map((x) => x.version)) + 1;
     const prev = this.t('prize_configs').find((x) => x.campaign_id === p_campaign && x.is_active && (x.state_id || null) === (p_state || null)); if (prev) prev.is_active = false;
     const id = uuid();
-    this.t('prize_configs').push({ id, campaign_id: p_campaign, state_id: p_state || null, version: ver, pool_size: Number(p_pool_size), total_cost: total, avg_cost: avg, target_cost: c.target_cost_per_spin,
+    this.t('prize_configs').push({ id, campaign_id: p_campaign, state_id: p_state || null, version: ver, pool_size: refSize, total_cost: total, avg_cost: avg, target_cost: c.target_cost_per_spin,
       exceeds_target: over, override_by: over ? u.id : null, is_active: true, notes: p_notes, created_by: u.id, created_at: this.now().toISOString() });
-    p_items.filter((i) => i.quantity > 0).forEach((i) => this.t('prize_config_items').push({ config_id: id, prize_id: i.prize_id, quantity: Number(i.quantity), unit_cost: Number(i.unit_cost) }));
-    this.audit('PRIZE_CONFIG_SAVED', 'prize_configs', id, { version: ver, pool_size: p_pool_size, total_cost: total, avg_cost: avg, override: over });
+    p_items.filter((i) => Number(i.percentage || i.quantity) > 0).forEach((i) => {
+      const pct = i.percentage != null && i.percentage !== '' ? Number(i.percentage) : (Number(i.quantity) / refSize) * 100;
+      const qty = i.quantity != null ? Number(i.quantity) : Math.round((pct / 100) * refSize);
+      this.t('prize_config_items').push({ config_id: id, prize_id: i.prize_id, quantity: qty, unit_cost: Number(i.unit_cost), percentage: pct });
+    });
+    this.audit('PRIZE_CONFIG_SAVED', 'prize_configs', id, { version: ver, ref_pool_size: refSize, total_cost: total, avg_cost: avg, override: over });
     return { config_id: id, version: ver, total_cost: total, avg_cost: r2(avg), exceeds_target: over };
   }
   pool_status({ p_campaign }) {
@@ -466,16 +602,72 @@ export class Engine {
     const configs = this.t('prize_configs').filter((x) => x.campaign_id === p_campaign && x.is_active).map((pc) => ({ config_id: pc.id, version: pc.version, state_id: pc.state_id,
       state_name: this.t('states').find((s) => s.id === pc.state_id)?.name || null, pool_size: pc.pool_size, total_cost: pc.total_cost, avg_cost: r2(pc.avg_cost), target: pc.target_cost,
       exceeds_target: pc.exceeds_target, items: this.t('prize_config_items').filter((i) => i.config_id === pc.id).sort((a, b) => a.unit_cost - b.unit_cost)
-        .map((i) => ({ prize_id: i.prize_id, name: P[i.prize_id].name, short_name: P[i.prize_id].short_name, quantity: i.quantity, unit_cost: i.unit_cost })) }));
-    const all = this.t('prize_pools').filter((p) => p.campaign_id === p_campaign); const open = all.filter((p) => !p.exhausted_at && !p.voided_at);
-    const owner = (p) => this.t('app_users').find((u) => u.id === p.scope_key)?.full_name || this.t('outlets').find((o) => o.id === p.scope_key)?.name
-      || this.t('territories').find((o) => o.id === p.scope_key)?.name || this.t('states').find((o) => o.id === p.scope_key)?.name || 'Campaign';
-    const pools = open.map((p) => { const left = this.t('prize_pool_slots').filter((s) => s.pool_id === p.id && !s.used_at); const rem = {};
-      left.forEach((s) => { rem[P[s.prize_id].short_name] = (rem[P[s.prize_id].short_name] || 0) + 1; });
-      return { pool_id: p.id, pool_no: p.pool_no, scope: p.scope, owner: owner(p), config_version: this.t('prize_configs').find((c) => c.id === p.config_id)?.version,
-        size: p.size, used: p.used, remaining: p.size - p.used, remaining_by_prize: rem, deferred: left.filter((s) => s.deferred_at).length }; });
-    return { configs, pools, totals: { open_pools: open.length, completed_pools: all.filter((p) => p.exhausted_at).length, voided_pools: all.filter((p) => p.voided_at).length,
-      used: open.reduce((a, p) => a + p.used, 0), capacity: open.reduce((a, p) => a + p.size, 0), total_spins_all_pools: all.reduce((a, p) => a + p.used, 0) } };
+        .map((i) => ({ prize_id: i.prize_id, name: P[i.prize_id].name, short_name: P[i.prize_id].short_name, tier: P[i.prize_id].tier,
+          quantity: i.quantity, percentage: i.percentage != null ? i.percentage : r2((i.quantity / pc.pool_size) * 100), unit_cost: i.unit_cost })) }));
+
+    const allSpins = this.t('spins').filter((s) => s.campaign_id === p_campaign);
+    const validSpins = allSpins.filter((s) => s.redemption_status !== 'not_redeemed');
+    const totalSpins = validSpins.length;
+    const giveawayCost = validSpins.reduce((a, s) => a + s.prize_cost, 0);
+    const avgCost = totalSpins > 0 ? r2(giveawayCost / totalSpins) : 0;
+
+    const activeCfg = this.t('prize_configs').find((x) => x.campaign_id === p_campaign && x.is_active && !x.state_id) || this.t('prize_configs').find((x) => x.campaign_id === p_campaign && x.is_active);
+    const cfgItems = activeCfg ? this.t('prize_config_items').filter((i) => i.config_id === activeCfg.id) : [];
+
+    const actualCounts = {};
+    const actualCosts = {};
+    const targetCounts = {};
+    for (const s of validSpins) {
+      actualCounts[s.prize_id] = (actualCounts[s.prize_id] || 0) + 1;
+      actualCosts[s.prize_id] = (actualCosts[s.prize_id] || 0) + s.prize_cost;
+      const spinConfig = this.t('prize_configs').find((pc) => pc.id === s.config_id);
+      for (const ci of this.t('prize_config_items').filter((item) => item.config_id === spinConfig?.id)) {
+        const pct = ci.percentage != null ? Number(ci.percentage) : Number(ci.quantity) / (spinConfig?.pool_size || 200) * 100;
+        targetCounts[ci.prize_id] = (targetCounts[ci.prize_id] || 0) + pct / 100;
+      }
+    }
+
+    const distItems = cfgItems.map((ci) => {
+      const p = P[ci.prize_id];
+      const currentTargetPct = ci.percentage != null ? ci.percentage : (ci.quantity / activeCfg.pool_size) * 100;
+      const targetCount = targetCounts[ci.prize_id] || 0;
+      const targetPct = totalSpins ? r2(targetCount * 100 / totalSpins) : currentTargetPct;
+      const actualCount = actualCounts[ci.prize_id] || 0;
+      const actualPct = totalSpins > 0 ? r2((actualCount / totalSpins) * 100) : 0;
+      return {
+        prize_id: ci.prize_id,
+        name: p?.name || '',
+        short_name: p?.short_name || '',
+        tier: p?.tier || '',
+        unit_cost: ci.unit_cost,
+        target_pct: r2(targetPct),
+        target_count: r2(totalSpins ? targetCount : 0),
+        actual_count: actualCount,
+        actual_pct: actualPct,
+        variance_pct: r2(actualPct - targetPct),
+        total_cost: actualCosts[ci.prize_id] || 0,
+      };
+    }).sort((a, b) => a.unit_cost - b.unit_cost);
+
+    const distribution = {
+      total_spins: totalSpins,
+      giveaway_cost: giveawayCost,
+      avg_giveaway_cost: avgCost,
+      target_cost: activeCfg?.target_cost || 10,
+      items: distItems,
+    };
+
+    return {
+      configs,
+      distribution,
+      pools: [],
+      totals: {
+        total_spins_all_pools: totalSpins,
+        used: totalSpins,
+        giveaway_cost: giveawayCost,
+        avg_cost: avgCost,
+      },
+    };
   }
   import_outlets({ p_rows }) {
     this.requireAdmin(); let ins = 0, upd = 0; const errors = []; const ts = this.now().toISOString();

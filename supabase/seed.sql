@@ -61,7 +61,7 @@ insert into public.prizes (id, code, name, short_name, tier, default_cost, wheel
 insert into public.campaigns (id, code, name, status, start_date, end_date, target_cost_per_spin,
                               total_budget, daily_budget, pool_scope, draw_strategy, oos_mode, config_change_mode)
 values ('60000000-0000-0000-0000-000000000001', 'RSW-2026', 'RIO SPIN & WIN 2026', 'active',
-        '2026-09-01', '2026-12-31', 10, 500000, 25000, 'promoter', 'controlled_pool', 'defer', 'next_pool');
+        '2026-09-01', '2026-12-31', 10, 500000, 25000, 'campaign', 'controlled_pool', 'defer', 'next_pool');
 
 insert into public.campaign_states (campaign_id, state_id, budget) values
   ('60000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-000000000001', 300000),

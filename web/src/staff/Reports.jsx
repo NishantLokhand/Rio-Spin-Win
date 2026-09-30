@@ -27,7 +27,10 @@ const COLS = {
   prize: [
     { key: 'label', label: 'Prize' }, { key: 'quantity', label: 'Quantity Won', align: 'r', fmt: fmt.num },
     { key: 'unit_cost', label: 'Cost Per Prize', ...money }, { key: 'total_cost', label: 'Total Cost', ...money },
-    { key: 'pct', label: 'Prize Mix %', align: 'r', fmt: fmt.pct }, { key: 'handed_over', label: 'Handed Over', align: 'r' },
+    { key: 'target_pct', label: 'Target Share', align: 'r', fmt: fmt.pct },
+    { key: 'pct', label: 'Actual Share', align: 'r', fmt: fmt.pct },
+    { key: 'variance_pct', label: 'Variance', align: 'r', fmt: fmt.pct },
+    { key: 'handed_over', label: 'Handed Over', align: 'r' },
     { key: 'pending', label: 'Pending', align: 'r' },
   ],
 };
@@ -47,7 +50,9 @@ const TABS = [
 
 export default function Reports({ data, filters, setFilters }) {
   const [tab, setTab] = useState('tse');
-  const rep = useAsync(() => rpc('report_summary', { p_group: tab, p_filters: filters }), [tab, JSON.stringify(filters)]);
+  const rep = useAsync(() => tab === 'prize'
+    ? rpc('prize_distribution_report', { p_filters: filters })
+    : rpc('report_summary', { p_group: tab, p_filters: filters }), [tab, JSON.stringify(filters)]);
   const cols = COLS[tab] || generic(TABS.find((t) => t.key === tab).label);
   const drill = tab === 'tse' ? (r) => { setFilters({ ...filters, tse_id: r.key }); setTab('outlet'); }
     : tab === 'territory' ? (r) => { setFilters({ ...filters, territory_id: r.key }); setTab('tse'); }
@@ -56,13 +61,19 @@ export default function Reports({ data, filters, setFilters }) {
   const totals = rep.data && tab !== 'prize' ? rep.data.reduce((a, r) => ({
     spins: a.spins + Number(r.spins || 0), units: a.units + Number(r.units || 0), cost: a.cost + Number(r.giveaway_cost || 0),
   }), { spins: 0, units: 0, cost: 0 }) : null;
+  const prizeTotals = tab === 'prize' && rep.data?.length ? {
+    spins: Number(rep.data[0].total_spins || 0), cost: Number(rep.data[0].giveaway_cost || 0),
+    avg: Number(rep.data[0].avg_giveaway_cost || 0),
+  } : null;
 
   return (
     <div className="s-page">
       <FilterBar data={data} filters={filters} setFilters={setFilters} />
       <Tabs tabs={TABS} value={tab} onChange={setTab} />
       <Panel title={TABS.find((t) => t.key === tab).label}
-             actions={totals && <span className="muted">Total: {fmt.num(totals.spins)} spins · {fmt.num(totals.units)} units · {fmt.inr(totals.cost)} · avg {fmt.inr2(totals.spins ? totals.cost / totals.spins : 0)}</span>}>
+             actions={totals
+               ? <span className="muted">Total: {fmt.num(totals.spins)} spins · {fmt.num(totals.units)} units · {fmt.inr(totals.cost)} · avg {fmt.inr2(totals.spins ? totals.cost / totals.spins : 0)}</span>
+               : prizeTotals && <span className="muted">Total: {fmt.num(prizeTotals.spins)} spins · {fmt.inr(prizeTotals.cost)} giveaway cost · avg {fmt.inr2(prizeTotals.avg)} / spin</span>}>
         {!rep.data ? <Loading state={rep} /> : (
           <>
             {tab === 'prize' && rep.data.length > 0 && (
