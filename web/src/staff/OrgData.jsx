@@ -8,7 +8,7 @@ const keyPart = (v) => norm(v).toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace
 const beatKey = (v) => norm(v).replace(/\u00a0/g, ' ').toLowerCase().replace(/[^a-z0-9]/g, '');
 const labelKey = (v) => norm(v).normalize('NFKC').replace(/\u00a0/g, ' ').toLocaleUpperCase('en-IN');
 const outletLabel = (v) => norm(v).replace(/^\s*\(?\s*\d{3,}\s*\)?\s*[-–:]?\s*/, '').replace(/\u00a0/g, ' ').trim();
-function outletCodeFromLabel(v) { const match = norm(v).match(/^\s*\(?\s*(\d{3,})\s*\)?\s*(?:[-–:]|$)/); return match?.[1] || ''; }
+function outletCodeFromLabel(v) { const match = norm(v).match(/^\s*(?:\(\s*(\d{3,})\s*\)|(\d{3,})(?=\s|[-–:]))/); return match?.[1] || match?.[2] || ''; }
 const role = (v) => ({ PROMOTER: 'PROMOTER', PROMO: 'PROMOTER', TSE: 'TSE', MER: 'MER', ASM: 'ASM' }[norm(v).toUpperCase()] || '');
 async function readWorkbook(file) {
   const XLSX = await import('xlsx');
