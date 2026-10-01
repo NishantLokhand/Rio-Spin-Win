@@ -107,7 +107,7 @@ begin
 
   -- Maharashtra currently supplies beats but no direct outlet lists. Resolve
   -- promoters there from their own imported beats and existing outlets only.
-  if public.org_match_key(v_person.state_raw) in ('maharashtra','mh')
+  if public.org_match_key(v_person.state_raw) in ('maharashtra','maharashtrarom','mh')
     and public.org_person_route_matches_outlet(v_person.id,p_outlet_id) then
     return true;
   end if;
