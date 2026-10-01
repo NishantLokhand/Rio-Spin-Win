@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { rpc, friendly } from '../lib/api.js';
+import { supabase } from '../lib/supabase.js';
 import { loadMasters, cachedMasters } from '../lib/masters.js';
 import { store, deviceRef } from '../lib/store.js';
 import { getCtx, saveCtx, pushRecent, getInflight, setInflight, clearInflight, clearAllForUser } from '../lib/session.js';
@@ -59,13 +60,34 @@ export default function PromoterApp({ profile, onLogout }) {
       if (h.pending_spin) {
         setSpin(h.pending_spin);
         setView((v) => (v === 'spin' ? v : 'win'));
+        return h;
+      }
+      // The isolated test promoter may have a partially completed multi-spin sale
+      // after its browser-local recovery state was cleared. Recover only that account.
+      if (profile.login_id === '9556600000') {
+        const { data: testPromoter } = await supabase.from('promoters').select('promoter_code').eq('user_id', uid).maybeSingle();
+        if (testPromoter?.promoter_code === 'TEST-9556600000') {
+          const { data: sales } = await supabase.from('sales')
+            .select('id,status,spins_used,spins_allowed,quantity,product_name,sku_code,outlet_id,created_at')
+            .eq('promoter_id', uid).not('status', 'in', '(completed,cancelled)')
+            .gt('spins_used', 0).order('created_at', { ascending: false }).limit(10);
+          const sale = (sales || []).find((row) => row.spins_used < row.spins_allowed);
+          if (sale && getInflight(uid)?.saleId !== sale.id) {
+            const { data: items } = await supabase.from('sale_items').select('product_name,quantity').eq('sale_id', sale.id);
+            const sku = (items || []).map((item) => `${item.product_name} × ${item.quantity}`).join(', ')
+              || `${sale.product_name} × ${sale.quantity}`;
+            const resumed = { saleId: sale.id, stage: 'recorded', spinNo: sale.spins_used + 1,
+              spinsAllowed: sale.spins_allowed, sku, qty: sale.quantity, outletId: sale.outlet_id, at: Date.parse(sale.created_at) };
+            setInflight(uid, resumed); setFlight(resumed); setSpin(null); setView('spin');
+          }
+        }
       }
       return h;
     } catch (e) {
       if (e.code === 'USER_DISABLED' || e.code === 'NOT_AUTHENTICATED') onLogout();
       return null;
     }
-  }, [uid, onLogout]);
+  }, [uid, onLogout, profile.login_id]);
 
   useEffect(() => {
     Promise.all([loadMasters({ force: true }), rpc('get_promoter_outlets')]).then(([m, outlets]) => setMasters({ ...m, outlets })).catch(() => {});
