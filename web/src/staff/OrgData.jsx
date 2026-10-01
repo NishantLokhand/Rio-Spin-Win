@@ -255,8 +255,9 @@ export default function OrgData({ data, reloadData }) {
         p_master: master, p_inventory: inventory, p_run_key: runKey.trim(),
         p_outlet_rows: accessRows, p_outlet_mode: outletMode, p_unresolved_count: outletResolution.stats.unresolved_rows,
       }, { timeoutMs: 120000 });
+      const inventoryReconciliation = await rpc('reconcile_org_promoter_inventory', {}, { timeoutMs: 120000 });
       const outletResult = result.outlet_access || {};
-      setNotice(`Imported/updated ${result.master_rows} master rows; ${result.inventory_rows || 0} inventory rows processed${result.inventory_already_imported ? ' (initial inventory was already applied)' : ''}. Created ${createdOutlets} outlet master records. Promoter outlet list: ${outletResult.promoter_count} promoters, ${outletResult.assignment_count} unique outlet assignments.${outletResolution.stats.unresolved_rows ? ` ${outletResolution.stats.unresolved_rows} workbook entries remain unresolved; those promoters keep MER/manual access.` : ''}`);
+      setNotice(`Imported/updated ${result.master_rows} master rows; ${result.inventory_rows || 0} inventory rows processed${result.inventory_already_imported ? ' (initial inventory was already applied)' : ''}. Opening stock reconciled: ${inventoryReconciliation.stock_balances_seeded} balances seeded; ${inventoryReconciliation.unmatched_rows} inventory rows need review. Created ${createdOutlets} outlet master records. Promoter outlet list: ${outletResult.promoter_count} promoters, ${outletResult.assignment_count} unique outlet assignments.${outletResolution.stats.unresolved_rows ? ` ${outletResolution.stats.unresolved_rows} workbook entries remain unresolved; those promoters keep MER/manual access.` : ''}`);
       await refresh(); await reloadData();
     } catch (e) { setErr(friendly(e)); }
     finally { setBusy(false); }
