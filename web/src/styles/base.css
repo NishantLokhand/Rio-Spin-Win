@@ -19,7 +19,7 @@ input, select, textarea { font-family: inherit; font-size: 16px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ---------- Login ---------- */
-.login { min-height: 100vh; padding: 28px 18px; display: flex; flex-direction: column; gap: 20px; justify-content: center; color: #35250D;
+.login { min-height: 100vh; min-height: 100dvh; padding: 28px 18px; display: flex; flex-direction: column; gap: 20px; justify-content: center; color: #35250D;
   background: radial-gradient(ellipse at 50% 0%, rgba(255,226,143,.72), transparent 58%), linear-gradient(145deg, #F3BD43 0%, #E3A11A 54%, #D48A0A 100%); }
 .login-hero { text-align: center; display: grid; justify-items: center; gap: 10px; width: min(340px, 100%); margin: 0 auto; padding: 16px 22px 15px; background: #FFF9EC; color: #35250D; border: 1px solid rgba(93,62,13,.2); border-radius: 28px; box-shadow: 0 16px 44px rgba(77,49,7,.22); }
 .login-brand-logo { display: block; width: min(236px, 72vw); height: 112px; padding: 10px 18px; object-fit: contain; background: #35250D; border-radius: 19px; margin: 0 auto 2px; opacity: 1; }
@@ -40,6 +40,10 @@ input, select, textarea { font-family: inherit; font-size: 16px; }
 .btn-primary { background: #A51F32; color: #fff; border: 0; border-radius: 14px; padding: 14px 18px; font-weight: 800; font-size: 16px; }
 .btn-primary.big { font-size: 20px; padding: 18px; font-family: var(--display); letter-spacing: 1px; box-shadow: 0 6px 0 #741326; }
 .btn-primary:disabled { opacity: .6; }
+
+@media (max-height: 720px) {
+  .login { padding-block: 8px; gap: 14px; }
+}
 
 /* ---------- demo mode ---------- */
 .demo-ribbon { position: fixed; bottom: 0; left: 0; right: 0; z-index: 100; text-align: center; font-size: 11px; font-weight: 800; letter-spacing: .5px;
