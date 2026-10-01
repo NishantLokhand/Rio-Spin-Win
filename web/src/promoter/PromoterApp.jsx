@@ -27,6 +27,8 @@ export default function PromoterApp({ profile, onLogout }) {
   const uid = profile.id;
   const online = useOnline();
   const [masters, setMasters] = useState(() => { const m = cachedMasters(); return m ? { ...m, outlets: [] } : m; });
+  const [outletsLoading, setOutletsLoading] = useState(true);
+  const [fullOutletsLoading, setFullOutletsLoading] = useState(false);
   const [ctx, setCtx] = useState(() => getCtx(uid));
   const [home, setHome] = useState(() => store.get(`rio.home.${uid}`));
   const [flight, setFlight] = useState(() => getInflight(uid));
@@ -90,7 +92,13 @@ export default function PromoterApp({ profile, onLogout }) {
   }, [uid, onLogout, profile.login_id]);
 
   useEffect(() => {
-    Promise.all([loadMasters({ force: true }), rpc('get_promoter_outlets')]).then(([m, outlets]) => setMasters({ ...m, outlets })).catch(() => {});
+    // The direct picker gets its assigned list from one purpose-built RPC.
+    // Loading the entire outlet directory here duplicated that request and
+    // delayed the picker on large outlet masters.
+    Promise.all([loadMasters({ force: true, includeOutletData: false }), rpc('get_promoter_outlets')])
+      .then(([m, outlets]) => setMasters((current) => ({ ...(current || {}), ...m, outlets })))
+      .catch((e) => say(friendly(e), 'err'))
+      .finally(() => setOutletsLoading(false));
     refreshHome();
     // campaign sound default on first run
     if (store.get('rio.sound') == null && home?.campaign?.sound_default === false) sound.set(false);
@@ -98,6 +106,13 @@ export default function PromoterApp({ profile, onLogout }) {
   }, []);
 
   useEffect(() => { if (online) refreshHome(); }, [online, refreshHome]);
+
+  useEffect(() => {
+    if (view !== 'picker-full') return;
+    setFullOutletsLoading(true);
+    loadMasters({ force: true }).then((m) => setMasters((current) => ({ ...(current || {}), ...m })))
+      .catch((e) => say(friendly(e), 'err')).finally(() => setFullOutletsLoading(false));
+  }, [view]);
 
   async function selectOutlet(outlet) {
     try {
@@ -189,11 +204,16 @@ export default function PromoterApp({ profile, onLogout }) {
 
       {(view === 'picker-outlet' || view === 'picker-full') && masters && (
         <OutletPicker masters={masters} ctx={ctx} uid={uid} full={view === 'picker-full'} direct={view === 'picker-outlet'}
+                      loading={view === 'picker-outlet' ? outletsLoading : fullOutletsLoading}
                       onPick={selectOutlet} onCancel={ctx ? () => setView('home') : null}
                       onNotListed={() => setView('request')}
-                      onReload={() => Promise.all([loadMasters({ force: true }), rpc('get_promoter_outlets')])
-                        .then(([m, outlets]) => setMasters({ ...m, outlets }))
-                        .catch((e) => say(friendly(e), 'err'))} />
+                      onReload={() => {
+                        setOutletsLoading(true);
+                        return Promise.all([loadMasters({ force: true, includeOutletData: false }), rpc('get_promoter_outlets')])
+                          .then(([m, outlets]) => setMasters((current) => ({ ...(current || {}), ...m, outlets })))
+                          .catch((e) => say(friendly(e), 'err'))
+                          .finally(() => setOutletsLoading(false));
+                      }} />
       )}
 
       {view === 'request' && masters && (
