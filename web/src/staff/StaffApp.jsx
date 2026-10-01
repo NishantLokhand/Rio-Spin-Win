@@ -46,12 +46,17 @@ export default function StaffApp({ profile, onLogout }) {
 
   const loadData = useCallback(async () => {
     try {
-      const [masters, campaigns, promoters, outletsFull] = await Promise.all([
+      const [masters, campaigns, promoters, adminOutlets] = await Promise.all([
         loadMasters({ force: true }),
         selectAll('campaigns', '*', (q) => q.order('created_at', { ascending: false })),
         selectAll('app_users', 'id,full_name,login_id,is_active,role', (q) => q.eq('role', 'promoter').order('full_name')),
-        selectAll('outlets', 'id,outlet_code,name,area,city,beat,distributor,tse_id,status,source,external_ref', (q) => q.order('name')),
+        role === 'admin'
+          ? selectAll('outlets', 'id,outlet_code,name,area,city,beat,distributor,tse_id,status,source,external_ref', (q) => q.order('name'))
+          : Promise.resolve(null),
       ]);
+      // loadMasters already fetched the outlets visible to a supervisor via RLS.
+      // Reuse that scoped list instead of repeating the expensive full-table read.
+      const outletsFull = adminOutlets || masters.outlets;
       setData({ masters, campaigns, promoters, outletsFull, role, profile });
     } catch (e) { setErr(e.message); }
   }, [role, profile]);
