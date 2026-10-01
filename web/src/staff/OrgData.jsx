@@ -6,11 +6,14 @@ import { Panel, DataTable, Field, Badge, Tabs } from './ui.jsx';
 const norm = (v) => String(v ?? '').trim().replace(/\s+/g, ' ');
 const keyPart = (v) => norm(v).toUpperCase().replace(/[^A-Z0-9]+/g, '-').replace(/^-|-$/g, '');
 const beatKey = (v) => norm(v).replace(/\u00a0/g, ' ').toLowerCase().replace(/[^a-z0-9]/g, '');
+const labelKey = (v) => norm(v).normalize('NFKC').replace(/\u00a0/g, ' ').toLocaleUpperCase('en-IN');
+const outletLabel = (v) => norm(v).replace(/^\s*\(?\s*\d{3,}\s*\)?\s*[-–:]?\s*/, '').replace(/\u00a0/g, ' ').trim();
+function outletCodeFromLabel(v) { const match = norm(v).match(/^\s*\(?\s*(\d{3,})\s*\)?\s*(?:[-–:]|$)/); return match?.[1] || ''; }
 const role = (v) => ({ PROMOTER: 'PROMOTER', PROMO: 'PROMOTER', TSE: 'TSE', MER: 'MER', ASM: 'ASM' }[norm(v).toUpperCase()] || '');
-async function readSheet(file) {
+async function readWorkbook(file) {
   const XLSX = await import('xlsx');
   const book = XLSX.read(await file.arrayBuffer(), { type: 'array' });
-  return XLSX.utils.sheet_to_json(book.Sheets[book.SheetNames[0]], { header: 1, defval: '' });
+  return { names: book.SheetNames, sheets: book.Sheets, rows: (name) => XLSX.utils.sheet_to_json(book.Sheets[name], { header: 1, defval: '' }) };
 }
 function parseUP(rows) {
   return rows.slice(1).filter((r) => norm(r[2]) && role(r[3])).map((r) => ({
@@ -34,6 +37,61 @@ function parseInventory(rows) {
   }));
 }
 
+function parsePromoterOutletRows(workbook) {
+  const sheetName = workbook.names.find((name) => name.trim().toLowerCase() === 'promoter wise');
+  if (!sheetName) throw new Error('The UP workbook is missing its “Promoter Wise” sheet.');
+  const rows = workbook.rows(sheetName);
+  return rows.slice(1).flatMap((row, index) => {
+    const promoterName = norm(row[0]);
+    if (!promoterName) return [];
+    const outlets = row.slice(3).map(norm).filter(Boolean);
+    return outlets.map((label, outletIndex) => ({ promoter_name: promoterName, market: norm(row[1]), beat: norm(row[2]), outlet_label: label, source_row: index + 2, outlet_index: outletIndex + 1 }));
+  });
+}
+
+function resolvePromoterOutletRows(rows, people, outlets) {
+  const byPromoter = new Map();
+  const outletRows = rows.map((item) => {
+    const sameName = (people || []).filter((p) => p.designation === 'PROMOTER' && p.active && labelKey(p.employee_name) === labelKey(item.promoter_name));
+    const sameMarket = sameName.filter((p) => labelKey(p.area_raw) === labelKey(item.market) || labelKey(p.market_raw) === labelKey(item.market));
+    const candidates = sameMarket.length ? sameMarket : sameName;
+    const person = candidates.length === 1 ? candidates[0] : null;
+    let outlet = null;
+    let match = '';
+    let status = '';
+    let candidateCount;
+    const code = outletCodeFromLabel(item.outlet_label);
+    if (person && code) {
+      const matches = (outlets || []).filter((o) => o.status === 'active' && String(o.outlet_code || '').replace(/\D/g, '') === code);
+      if (matches.length === 1) { outlet = matches[0]; match = 'code'; }
+      else if (matches.length > 1) { status = 'ambiguous_code'; candidateCount = matches.length; }
+    }
+    if (person && !outlet && !status) {
+      const exactNames = new Set([labelKey(item.outlet_label), labelKey(outletLabel(item.outlet_label))]);
+      const matches = (outlets || []).filter((o) => o.status === 'active' && exactNames.has(labelKey(o.name)));
+      if (matches.length === 1) { outlet = matches[0]; match = 'exact_name'; }
+      else if (matches.length > 1) { status = 'ambiguous_name'; candidateCount = matches.length; }
+    }
+    status ||= !person ? (sameName.length > 1 ? 'ambiguous_promoter' : 'promoter_not_found') : outlet ? 'matched' : 'outlet_not_found';
+    if (person) {
+      const current = byPromoter.get(person.id) || { promoter_id: person.id, promoter_name: person.employee_name, expected_count: 0, matched_ids: new Set(), unresolved_count: 0, rows: 0 };
+      current.expected_count += 1; current.rows += 1;
+      if (outlet) current.matched_ids.add(outlet.id);
+      else current.unresolved_count += 1;
+      byPromoter.set(person.id, current);
+    }
+    return { ...item, person_id: person?.id || '', outlet_id: outlet?.id || '', match, status, candidate_count: candidateCount || (status === 'ambiguous_promoter' ? sameName.length : undefined) };
+  });
+  const promoterRows = [...byPromoter.values()].map((p) => ({ promoter_id: p.promoter_id, promoter_name: p.promoter_name, expected_count: p.expected_count, unresolved_count: p.unresolved_count, outlet_ids: [...p.matched_ids], matched_count: p.matched_ids.size }));
+  const stats = {
+    source_rows: rows.length, promoter_count: new Set(rows.map((r) => labelKey(r.promoter_name))).size,
+    matched_rows: outletRows.filter((r) => r.status === 'matched').length,
+    unresolved_rows: outletRows.filter((r) => r.status !== 'matched').length,
+    distinct_promoters_matched: promoterRows.length,
+  };
+  return { promoterRows, outletRows, stats };
+}
+
 export default function OrgData({ data, reloadData }) {
   const [tab, setTab] = useState('people');
   const [people, setPeople] = useState(null);
@@ -42,25 +100,29 @@ export default function OrgData({ data, reloadData }) {
   const [promoterStock, setPromoterStock] = useState([]);
   const [assignments, setAssignments] = useState(null);
   const [merAssignments, setMerAssignments] = useState([]);
+  const [workbookAssignments, setWorkbookAssignments] = useState([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [notice, setNotice] = useState('');
+  const [outletImportReport, setOutletImportReport] = useState(null);
   const [files, setFiles] = useState({ up: null, mh: null, inventory: null });
   const [runKey, setRunKey] = useState('source-files-2026-09-30-v1');
+  const [outletMode, setOutletMode] = useState('');
   const [filters, setFilters] = useState({ designation: 'all', state: 'all', market: 'all', area: 'all', beat: 'all', tse: 'all', mer: 'all', assignment: 'all', inventory: 'all', active: 'all', q: '' });
   const [newPerson, setNewPerson] = useState({ designation: 'PROMOTER', employee_name: '', mobile: '', state_raw: '', market_raw: '', area_raw: '', beat: '' });
 
   async function refresh() {
     try {
-      const [p, i, a, ma, adj, pi] = await Promise.all([
+      const [p, i, a, ma, wa, adj, pi] = await Promise.all([
         selectAll('org_people', '*', (q) => q.order('designation').order('employee_name')),
         selectAll('org_inventory', '*', (q) => q.order('employee_name')),
         selectAll('promoter_outlet_assignments', '*'),
         selectAll('promoter_mer_assignments', '*'),
+        selectAll('promoter_outlet_workbook_assignments', '*'),
         selectAll('org_inventory_adjustments', '*'),
         selectAll('promoter_inventory', '*'),
       ]);
-      setPeople(p); setStock(i); setAssignments(a); setMerAssignments(ma); setStockAdjustments(adj); setPromoterStock(pi);
+      setPeople(p); setStock(i); setAssignments(a); setMerAssignments(ma); setWorkbookAssignments(wa); setStockAdjustments(adj); setPromoterStock(pi);
     } catch (e) { setErr(friendly(e)); }
   }
   React.useEffect(() => { refresh(); }, []);
@@ -87,11 +149,26 @@ export default function OrgData({ data, reloadData }) {
     setBusy(true); setErr(''); setNotice('');
     try {
       if (!files.up || !files.mh || !files.inventory) throw new Error('Choose all three workbooks before importing.');
-      const [upRows, mhRows, invRows] = await Promise.all([readSheet(files.up), readSheet(files.mh), readSheet(files.inventory)]);
+      if (!people || !data.outletsFull) throw new Error('Organizational people and the outlet directory are still loading. Wait a moment and try again.');
+      if (!outletMode) throw new Error('Choose how the workbook outlet list should interact with MER outlet access.');
+      const [upBook, mhBook, invBook] = await Promise.all([readWorkbook(files.up), readWorkbook(files.mh), readWorkbook(files.inventory)]);
+      const upRows = upBook.rows(upBook.names[0]);
+      const mhRows = mhBook.rows(mhBook.names[0]);
+      const invRows = invBook.rows(invBook.names[0]);
       const master = [...parseUP(upRows), ...parseMH(mhRows)];
       const inventory = parseInventory(invRows);
-      const result = await rpc('import_org_master_inventory', { p_master: master, p_inventory: inventory, p_run_key: runKey.trim() }, { timeoutMs: 120000 });
-      setNotice(`Imported/updated ${result.master_rows} master rows; ${result.inventory_rows || 0} inventory rows processed${result.inventory_already_imported ? ' (initial inventory was already applied)' : ''}.`);
+      const outletResolution = resolvePromoterOutletRows(parsePromoterOutletRows(upBook), people, data.outletsFull);
+      setOutletImportReport(outletResolution);
+      if (outletMode === 'workbook_exact' && outletResolution.stats.unresolved_rows > 0) {
+        throw new Error(`Exact workbook access was not applied: ${outletResolution.stats.unresolved_rows} outlet entries need a unique promoter and outlet match. Review the matching report below; nothing was imported.`);
+      }
+      if (!outletResolution.promoterRows.length) throw new Error('No promoter rows matched existing UP promoter records. Nothing was imported.');
+      const result = await rpc('import_org_master_inventory_with_promoter_outlets', {
+        p_master: master, p_inventory: inventory, p_run_key: runKey.trim(),
+        p_outlet_rows: outletResolution.promoterRows, p_outlet_mode: outletMode, p_unresolved_count: outletResolution.stats.unresolved_rows,
+      }, { timeoutMs: 120000 });
+      const outletResult = result.outlet_access || {};
+      setNotice(`Imported/updated ${result.master_rows} master rows; ${result.inventory_rows || 0} inventory rows processed${result.inventory_already_imported ? ' (initial inventory was already applied)' : ''}. Promoter outlet list: ${outletResult.promoter_count} promoters, ${outletResult.assignment_count} unique outlet assignments.${outletResolution.stats.unresolved_rows ? ` ${outletResolution.stats.unresolved_rows} workbook entries were unresolved and not granted.` : ''}`);
       await refresh(); await reloadData();
     } catch (e) { setErr(friendly(e)); }
     finally { setBusy(false); }
@@ -180,13 +257,14 @@ export default function OrgData({ data, reloadData }) {
         { key: 'active', label: 'Active', render: (p) => <><Badge tone={p.active ? 'green' : 'red'}>{p.active ? 'Active' : 'Inactive'}</Badge><button className="s-btn ghost sm" onClick={() => toggleActive(p)}>{p.active ? 'Deactivate' : 'Activate'}</button></> },
       ]} />}
     </Panel></>}
-    {tab === 'outlets' && <Panel title="Promoter outlet access"><p className="muted">Promoters inherit active outlets whose beat matches any beat listed for their mapped MERs. Direct assignments remain available for exceptions; promoters with no matching MER or direct outlet keep the no-outlets screen.</p>
+    {tab === 'outlets' && <Panel title="Promoter outlet access"><p className="muted">Access can come from mapped MER beats, manual outlet assignments, or the UP Promoter Wise workbook. The selected workbook mode controls whether that promoter’s workbook list replaces or adds to MER/manual access.</p>
       {people?.filter((p) => p.designation === 'PROMOTER').map((p) => {
         const assigned = (assignments || []).filter((a) => a.promoter_id === p.id && a.active).map((a) => a.outlet_id);
+        const workbook = workbookAssignments.filter((a) => a.promoter_id === p.id && a.source_state === 'UTTAR PRADESH').map((a) => a.outlet_id);
         const merIds = merAssignments.filter((a) => a.promoter_id === p.id).map((a) => a.mer_id);
         const merBeats = new Set((people || []).filter((m) => merIds.includes(m.id)).flatMap((m) => m.beat_override || m.beat_values || []).map(beatKey).filter(Boolean));
         const inherited = (data.outletsFull || []).filter((o) => o.status === 'active' && merBeats.has(beatKey(o.beat))).map((o) => o.id);
-        return <OutletAssignment key={p.id} person={p} outlets={data.outletsFull} assigned={assigned} inherited={inherited} save={setOutlets} busy={busy} />;
+        return <OutletAssignment key={p.id} person={p} outlets={data.outletsFull} assigned={assigned} inherited={inherited} workbook={workbook} mode={p.outlet_access_mode || 'mer'} save={setOutlets} busy={busy} />;
       })}
     </Panel>}
     {tab === 'inventory' && <Panel title="Employee inventory allocations"><p className="muted">Source allocations stay separate from live consumption. Promoter adjustments are also applied to the existing promoter stock ledger when an account is linked. TSE/MER/ASM stock never transfers to promoters automatically.</p>
@@ -196,13 +274,15 @@ export default function OrgData({ data, reloadData }) {
         { key: 'adjust', label: 'Adjust', noExport: true, render: (s) => <StockAdjust row={s} save={adjustOrgStock} /> },
       ]} />}
     </Panel>}
-    {tab === 'import' && <Panel title="Import organizational master and initial inventory"><p>Choose the UP master, Maharashtra master, and combined inventory workbook. Master people come only from the first two files. The inventory workbook is reconciled to those records and cannot create directory people.</p>
+    {tab === 'import' && <Panel title="Import organizational master, promoter outlets, and initial inventory"><p>Choose the UP master, Maharashtra master, and combined inventory workbook. Master people come only from the first two files. The inventory workbook is reconciled to those records and cannot create directory people. The UP file’s <b>Promoter Wise</b> sheet is also matched to existing outlet records by outlet code first, then exact outlet name; no outlet records are created from this sheet.</p>
       <div className="s-form"><Field label="Uttar Pradesh TSE / MER / Promoter master"><input type="file" accept=".xlsx,.xls" onChange={(e) => setFiles({ ...files, up: e.target.files?.[0] || null })} /></Field>
         <Field label="Maharashtra TSE / MER master"><input type="file" accept=".xlsx,.xls" onChange={(e) => setFiles({ ...files, mh: e.target.files?.[0] || null })} /></Field>
         <Field label="MH-UP inventory workbook"><input type="file" accept=".xlsx,.xls" onChange={(e) => setFiles({ ...files, inventory: e.target.files?.[0] || null })} /></Field>
+        <Field label="UP promoter outlet access"><select value={outletMode} onChange={(e) => setOutletMode(e.target.value)}><option value="">Choose access behavior</option><option value="workbook_exact">Use workbook list as exact access (replaces MER and manual access)</option><option value="workbook_additive">Add workbook outlets to MER and manual access</option></select></Field>
         <Field label="Import run key" hint="Keep the same key to safely repeat this import. Use a new key only for a distinct inventory snapshot; existing promoter stock will never be overwritten or added twice."><input value={runKey} onChange={(e) => setRunKey(e.target.value)} /></Field>
-        <p className="muted">UP promoter-to-MER matches refresh from exact market/area matches. Re-running the same key does not reapply inventory or alter manual MER mappings, outlet assignments, or existing stock. Promoter outlet access follows mapped MER beats; new stock issues should use the adjustment action.</p>
-        <button className="s-btn" disabled={busy || !files.up || !files.mh || !files.inventory} onClick={runImport}>{busy ? 'Importing…' : 'Import and reconcile'}</button>
+        <p className="muted">Exact mode is applied only when every workbook entry resolves uniquely. Unresolved names are reported and block exact mode. Additive mode imports unique matches and leaves unmatched entries ungranted. Re-running the same key does not reapply initial inventory; the workbook outlet list is replaced with the latest uploaded list.</p>
+        <button className="s-btn" disabled={busy || !files.up || !files.mh || !files.inventory || !outletMode} onClick={runImport}>{busy ? 'Importing…' : 'Import and reconcile'}</button>
+        {outletImportReport && <div className="org-import-summary"><b>Promoter outlet matching report</b><p>{outletImportReport.stats.promoter_count} workbook promoters · {outletImportReport.stats.source_rows} outlet entries · {outletImportReport.stats.matched_rows} matched · {outletImportReport.stats.unresolved_rows} unresolved</p>{outletImportReport.stats.unresolved_rows > 0 && <div className="org-import-unmatched">{outletImportReport.outletRows.filter((r) => r.status !== 'matched').slice(0, 12).map((r, i) => <div key={`${r.source_row}-${r.outlet_index}-${i}`}><b>{r.promoter_name}</b> — {r.outlet_label} <small>({r.status.replaceAll('_', ' ')})</small></div>)}{outletImportReport.stats.unresolved_rows > 12 && <small>Showing first 12 unresolved entries.</small>}</div>}</div>}
       </div>
     </Panel>}
   </div>;
@@ -228,15 +308,18 @@ function MerMapping({ person, relations, mers, save, busy }) {
   </details></div>;
 }
 
-function OutletAssignment({ person, outlets, assigned, inherited = [], save, busy }) {
+function OutletAssignment({ person, outlets, assigned, inherited = [], workbook = [], mode = 'mer', save, busy }) {
   const [selected, setSelected] = useState(assigned);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   React.useEffect(() => setSelected(assigned), [assigned.join('|')]);
-  const inheritedSet = new Set(inherited);
+  const workbookSet = new Set(workbook);
+  const inheritedSet = new Set(mode === 'workbook_exact' ? workbook : mode === 'workbook_additive' ? [...inherited, ...workbook] : inherited);
+  const effective = mode === 'workbook_exact' ? workbookSet.size : new Set([...inheritedSet, ...assigned]).size;
   const filtered = outlets.filter((o) => [o.name,o.outlet_code,o.area,o.city,o.beat].some((x) => String(x || '').toLowerCase().includes(query.toLowerCase())));
-  return <div className="org-outlet-row"><div><b>{person.employee_name}</b><small>{person.state_raw} · {person.market_raw || 'Market unspecified'} · {inherited.length + assigned.filter((id) => !inheritedSet.has(id)).length} outlets available ({inherited.length} from MER)</small></div>
-    <details onToggle={(e) => setOpen(e.currentTarget.open)}><summary>Manage direct outlets</summary>{open && <><input className="org-outlet-search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search outlet, code, area or beat" /><div className="org-outlet-list">{filtered.map((o) => { const fromMer = inheritedSet.has(o.id); return <label key={o.id}><input type="checkbox" checked={selected.includes(o.id) || fromMer} disabled={fromMer} onChange={(e) => setSelected(e.target.checked ? [...selected, o.id] : selected.filter((id) => id !== o.id))} />{o.name}<small>{fromMer ? 'From mapped MER' : `${o.area || ''} · ${o.outlet_code}`}</small></label>; })}{!filtered.length && <p className="muted">No matching outlets.</p>}</div><button className="s-btn sm" disabled={busy} onClick={() => save(person.id, selected)}>Save direct outlet access</button></>}</details>
+  const modeLabel = mode === 'workbook_exact' ? 'Exact workbook list' : mode === 'workbook_additive' ? 'Workbook + MER/manual' : 'MER/manual';
+  return <div className="org-outlet-row"><div><b>{person.employee_name}</b><small>{person.state_raw} · {person.market_raw || 'Market unspecified'} · {effective} outlets available · {modeLabel}</small></div>
+    {mode === 'workbook_exact' ? <span className="muted">{workbook.length} outlets from UP Promoter Wise</span> : <details onToggle={(e) => setOpen(e.currentTarget.open)}><summary>Manage direct outlets</summary>{open && <><input className="org-outlet-search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search outlet, code, area or beat" /><div className="org-outlet-list">{filtered.map((o) => { const fromWorkbook = workbookSet.has(o.id); const fromMer = inheritedSet.has(o.id) && !fromWorkbook; return <label key={o.id}><input type="checkbox" checked={selected.includes(o.id) || inheritedSet.has(o.id)} disabled={inheritedSet.has(o.id)} onChange={(e) => setSelected(e.target.checked ? [...selected, o.id] : selected.filter((id) => id !== o.id))} />{o.name}<small>{fromWorkbook ? 'From promoter workbook' : fromMer ? 'From mapped MER' : `${o.area || ''} · ${o.outlet_code}`}</small></label>; })}{!filtered.length && <p className="muted">No matching outlets.</p>}</div><button className="s-btn sm" disabled={busy} onClick={() => save(person.id, selected)}>Save direct outlet access</button></>}</details>}
   </div>;
 }
 
