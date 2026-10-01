@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase.js';
-import { selectAll } from '../lib/api.js';
+import { rpc, selectAll } from '../lib/api.js';
 import { loadMasters } from '../lib/masters.js';
 import { defaultFilters } from './FilterBar.jsx';
 import Dashboard from './Dashboard.jsx';
@@ -46,17 +46,24 @@ export default function StaffApp({ profile, onLogout }) {
 
   const loadData = useCallback(async () => {
     try {
-      const [masters, campaigns, promoters, adminOutlets] = await Promise.all([
-        loadMasters({ force: true }),
+      const [loadedMasters, campaigns, promoters, supervisorOutlets, adminOutlets] = await Promise.all([
+        loadMasters({ force: true, includeOutletData: role !== 'supervisor' }),
         selectAll('campaigns', '*', (q) => q.order('created_at', { ascending: false })),
         selectAll('app_users', 'id,full_name,login_id,is_active,role', (q) => q.eq('role', 'promoter').order('full_name')),
+        role === 'supervisor' ? rpc('get_supervisor_outlet_master') : Promise.resolve(null),
         role === 'admin'
           ? selectAll('outlets', 'id,outlet_code,name,area,city,beat,distributor,tse_id,status,source,external_ref', (q) => q.order('name'))
           : Promise.resolve(null),
       ]);
-      // loadMasters already fetched the outlets visible to a supervisor via RLS.
-      // Reuse that scoped list instead of repeating the expensive full-table read.
-      const outletsFull = adminOutlets || masters.outlets;
+      const masters = supervisorOutlets
+        ? {
+            ...loadedMasters,
+            tses: [...new Map(supervisorOutlets.filter((o) => o.tse_id && o.tse_name)
+              .map((o) => [o.tse_id, { id: o.tse_id, code: o.tse_code, name: o.tse_name, territory_id: o.territory_id }])).values()],
+            outlets: supervisorOutlets,
+          }
+        : loadedMasters;
+      const outletsFull = adminOutlets || supervisorOutlets || masters.outlets;
       setData({ masters, campaigns, promoters, outletsFull, role, profile });
     } catch (e) { setErr(e.message); }
   }, [role, profile]);
