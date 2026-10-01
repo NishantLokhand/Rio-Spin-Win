@@ -4,6 +4,13 @@ import { uuid, deviceRef } from '../lib/store.js';
 import { sound } from '../lib/sound.js';
 
 const LABELS = { invoice_no: 'Invoice number', receipt_no: 'Receipt number', qr_code: 'QR code', barcode: 'Product barcode' };
+const PURCHASE_LABELS = {
+  'RIO-G-330C': 'Rio Gold 330 ml',
+  'RIO-G-650C': 'Rio Gold 650 ml',
+  'RIO-R-650C': 'Rio Red 650 ml',
+  'RIO-S-330C': 'Rio Strong 330 ml',
+};
+const purchaseLabel = (product) => PURCHASE_LABELS[product.sku_code] || product.name;
 
 // Add any mix of SKUs to one bill. Each unit in the basket earns one sequential spin.
 export default function SaleFlow({ ctx, products, online, onRecorded, onBack, onPending, say }) {
@@ -45,7 +52,7 @@ export default function SaleFlow({ ctx, products, online, onRecorded, onBack, on
         p_device_ref: deviceRef(), p_validation: validation, p_client_time: new Date().toISOString(),
       }, { retries: 2 });
       await rpc('capture_sale_customer', { p_sale_id: idempotencySaleId, p_name: customerName.trim(), p_phone: customerPhone.trim() || null }, { retries: 2, timeoutMs: 12000 });
-      const summary = basket.map((x) => `${x.product.name} × ${x.quantity}`).join(', ');
+      const summary = basket.map((x) => `${purchaseLabel(x.product)} × ${x.quantity}`).join(', ');
       onRecorded({ saleId: idempotencySaleId, stage: 'recorded', spinNo: 1, spinsAllowed: total, sku: summary, qty: total, outletId: ctx.outletId, at: Date.now() });
     } catch (e) {
       if (e.code === 'PENDING_HANDOVER' || e.code === 'SALE_IN_PROGRESS') { say('Complete the previous customer’s spins first', 'warn'); onPending(); return; }
@@ -64,7 +71,7 @@ export default function SaleFlow({ ctx, products, online, onRecorded, onBack, on
             {products.map((product) => {
               const quantity = basket.find((item) => item.product.id === product.id)?.quantity || 0;
               return <div className={`sku-row${quantity ? ' selected' : ''}`} key={product.id}>
-                <span className="sku-name">{product.name}</span>
+                <span className="sku-name">{purchaseLabel(product)}</span>
                 <div className="sku-stepper" aria-label={`${product.name} quantity`}>
                   <button aria-label={`Remove one ${product.name}`} disabled={!quantity} onClick={() => changeQty(product.id, -1)}>−</button>
                   <b aria-live="polite">{quantity}</b>
@@ -81,7 +88,7 @@ export default function SaleFlow({ ctx, products, online, onRecorded, onBack, on
         <div className="basket-total"><span>{total} {total === 1 ? 'item' : 'items'} on bill</span><b>{total} {total === 1 ? 'spin' : 'spins'}</b></div>
         <label>Customer name *<input autoComplete="name" value={customerName} onChange={(e) => setCustomerName(e.target.value)} required /></label>
         <label>Customer phone <small>(optional)</small><input type="tel" inputMode="tel" autoComplete="tel" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} /></label>
-        {basket.map(({ product, quantity }) => <div className="basket-line compact" key={product.id}><span>{product.name}</span><b>× {quantity}</b></div>)}
+        {basket.map(({ product, quantity }) => <div className="basket-line compact" key={product.id}><span>{purchaseLabel(product)}</span><b>× {quantity}</b></div>)}
         {required.map(({ k, v }) => <label key={k}>{LABELS[k] || k.replace(/_/g, ' ')}{v === 'required' ? ' *' : ''}<input value={validation[k] || ''} onChange={(e) => setValidation({ ...validation, [k]: e.target.value })} /></label>)}
         <button className="btn-primary big" disabled={busy || !customerName.trim() || !validationReady()} onClick={submit}>{busy ? 'RECORDING…' : 'RECORD BILL & START SPINS'}</button>
       </div>}
