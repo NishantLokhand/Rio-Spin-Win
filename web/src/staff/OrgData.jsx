@@ -153,6 +153,22 @@ function resolvePromoterOutletRows(rows, people, outlets) {
   return { promoterRows, outletRows, stats };
 }
 
+function downloadUnresolvedOutlets(report) {
+  const rows = (report?.outletRows || []).filter((row) => row.status !== 'matched');
+  const columns = ['source_row', 'outlet_index', 'promoter_name', 'market', 'beat', 'outlet_label', 'reason', 'candidate_count'];
+  const quote = (value) => `"${String(value ?? '').replaceAll('"', '""')}"`;
+  const csv = [columns.map(quote).join(','), ...rows.map((row) => columns.map((column) => quote(column === 'reason' ? row.status.replaceAll('_', ' ') : row[column])).join(','))].join('\r\n');
+  const blob = new Blob(['\uFEFF', csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'up-promoter-outlet-unresolved.csv';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 export default function OrgData({ data, reloadData }) {
   const [tab, setTab] = useState('people');
   const [people, setPeople] = useState(null);
@@ -354,7 +370,7 @@ export default function OrgData({ data, reloadData }) {
         <Field label="Import run key" hint="Keep the same key to safely repeat this import. Use a new key only for a distinct inventory snapshot; existing promoter stock will never be overwritten or added twice."><input value={runKey} onChange={(e) => setRunKey(e.target.value)} /></Field>
         <p className="muted">Exact mode applies to each promoter only when that promoter’s complete outlet list resolves; incomplete promoters retain MER/manual access. Additive mode adds uniquely resolved outlets. Re-running the same key does not reapply initial inventory; the workbook outlet list is replaced with the latest uploaded list.</p>
         <button className="s-btn" disabled={busy || !files.up || !files.mh || !files.inventory || !outletMode} onClick={runImport}>{busy ? 'Importing…' : 'Import and reconcile'}</button>
-        {outletImportReport && <div className="org-import-summary"><b>Promoter outlet matching report</b><p>{outletImportReport.stats.promoter_count} workbook promoters · {outletImportReport.stats.source_rows} outlet entries · {outletImportReport.stats.matched_rows} matched · {outletImportReport.stats.unresolved_rows} unresolved</p><p>Created {outletImportReport.outletMaster.created} outlet master records · {outletImportReport.outletMaster.missingTse.length} promoter/beat groups have no unique TSE in the UP roster · {outletImportReport.outletMaster.outletConflicts.length} outlet code/name conflicts · {outletImportReport.outletMaster.errors} outlet import errors</p>{outletImportReport.stats.unresolved_rows > 0 && <div className="org-import-unmatched">{outletImportReport.outletRows.filter((r) => r.status !== 'matched').slice(0, 12).map((r, i) => <div key={`${r.source_row}-${r.outlet_index}-${i}`}><b>{r.promoter_name}</b> — {r.outlet_label} <small>({r.status.replaceAll('_', ' ')})</small></div>)}{outletImportReport.stats.unresolved_rows > 12 && <small>Showing first 12 unresolved entries.</small>}</div>}{outletImportReport.outletMaster.missingTse.length > 0 && <div className="org-import-unmatched">{outletImportReport.outletMaster.missingTse.slice(0, 8).map((r) => <div key={`${r.promoter_name}-${r.beat}`}><b>{r.promoter_name}</b> — {r.market} / {r.beat} <small>({r.match_count ? 'ambiguous TSE beat match' : 'no TSE beat match'})</small></div>)}</div>}{outletImportReport.outletMaster.outletConflicts.length > 0 && <div className="org-import-unmatched">{outletImportReport.outletMaster.outletConflicts.slice(0, 8).map((r) => <div key={`${r.outlet_code}-${r.workbook_name}`}><b>{r.outlet_code}</b> — workbook “{r.workbook_name}”, existing “{r.existing_name}”</div>)}</div>}</div>}
+        {outletImportReport && <div className="org-import-summary"><b>Promoter outlet matching report</b><p>{outletImportReport.stats.promoter_count} workbook promoters · {outletImportReport.stats.source_rows} outlet entries · {outletImportReport.stats.matched_rows} matched · {outletImportReport.stats.unresolved_rows} unresolved</p><p>Created {outletImportReport.outletMaster.created} outlet master records · {outletImportReport.outletMaster.missingTse.length} promoter/beat groups have no unique TSE in the UP roster · {outletImportReport.outletMaster.outletConflicts.length} outlet code/name conflicts · {outletImportReport.outletMaster.errors} outlet import errors</p>{outletImportReport.stats.unresolved_rows > 0 && <><button type="button" className="s-btn sm" onClick={() => downloadUnresolvedOutlets(outletImportReport)}>Download all {outletImportReport.stats.unresolved_rows} unresolved entries (CSV)</button><div className="org-import-unmatched">{outletImportReport.outletRows.filter((r) => r.status !== 'matched').slice(0, 12).map((r, i) => <div key={`${r.source_row}-${r.outlet_index}-${i}`}><b>{r.promoter_name}</b> — {r.outlet_label} <small>({r.status.replaceAll('_', ' ')})</small></div>)}{outletImportReport.stats.unresolved_rows > 12 && <small>Showing first 12 unresolved entries. Download the CSV for the complete list.</small>}</div></>}{outletImportReport.outletMaster.missingTse.length > 0 && <div className="org-import-unmatched">{outletImportReport.outletMaster.missingTse.slice(0, 8).map((r) => <div key={`${r.promoter_name}-${r.beat}`}><b>{r.promoter_name}</b> — {r.market} / {r.beat} <small>({r.match_count ? 'ambiguous TSE beat match' : 'no TSE beat match'})</small></div>)}</div>}{outletImportReport.outletMaster.outletConflicts.length > 0 && <div className="org-import-unmatched">{outletImportReport.outletMaster.outletConflicts.slice(0, 8).map((r) => <div key={`${r.outlet_code}-${r.workbook_name}`}><b>{r.outlet_code}</b> — workbook “{r.workbook_name}”, existing “{r.existing_name}”</div>)}</div>}</div>}
       </div>
     </Panel>}
   </div>;
