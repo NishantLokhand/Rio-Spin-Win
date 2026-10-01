@@ -7,6 +7,7 @@ const LABELS = { invoice_no: 'Invoice number', receipt_no: 'Receipt number', qr_
 const PURCHASE_LABELS = {
   'RIO-G-330C': 'Rio Gold 330 ml',
   'RIO-G-650C': 'Rio Gold 650 ml',
+  'RIO-R-330C': 'Rio Red 330 ml',
   'RIO-R-650C': 'Rio Red 650 ml',
   'RIO-S-330C': 'Rio Strong 330 ml',
 };
