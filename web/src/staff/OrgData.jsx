@@ -49,13 +49,30 @@ function parsePromoterOutletRows(workbook) {
   });
 }
 
+function parseStaffOutletRows(workbook) {
+  const sheetName = workbook.names.find((name) => name.trim().toLowerCase() === 'mer and tse');
+  if (!sheetName) return { present: false, rows: [] };
+  const rows = workbook.rows(sheetName);
+  const mapped = rows.slice(1).flatMap((row, index) => {
+    const designation = role(row[3]);
+    const employeeName = norm(row[2]);
+    if (!employeeName || !['TSE', 'MER'].includes(designation)) return [];
+    return row.slice(5).map(norm).filter(Boolean).map((outletLabel, outletIndex) => ({
+      designation, employee_name: employeeName, state_raw: 'UTTAR PRADESH',
+      market_raw: norm(row[0]), area_raw: norm(row[1]), beat: norm(row[4]),
+      outlet_label: outletLabel, source_row: index + 2, outlet_index: outletIndex + 1,
+    }));
+  });
+  return { present: true, rows: mapped };
+}
+
 function stableOutletCode(prefix, value) {
   let hash = 2166136261;
   for (const char of labelKey(value)) hash = Math.imul(hash ^ char.charCodeAt(0), 16777619);
   return `${prefix}-${(hash >>> 0).toString(16).toUpperCase().padStart(8, '0')}`;
 }
 
-function buildOutletMasterRows(upRows, promoterRows, outlets, masters) {
+function buildOutletMasterRows(upRows, promoterRows, outlets, masters, { sameNameMayExistAcrossRoutes = false } = {}) {
   const tseRows = parseUP(upRows).filter((p) => p.designation === 'TSE');
   const byCode = new Set((outlets || []).map((o) => String(o.outlet_code || '').toUpperCase()));
   const byName = new Map();
@@ -72,7 +89,10 @@ function buildOutletMasterRows(upRows, promoterRows, outlets, masters) {
   const missingTse = new Map();
   const outletConflicts = new Map();
   for (const item of promoterRows) {
-    const tseMatches = tseRows.filter((t) => (t.beat_values || []).some((beat) => beatKey(beat) === beatKey(item.beat)));
+    const tseMatches = item.source_tse
+      ? tseRows.filter((t) => labelKey(t.employee_name) === labelKey(item.source_tse.name)
+        && labelKey(t.area_raw) === labelKey(item.source_tse.area))
+      : tseRows.filter((t) => (t.beat_values || []).some((beat) => beatKey(beat) === beatKey(item.beat)));
     if (tseMatches.length !== 1) {
       const key = `${labelKey(item.promoter_name)}|${labelKey(item.market)}|${labelKey(item.beat)}`;
       missingTse.set(key, { promoter_name: item.promoter_name, market: item.market, beat: item.beat, match_count: tseMatches.length });
@@ -97,7 +117,11 @@ function buildOutletMasterRows(upRows, promoterRows, outlets, masters) {
         continue;
       }
       const existingNames = byName.get(labelKey(cleanName)) || [];
-      if (!code && existingNames.length > 0) continue;
+      if (!code && existingNames.length > 0) {
+        const sameRoute = existingNames.some((o) => beatKey(o.beat) === beatKey(item.beat)
+          && [o.area, o.city].some((v) => labelKey(v) === labelKey(item.market)));
+        if (!sameNameMayExistAcrossRoutes || sameRoute) continue;
+      }
       if (!cleanName) continue;
       const record = { state: 'Uttar Pradesh', territory, tse_code: tseCode, tse_name: tseName,
         outlet_code: outletCode, outlet_name: cleanName, area: item.market, beat: item.beat,
@@ -107,6 +131,131 @@ function buildOutletMasterRows(upRows, promoterRows, outlets, masters) {
     }
   }
   return { rows: [...planned.values()], missingTse: [...missingTse.values()], outletConflicts: [...outletConflicts.values()] };
+}
+
+function staffOutletIdentity(item) {
+  const code = outletCodeFromLabel(item.outlet_label);
+  return code ? `CODE:${code}` : `ROUTE:${labelKey(item.area_raw)}|${beatKey(item.beat)}|${labelKey(outletLabel(item.outlet_label))}`;
+}
+
+function buildStaffOutletMasterRows(staffRows, upRows, outlets, masters) {
+  const tseRoster = parseUP(upRows).filter((p) => p.designation === 'TSE');
+  const byRoute = new Map();
+  const tseOwners = new Map();
+  for (const item of staffRows) {
+    const routeKey = staffOutletIdentity(item);
+    const entry = byRoute.get(routeKey) || { ...item };
+    byRoute.set(routeKey, entry);
+    if (item.designation === 'TSE') {
+      const owners = tseOwners.get(routeKey) || new Map();
+      owners.set(`${labelKey(item.employee_name)}|${labelKey(item.area_raw)}`, { name: item.employee_name, area: item.area_raw });
+      tseOwners.set(routeKey, owners);
+    }
+  }
+  const syntheticRows = [...byRoute.values()].map((item) => {
+    const explicitOwners = [...(tseOwners.get(staffOutletIdentity(item))?.values() || [])]
+      .sort((a, b) => `${labelKey(a.name)}|${labelKey(a.area)}`.localeCompare(`${labelKey(b.name)}|${labelKey(b.area)}`));
+    const beatOwners = tseRoster.filter((t) => (t.beat_values || []).some((beat) => beatKey(beat) === beatKey(item.beat)));
+    const selectedOwner = explicitOwners[0]
+      || (beatOwners.length === 1 ? { name: beatOwners[0].employee_name, area: beatOwners[0].area_raw } : null);
+    return {
+      promoter_name: item.employee_name, market: item.area_raw, beat: item.beat,
+      outlet_label: item.outlet_label,
+      source_tse: selectedOwner,
+    };
+  });
+  const plan = buildOutletMasterRows(upRows, syntheticRows, outlets, masters, { sameNameMayExistAcrossRoutes: true });
+  const missingTse = syntheticRows.filter((r) => !r.source_tse).map((r) => ({
+    employee_name: r.promoter_name, market: r.market, beat: r.beat,
+    outlet_label: r.outlet_label, match_count: 0,
+  }));
+  const sharedTseOutlets = [...tseOwners.values()].filter((owners) => owners.size > 1).length;
+  return { ...plan, missingTse: [...plan.missingTse, ...missingTse], sharedTseOutlets, sourceOutlets: staffRows.length };
+}
+
+function resolveStaffOutletRows(rows, people, outlets) {
+  const byEmployee = new Map();
+  const active = (outlets || []).filter((o) => o.status === 'active');
+  const byCode = new Map(); const byExactCode = new Map(); const byNameBeat = new Map();
+  for (const outlet of active) {
+    const storedCode = String(outlet.outlet_code || '').trim();
+    const digits = /^\d+$/.test(storedCode) ? storedCode : '';
+    if (digits) byCode.set(digits, [...(byCode.get(digits) || []), outlet]);
+    byExactCode.set(String(outlet.outlet_code || '').toUpperCase(), [...(byExactCode.get(String(outlet.outlet_code || '').toUpperCase()) || []), outlet]);
+    const nameKey = labelKey(outlet.name); const beat = beatKey(outlet.beat);
+    if (nameKey && beat) byNameBeat.set(`${nameKey}|${beat}`, [...(byNameBeat.get(`${nameKey}|${beat}`) || []), outlet]);
+  }
+  const peopleByIdentity = new Map();
+  for (const person of people || []) {
+    if (!person.active || person.source_system !== 'UP_TSE_MER_PROMO_AREAS') continue;
+    const k = [person.designation,person.employee_name,person.state_raw,person.market_raw,person.area_raw].map(labelKey).join('|');
+    peopleByIdentity.set(k, [...(peopleByIdentity.get(k) || []), person]);
+  }
+  const outletRows = rows.map((item) => {
+    const identity = [item.designation,item.employee_name,item.state_raw,item.market_raw,item.area_raw].map(labelKey).join('|');
+    const candidates = peopleByIdentity.get(identity) || [];
+    const person = candidates.length === 1 ? candidates[0] : null;
+    const code = outletCodeFromLabel(item.outlet_label);
+    const cleanName = outletLabel(item.outlet_label);
+    let outlet = null; let status = '';
+    if (code) {
+      const codeMatches = byCode.get(code) || [];
+      if (codeMatches.length === 1 && labelKey(codeMatches[0].name) === labelKey(cleanName)) outlet = codeMatches[0];
+      else if (codeMatches.length === 1 || codeMatches.length > 1) status = codeMatches.length > 1 ? 'ambiguous_code' : 'outlet_code_name_conflict';
+    }
+    if (!outlet && !status) {
+      const generatedCode = stableOutletCode('UP-PW', `${item.area_raw}|${item.beat}|${cleanName}`);
+      const generatedMatches = byExactCode.get(generatedCode.toUpperCase()) || [];
+      if (generatedMatches.length === 1 && labelKey(generatedMatches[0].name) === labelKey(cleanName)) outlet = generatedMatches[0];
+      else if (generatedMatches.length > 1 || generatedMatches.length === 1) status = generatedMatches.length > 1 ? 'ambiguous_generated_code' : 'generated_code_name_conflict';
+    }
+    if (!outlet && !status) {
+      const nameMatches = [...new Set([
+        ...(byNameBeat.get(`${labelKey(item.outlet_label)}|${beatKey(item.beat)}`) || []),
+        ...(byNameBeat.get(`${labelKey(cleanName)}|${beatKey(item.beat)}`) || []),
+      ])];
+      const areaMatches = nameMatches.filter((o) => labelKey(o.area) === labelKey(item.area_raw) || labelKey(o.city) === labelKey(item.area_raw));
+      const scoped = areaMatches.length ? areaMatches : nameMatches;
+      if (scoped.length === 1) outlet = scoped[0];
+      else if (scoped.length > 1) status = 'ambiguous_name';
+    }
+    status ||= !person ? (candidates.length > 1 ? 'ambiguous_employee' : 'employee_not_found') : outlet ? 'matched' : 'outlet_not_found';
+    const key = person?.id || `${item.designation}|${labelKey(item.employee_name)}|${labelKey(item.market_raw)}|${labelKey(item.area_raw)}`;
+    const current = byEmployee.get(key) || {
+      designation: item.designation, employee_name: item.employee_name,
+      state_raw: item.state_raw, market_raw: item.market_raw, area_raw: item.area_raw,
+      person_id: person?.id || '', expected_count: 0, unresolved_count: 0,
+      outlet_ids: new Set(),
+    };
+    current.expected_count += 1;
+    if (outlet) current.outlet_ids.add(outlet.id);
+    else current.unresolved_count += 1;
+    byEmployee.set(key, current);
+    return { ...item, outlet_id: outlet?.id || '', status, candidate_count: candidates.length };
+  });
+  const staffRows = [...byEmployee.values()].map((p) => ({ ...p, outlet_ids: [...p.outlet_ids] }));
+  const employeeKeys = new Set(rows.map((r) => `${r.designation}|${labelKey(r.employee_name)}|${labelKey(r.market_raw)}|${labelKey(r.area_raw)}`));
+  return {
+    staffRows, outletRows,
+    stats: {
+      source_rows: rows.length, employee_count: employeeKeys.size,
+      matched_rows: outletRows.filter((r) => r.status === 'matched').length,
+      unresolved_rows: outletRows.filter((r) => r.status !== 'matched').length,
+      employees_complete: staffRows.filter((p) => p.unresolved_count === 0 && p.person_id).length,
+      employees_preserved: staffRows.filter((p) => p.unresolved_count > 0 || !p.person_id).length,
+    },
+  };
+}
+
+function downloadUnresolvedStaffOutlets(report) {
+  const rows = (report?.outletRows || []).filter((row) => row.status !== 'matched');
+  const columns = ['source_row', 'outlet_index', 'designation', 'employee_name', 'market_raw', 'area_raw', 'beat', 'outlet_label', 'reason', 'candidate_count'];
+  const quote = (value) => `"${String(value ?? '').replaceAll('"', '""')}"`;
+  const csv = [columns.map(quote).join(','), ...rows.map((row) => columns.map((column) => quote(column === 'reason' ? row.status.replaceAll('_', ' ') : row[column])).join(','))].join('\r\n');
+  const blob = new Blob(['\uFEFF', csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob); const link = document.createElement('a');
+  link.href = url; link.download = 'up-tse-mer-outlet-unresolved.csv';
+  document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url);
 }
 
 function resolvePromoterOutletRows(rows, people, outlets) {
@@ -235,29 +384,56 @@ export default function OrgData({ data, reloadData }) {
       const master = [...parseUP(upRows), ...parseMH(mhRows)];
       const inventory = parseInventory(invRows);
       const sourceOutletRows = parsePromoterOutletRows(upBook);
+      const sourceStaffOutlets = parseStaffOutletRows(upBook);
       const outletMasterPlan = buildOutletMasterRows(upRows, sourceOutletRows, data.outletsFull, data.masters);
+      const staffOutletMasterPlan = sourceStaffOutlets.present
+        ? buildStaffOutletMasterRows(sourceStaffOutlets.rows, upRows, [
+          ...data.outletsFull,
+          ...outletMasterPlan.rows.map((o) => ({ ...o, name: o.outlet_name, status: 'active' })),
+        ], data.masters)
+        : { rows: [], missingTse: [], outletConflicts: [], sharedTseOutlets: 0, sourceOutlets: 0 };
+      const allPlannedByCode = new Map();
+      for (const outlet of [...outletMasterPlan.rows, ...staffOutletMasterPlan.rows]) {
+        const key = String(outlet.outlet_code || '').toUpperCase();
+        const previous = allPlannedByCode.get(key);
+        if (!previous || labelKey(previous.outlet_name) === labelKey(outlet.outlet_name)) allPlannedByCode.set(key, outlet);
+      }
+      const allPlannedOutlets = [...allPlannedByCode.values()];
       let createdOutlets = 0;
       let outletMasterErrors = [];
-      for (let i = 0; i < outletMasterPlan.rows.length; i += 500) {
-        const imported = await rpc('import_outlets', { p_rows: outletMasterPlan.rows.slice(i, i + 500) }, { timeoutMs: 120000 });
+      for (let i = 0; i < allPlannedOutlets.length; i += 500) {
+        const imported = await rpc('import_outlets', { p_rows: allPlannedOutlets.slice(i, i + 500) }, { timeoutMs: 120000 });
         createdOutlets += imported.inserted || 0;
         outletMasterErrors = [...outletMasterErrors, ...(imported.errors || [])];
       }
       const currentOutlets = await selectAll('outlets', 'id,outlet_code,name,area,city,beat,tse_id,status,source,external_ref', (q) => q.order('name'));
       const outletResolution = resolvePromoterOutletRows(sourceOutletRows, people, currentOutlets);
-      outletResolution.outletMaster = { created: createdOutlets, attempted: outletMasterPlan.rows.length, errors: outletMasterErrors.length, missingTse: outletMasterPlan.missingTse, outletConflicts: outletMasterPlan.outletConflicts };
+      const staffOutletResolution = resolveStaffOutletRows(sourceStaffOutlets.rows, people, currentOutlets);
+      outletResolution.staffOutlet = staffOutletResolution;
+      outletResolution.outletMaster = {
+        created: createdOutlets, attempted: allPlannedOutlets.length, errors: outletMasterErrors.length,
+        missingTse: outletMasterPlan.missingTse, outletConflicts: [...outletMasterPlan.outletConflicts, ...staffOutletMasterPlan.outletConflicts],
+        staffMissingTse: staffOutletMasterPlan.missingTse, sharedTseOutlets: staffOutletMasterPlan.sharedTseOutlets,
+      };
       setOutletImportReport(outletResolution);
       const accessRows = outletMode === 'workbook_exact'
         ? outletResolution.promoterRows.filter((p) => p.unresolved_count === 0 && p.outlet_ids.length > 0)
         : outletResolution.promoterRows.filter((p) => p.outlet_ids.length > 0);
       if (!accessRows.length) throw new Error('No promoter has a unique outlet list to import. Outlet records that could be matched were created; review unresolved entries below.');
-      const result = await rpc('import_org_master_inventory_with_promoter_outlets', {
+      const result = await rpc('import_org_master_inventory_with_staff_outlets', {
         p_master: master, p_inventory: inventory, p_run_key: runKey.trim(),
-        p_outlet_rows: accessRows, p_outlet_mode: outletMode, p_unresolved_count: outletResolution.stats.unresolved_rows,
+        p_promoter_outlet_rows: accessRows, p_promoter_outlet_mode: outletMode,
+        p_promoter_unresolved_count: outletResolution.stats.unresolved_rows,
+        p_staff_outlet_rows: staffOutletResolution.staffRows.map((row) => ({
+          designation: row.designation, employee_name: row.employee_name, state_raw: row.state_raw,
+          market_raw: row.market_raw, area_raw: row.area_raw, outlet_ids: row.outlet_ids,
+          expected_count: row.expected_count, unresolved_count: row.unresolved_count + (row.person_id ? 0 : 1),
+        })),
       }, { timeoutMs: 120000 });
       const inventoryReconciliation = await rpc('reconcile_org_promoter_inventory', {}, { timeoutMs: 120000 });
       const outletResult = result.outlet_access || {};
-      setNotice(`Imported/updated ${result.master_rows} master rows; ${result.inventory_rows || 0} inventory rows processed${result.inventory_already_imported ? ' (initial inventory was already applied)' : ''}. Opening stock reconciled: ${inventoryReconciliation.stock_balances_seeded} balances seeded; ${inventoryReconciliation.unmatched_rows} inventory rows need review. Created ${createdOutlets} outlet master records. Promoter outlet list: ${outletResult.promoter_count} promoters, ${outletResult.assignment_count} unique outlet assignments.${outletResolution.stats.unresolved_rows ? ` ${outletResolution.stats.unresolved_rows} workbook entries remain unresolved; those promoters keep MER/manual access.` : ''}`);
+      const staffResult = result.staff_outlet_access || {};
+      setNotice(`Imported/updated ${result.master_rows} master rows; ${result.inventory_rows || 0} inventory rows processed${result.inventory_already_imported ? ' (initial inventory was already applied)' : ''}. Opening stock reconciled: ${inventoryReconciliation.stock_balances_seeded} balances seeded; ${inventoryReconciliation.unmatched_rows} inventory rows need review. Created ${createdOutlets} outlet master records. Promoters: ${outletResult.promoter_count} accounts, ${outletResult.assignment_count} outlet assignments. UP TSE/MER: ${staffResult.employees_updated || 0} employee maps refreshed, ${staffResult.assignments || 0} outlet assignments, ${staffResult.accounts_linked || 0} login profiles linked.${staffResult.employees_preserved ? ` ${staffResult.employees_preserved} employee maps were kept unchanged because their source rows need review.` : ''}${outletResolution.stats.unresolved_rows ? ` ${outletResolution.stats.unresolved_rows} promoter workbook entries remain unresolved; those promoters keep MER/manual access.` : ''}`);
       await refresh(); await reloadData();
     } catch (e) { setErr(friendly(e)); }
     finally { setBusy(false); }
@@ -363,15 +539,30 @@ export default function OrgData({ data, reloadData }) {
         { key: 'adjust', label: 'Adjust', noExport: true, render: (s) => <StockAdjust row={s} save={adjustOrgStock} /> },
       ]} />}
     </Panel>}
-    {tab === 'import' && <Panel title="Import organizational master, promoter outlets, and initial inventory"><p>Choose the UP master, Maharashtra master, and combined inventory workbook. Master people come only from the first two files. The inventory workbook is reconciled to those records and cannot create directory people. The UP file’s <b>Promoter Wise</b> sheet creates missing outlet master records using outlet code/name and its beat’s unique TSE from the UP roster. Entries without a unique TSE or outlet match are reported and not assigned.</p>
+    {tab === 'import' && <Panel title="Import organizational master, outlets, and initial inventory"><p>Choose the UP master, Maharashtra master, and combined inventory workbook. Master people come only from the first two files. The inventory workbook is reconciled to those records and cannot create directory people. The UP file’s <b>Promoter Wise</b> sheet assigns promoter outlets; its optional <b>MER and TSE</b> sheet assigns the listed outlets to those employees. Mapped TSE/MER access is stored separately, so a shared outlet does not overwrite its existing TSE or promoter assignment.</p>
       <div className="s-form"><Field label="Uttar Pradesh TSE / MER / Promoter master"><input type="file" accept=".xlsx,.xls" onChange={(e) => setFiles({ ...files, up: e.target.files?.[0] || null })} /></Field>
         <Field label="Maharashtra TSE / MER master"><input type="file" accept=".xlsx,.xls" onChange={(e) => setFiles({ ...files, mh: e.target.files?.[0] || null })} /></Field>
         <Field label="MH-UP inventory workbook"><input type="file" accept=".xlsx,.xls" onChange={(e) => setFiles({ ...files, inventory: e.target.files?.[0] || null })} /></Field>
         <Field label="UP promoter outlet access"><select value={outletMode} onChange={(e) => setOutletMode(e.target.value)}><option value="">Choose access behavior</option><option value="workbook_exact">Use workbook list as exact access (replaces MER and manual access)</option><option value="workbook_additive">Add workbook outlets to MER and manual access</option></select></Field>
         <Field label="Import run key" hint="Keep the same key to safely repeat this import. Use a new key only for a distinct inventory snapshot; existing promoter stock will never be overwritten or added twice."><input value={runKey} onChange={(e) => setRunKey(e.target.value)} /></Field>
-        <p className="muted">Exact mode applies to each promoter only when that promoter’s complete outlet list resolves; incomplete promoters retain MER/manual access. Additive mode adds uniquely resolved outlets. Re-running the same key does not reapply initial inventory; the workbook outlet list is replaced with the latest uploaded list.</p>
+        <p className="muted">Exact mode applies to each promoter only when that promoter’s complete outlet list resolves; incomplete promoters retain MER/manual access. Additive mode adds uniquely resolved outlets. TSE/MER rows with unresolved outlets keep their previous complete map until the source is corrected. Re-running the same key does not reapply initial inventory; uploaded outlet maps refresh for complete employees.</p>
         <button className="s-btn" disabled={busy || !files.up || !files.mh || !files.inventory || !outletMode} onClick={runImport}>{busy ? 'Importing…' : 'Import and reconcile'}</button>
-        {outletImportReport && <div className="org-import-summary"><b>Promoter outlet matching report</b><p>{outletImportReport.stats.promoter_count} workbook promoters · {outletImportReport.stats.source_rows} outlet entries · {outletImportReport.stats.matched_rows} matched · {outletImportReport.stats.unresolved_rows} unresolved</p><p>Created {outletImportReport.outletMaster.created} outlet master records · {outletImportReport.outletMaster.missingTse.length} promoter/beat groups have no unique TSE in the UP roster · {outletImportReport.outletMaster.outletConflicts.length} outlet code/name conflicts · {outletImportReport.outletMaster.errors} outlet import errors</p>{outletImportReport.stats.unresolved_rows > 0 && <><button type="button" className="s-btn sm" onClick={() => downloadUnresolvedOutlets(outletImportReport)}>Download all {outletImportReport.stats.unresolved_rows} unresolved entries (CSV)</button><div className="org-import-unmatched">{outletImportReport.outletRows.filter((r) => r.status !== 'matched').slice(0, 12).map((r, i) => <div key={`${r.source_row}-${r.outlet_index}-${i}`}><b>{r.promoter_name}</b> — {r.outlet_label} <small>({r.status.replaceAll('_', ' ')})</small></div>)}{outletImportReport.stats.unresolved_rows > 12 && <small>Showing first 12 unresolved entries. Download the CSV for the complete list.</small>}</div></>}{outletImportReport.outletMaster.missingTse.length > 0 && <div className="org-import-unmatched">{outletImportReport.outletMaster.missingTse.slice(0, 8).map((r) => <div key={`${r.promoter_name}-${r.beat}`}><b>{r.promoter_name}</b> — {r.market} / {r.beat} <small>({r.match_count ? 'ambiguous TSE beat match' : 'no TSE beat match'})</small></div>)}</div>}{outletImportReport.outletMaster.outletConflicts.length > 0 && <div className="org-import-unmatched">{outletImportReport.outletMaster.outletConflicts.slice(0, 8).map((r) => <div key={`${r.outlet_code}-${r.workbook_name}`}><b>{r.outlet_code}</b> — workbook “{r.workbook_name}”, existing “{r.existing_name}”</div>)}</div>}</div>}
+        {outletImportReport && <div className="org-import-summary">
+          <b>Promoter outlet matching report</b>
+          <p>{outletImportReport.stats.promoter_count} workbook promoters · {outletImportReport.stats.source_rows} outlet entries · {outletImportReport.stats.matched_rows} matched · {outletImportReport.stats.unresolved_rows} unresolved</p>
+          {outletImportReport.staffOutlet?.stats.employee_count > 0 && <>
+            <b>TSE / MER outlet matching report</b>
+            <p>{outletImportReport.staffOutlet.stats.employee_count} employees · {outletImportReport.staffOutlet.stats.source_rows} outlet entries · {outletImportReport.staffOutlet.stats.matched_rows} matched · {outletImportReport.staffOutlet.stats.unresolved_rows} unresolved · {outletImportReport.outletMaster.sharedTseOutlets} outlets listed under multiple TSEs</p>
+            {outletImportReport.staffOutlet.stats.unresolved_rows > 0 && <>
+              <button type="button" className="s-btn sm" onClick={() => downloadUnresolvedStaffOutlets(outletImportReport.staffOutlet)}>Download all {outletImportReport.staffOutlet.stats.unresolved_rows} unresolved TSE/MER entries (CSV)</button>
+              <div className="org-import-unmatched">{outletImportReport.staffOutlet.outletRows.filter((r) => r.status !== 'matched').slice(0, 12).map((r, i) => <div key={`${r.source_row}-${r.outlet_index}-${i}`}><b>{r.designation} · {r.employee_name}</b> — {r.outlet_label} <small>({r.status.replaceAll('_', ' ')})</small></div>)}{outletImportReport.staffOutlet.stats.unresolved_rows > 12 && <small>Showing first 12 unresolved TSE/MER entries. Download the CSV for the complete list.</small>}</div>
+            </>}
+          </>}
+          <p>Created {outletImportReport.outletMaster.created} outlet master records · {outletImportReport.outletMaster.missingTse.length + outletImportReport.outletMaster.staffMissingTse.length} route groups without a unique TSE · {outletImportReport.outletMaster.outletConflicts.length} outlet code/name conflicts · {outletImportReport.outletMaster.errors} outlet import errors</p>
+          {outletImportReport.stats.unresolved_rows > 0 && <><button type="button" className="s-btn sm" onClick={() => downloadUnresolvedOutlets(outletImportReport)}>Download all {outletImportReport.stats.unresolved_rows} unresolved promoter entries (CSV)</button><div className="org-import-unmatched">{outletImportReport.outletRows.filter((r) => r.status !== 'matched').slice(0, 12).map((r, i) => <div key={`${r.source_row}-${r.outlet_index}-${i}`}><b>{r.promoter_name}</b> — {r.outlet_label} <small>({r.status.replaceAll('_', ' ')})</small></div>)}{outletImportReport.stats.unresolved_rows > 12 && <small>Showing first 12 unresolved entries. Download the CSV for the complete list.</small>}</div></>}
+          {[...outletImportReport.outletMaster.missingTse, ...outletImportReport.outletMaster.staffMissingTse].length > 0 && <div className="org-import-unmatched">{[...outletImportReport.outletMaster.missingTse, ...outletImportReport.outletMaster.staffMissingTse].slice(0, 8).map((r, i) => <div key={`${r.employee_name || r.promoter_name}-${r.beat}-${i}`}><b>{r.employee_name || r.promoter_name}</b> — {r.market} / {r.beat} <small>({r.match_count ? 'ambiguous TSE beat match' : 'no TSE beat match'})</small></div>)}</div>}
+          {outletImportReport.outletMaster.outletConflicts.length > 0 && <div className="org-import-unmatched">{outletImportReport.outletMaster.outletConflicts.slice(0, 8).map((r) => <div key={`${r.outlet_code}-${r.workbook_name}`}><b>{r.outlet_code}</b> — workbook “{r.workbook_name}”, existing “{r.existing_name}”</div>)}</div>}
+        </div>}
       </div>
     </Panel>}
   </div>;
