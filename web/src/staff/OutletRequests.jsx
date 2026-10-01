@@ -7,7 +7,9 @@ export default function OutletRequests({ data, reloadData }) {
   const [status, setStatus] = useState('pending');
   const [open, setOpen] = useState(null);
   const reqs = useAsync(async () => {
-    const { data: rows, error } = await supabase.from('outlet_requests').select('*').eq('status', status).order('created_at', { ascending: false });
+    const { data: rows, error } = await supabase.from('outlet_requests')
+      .select('id,promoter_id,suggested_tse_id,status,created_at,outlet_name,area,city,ref_code,note,review_note')
+      .eq('status', status).order('created_at', { ascending: false });
     if (error) throw error; return rows;
   }, [status]);
   const users = Object.fromEntries(data.promoters.map((u) => [u.id, u.full_name]));
