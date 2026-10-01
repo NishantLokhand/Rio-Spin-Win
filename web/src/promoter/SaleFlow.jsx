@@ -5,6 +5,7 @@ import { sound } from '../lib/sound.js';
 
 const LABELS = { invoice_no: 'Invoice number', receipt_no: 'Receipt number', qr_code: 'QR code', barcode: 'Product barcode' };
 const PURCHASE_LABELS = {
+  'RIO-GT-330C': 'Rio Gold Tropical 330 ml',
   'RIO-G-330C': 'Rio Gold 330 ml',
   'RIO-G-650C': 'Rio Gold 650 ml',
   'RIO-R-330C': 'Rio Red 330 ml',
