@@ -306,7 +306,12 @@ function sourceOutletContext(outlets, masters) {
 
 function indexSourceOutlets(enriched) {
   const byState = new Map(); const byCode = new Map(); const byOutletCode = new Map(); const byStateName = new Map(); const byStateBeat = new Map(); const byStateArea = new Map();
-  const add = (map, key, outlet) => { if (!key) return; map.set(key, [...(map.get(key) || []), outlet]); };
+  const add = (map, key, outlet) => {
+    if (!key) return;
+    const list = map.get(key);
+    if (list) list.push(outlet);
+    else map.set(key, [outlet]);
+  };
   for (const outlet of enriched) {
     const state = sourceStateKey(outlet.state_name); const code = String(outlet.outlet_code || '').replace(/\D/g, '');
     add(byState, state, outlet); add(byCode, `${state}|${code}`, outlet);
@@ -315,14 +320,44 @@ function indexSourceOutlets(enriched) {
     add(byStateBeat, `${state}|${beatKey(outlet.beat)}`, outlet);
     for (const area of [outlet.area, outlet.city, outlet.territory_name]) add(byStateArea, `${state}|${labelKey(area)}`, outlet);
   }
-  return { enriched, byState, byCode, byOutletCode, byStateName, byStateBeat, byStateArea };
+  return { enriched, byState, byCode, byOutletCode, byStateName, byStateBeat, byStateArea, candidateCache: new Map() };
 }
 function sourceOutletCandidates(index, row) {
   const state = sourceStateKey(row.state_raw); const rawCode = String(row.outlet_code || outletCodeFromLabel(row.outlet_label)).replace(/\D/g, '');
-  const lists = [index.byCode.get(`${state}|${rawCode}`), index.byStateName.get(`${state}|${labelKey(outletLabel(row.outlet_label))}`),
-    index.byStateBeat.get(`${state}|${beatKey(row.beat)}`), index.byStateArea.get(`${state}|${labelKey(row.area_raw)}`), index.byStateArea.get(`${state}|${labelKey(row.market_raw)}`)];
+  const cleanName = outletLabel(row.outlet_label); const nameKey = labelKey(cleanName);
+  const beat = beatKey(row.beat); const area = labelKey(row.area_raw); const market = labelKey(row.market_raw);
+  const cacheKey = `${state}|${rawCode}|${nameKey}|${beat}|${area}|${market}`;
+  const cached = index.candidateCache?.get(cacheKey);
+  if (cached) return cached;
+
+  const codeMatches = index.byCode.get(`${state}|${rawCode}`) || [];
+  const nameMatches = index.byStateName.get(`${state}|${nameKey}`) || [];
+  // Exact identifiers and labels are common in the source workbook. Avoid
+  // scoring every outlet in the same beat/area when either gives a small,
+  // high-confidence candidate set.
+  let candidates;
+  if (codeMatches.length || nameMatches.length) candidates = [...codeMatches, ...nameMatches];
+  else {
+    const beatMatches = beat ? index.byStateBeat.get(`${state}|${beat}`) || [] : [];
+    const areaMatches = [...(area ? index.byStateArea.get(`${state}|${area}`) || [] : []),
+      ...(market ? index.byStateArea.get(`${state}|${market}`) || [] : [])];
+    if (beatMatches.length && areaMatches.length) {
+      const areaIds = new Set(areaMatches.map((outlet) => outlet.id));
+      candidates = beatMatches.filter((outlet) => areaIds.has(outlet.id));
+      if (!candidates.length) candidates = beatMatches;
+    } else candidates = beatMatches.length ? beatMatches : areaMatches;
+  }
+  const minNameLength = Math.ceil(labelKey(cleanName).replace(/[^A-Z0-9]/g, '').length / 2);
+  const maxNameLength = labelKey(cleanName).replace(/[^A-Z0-9]/g, '').length * 2;
   const seen = new Set();
-  return lists.flatMap((list) => list || []).filter((outlet) => !seen.has(outlet.id) && seen.add(outlet.id));
+  const result = candidates.filter((outlet) => {
+    if (seen.has(outlet.id)) return false;
+    seen.add(outlet.id);
+    const length = labelKey(outlet.name).replace(/[^A-Z0-9]/g, '').length;
+    return length >= minNameLength && length <= maxNameLength;
+  });
+  index.candidateCache?.set(cacheKey, result);
+  return result;
 }
 
 function planSourceTruthOutlets(sourceRows, employees, outletIndex, masters) {
