@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { getRecent } from '../lib/session.js';
 
-export default function OutletPicker({ masters, ctx, uid, full, direct = false, loading = false, onPick, onCancel, onNotListed, onReload }) {
+export default function OutletPicker({ masters, ctx, uid, full, direct = false, loading = false, loadError = '', onPick, onCancel, onNotListed, onReload }) {
   const [step, setStep] = useState(direct ? 'outlet' : (full || !ctx ? 'state' : 'outlet'));
   const [sel, setSel] = useState(() => (direct || full || !ctx ? {} : { stateId: ctx.stateId, territoryId: ctx.territoryId, tseId: ctx.tseId }));
   const [q, setQ] = useState('');
@@ -103,7 +103,8 @@ export default function OutletPicker({ masters, ctx, uid, full, direct = false, 
                 {o.name}<small>{[o.area, o.city].filter(Boolean).join(', ')} · {o.outlet_code}</small></button></li>
             ))}
             {loading && <li className="empty">Loading your assigned outlets…</li>}
-            {!loading && !filtered.length && <li className="empty">{direct ? 'No outlets are assigned to this account yet. Ask an administrator to link your promoter record and assign your outlet in Organization & Inventory.' : 'No outlet found'}</li>}
+            {!loading && loadError && <li className="empty">Could not load the outlet list. {loadError} <button className="link small" onClick={onReload}>Retry</button></li>}
+            {!loading && !loadError && !filtered.length && <li className="empty">{direct ? 'No outlets are assigned to this account yet. Ask an administrator to link your promoter record and assign your outlet in Organization & Inventory.' : 'No outlet found'}</li>}
           </ul>
           <button className="btn-notlisted" onClick={onNotListed}>OUTLET NOT LISTED?</button>
         </>

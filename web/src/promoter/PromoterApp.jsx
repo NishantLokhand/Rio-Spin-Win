@@ -29,6 +29,7 @@ export default function PromoterApp({ profile, onLogout }) {
   const [masters, setMasters] = useState(() => { const m = cachedMasters(); return m ? { ...m, outlets: [] } : m; });
   const [outletsLoading, setOutletsLoading] = useState(true);
   const [fullOutletsLoading, setFullOutletsLoading] = useState(false);
+  const [outletLoadError, setOutletLoadError] = useState('');
   const [ctx, setCtx] = useState(() => getCtx(uid));
   const [home, setHome] = useState(() => store.get(`rio.home.${uid}`));
   const [flight, setFlight] = useState(() => getInflight(uid));
@@ -96,8 +97,8 @@ export default function PromoterApp({ profile, onLogout }) {
     // Loading the entire outlet directory here duplicated that request and
     // delayed the picker on large outlet masters.
     Promise.all([loadMasters({ force: true, includeOutletData: false }), rpc('get_promoter_outlets')])
-      .then(([m, outlets]) => setMasters((current) => ({ ...(current || {}), ...m, outlets })))
-      .catch((e) => say(friendly(e), 'err'))
+      .then(([m, outlets]) => { setMasters((current) => ({ ...(current || {}), ...m, outlets })); setOutletLoadError(''); })
+      .catch((e) => { setOutletLoadError(friendly(e)); say(friendly(e), 'err'); })
       .finally(() => setOutletsLoading(false));
     refreshHome();
     // campaign sound default on first run
@@ -205,13 +206,15 @@ export default function PromoterApp({ profile, onLogout }) {
       {(view === 'picker-outlet' || view === 'picker-full') && masters && (
         <OutletPicker masters={masters} ctx={ctx} uid={uid} full={view === 'picker-full'} direct={view === 'picker-outlet'}
                       loading={view === 'picker-outlet' ? outletsLoading : fullOutletsLoading}
+                      loadError={view === 'picker-outlet' ? outletLoadError : ''}
                       onPick={selectOutlet} onCancel={ctx ? () => setView('home') : null}
                       onNotListed={() => setView('request')}
                       onReload={() => {
                         setOutletsLoading(true);
+                        setOutletLoadError('');
                         return Promise.all([loadMasters({ force: true, includeOutletData: false }), rpc('get_promoter_outlets')])
-                          .then(([m, outlets]) => setMasters((current) => ({ ...(current || {}), ...m, outlets })))
-                          .catch((e) => say(friendly(e), 'err'))
+                          .then(([m, outlets]) => { setMasters((current) => ({ ...(current || {}), ...m, outlets })); setOutletLoadError(''); })
+                          .catch((e) => { setOutletLoadError(friendly(e)); say(friendly(e), 'err'); })
                           .finally(() => setOutletsLoading(false));
                       }} />
       )}
