@@ -706,7 +706,7 @@ function downloadSimilarOutletCodes(report) {
   document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url);
 }
 
-export default function OrgData({ data, reloadData }) {
+export default function OrgData({ data }) {
   const [tab, setTab] = useState('people');
   const [people, setPeople] = useState(null);
   const [stock, setStock] = useState(null);
@@ -716,6 +716,7 @@ export default function OrgData({ data, reloadData }) {
   const [merAssignments, setMerAssignments] = useState([]);
   const [workbookAssignments, setWorkbookAssignments] = useState([]);
   const [busy, setBusy] = useState(false);
+  const [importStage, setImportStage] = useState('');
   const [err, setErr] = useState('');
   const [notice, setNotice] = useState('');
   const [outletImportReport, setOutletImportReport] = useState(null);
@@ -727,19 +728,27 @@ export default function OrgData({ data, reloadData }) {
 
   async function refresh() {
     try {
-      const [p, i, a, ma, wa, adj, pi] = await Promise.all([
+      const [p, i, adj, pi] = await Promise.all([
         selectAll('org_people', '*', (q) => q.order('designation').order('employee_name')),
         selectAll('org_inventory', '*', (q) => q.order('employee_name')),
-        selectAll('promoter_outlet_assignments', '*'),
-        selectAll('promoter_mer_assignments', '*'),
-        selectAll('promoter_outlet_workbook_assignments', '*'),
         selectAll('org_inventory_adjustments', '*'),
         selectAll('promoter_inventory', '*'),
       ]);
-      setPeople(p); setStock(i); setAssignments(a); setMerAssignments(ma); setWorkbookAssignments(wa); setStockAdjustments(adj); setPromoterStock(pi);
+      setPeople(p); setStock(i); setStockAdjustments(adj); setPromoterStock(pi);
+    } catch (e) { setErr(friendly(e)); }
+  }
+  async function refreshOutletAccess() {
+    try {
+      const [a, ma, wa] = await Promise.all([
+        selectAll('promoter_outlet_assignments', '*'),
+        selectAll('promoter_mer_assignments', '*'),
+        selectAll('promoter_outlet_workbook_assignments', '*'),
+      ]);
+      setAssignments(a); setMerAssignments(ma); setWorkbookAssignments(wa);
     } catch (e) { setErr(friendly(e)); }
   }
   React.useEffect(() => { refresh(); }, []);
+  React.useEffect(() => { if (tab === 'outlets') refreshOutletAccess(); }, [tab]);
   const users = data.promoters.filter((u) => u.role === 'promoter');
   const filtered = useMemo(() => (people || []).filter((p) => {
     const value = (v) => v || 'Unspecified';
@@ -760,32 +769,45 @@ export default function OrgData({ data, reloadData }) {
   const fieldFilter = (key, label, opts, includeNone = false) => <select key={key} aria-label={label} value={filters[key]} onChange={(e) => setFilters({ ...filters, [key]: e.target.value })}><option value="all">All {label}</option>{includeNone && <option value="none">Unassigned</option>}{opts.map((o) => typeof o === 'string' ? <option key={o} value={o}>{o}</option> : <option key={o.id} value={o.id}>{o.employee_name}</option>)}</select>;
 
   async function runImport() {
-    setBusy(true); setErr(''); setNotice('');
+    setBusy(true); setImportStage('Reading workbook'); setErr(''); setNotice('');
     try {
       if (!files.source) throw new Error('Choose the Rio single-source-of-truth workbook.');
       if (!people || !data.outletsFull) throw new Error('Organizational people and the outlet directory are still loading. Wait a moment and try again.');
       if (!outletMode) throw new Error('Choose how the workbook outlet list should interact with MER outlet access.');
       const book = await readWorkbook(files.source);
       const parsed = mapSourceTruthToExisting(parseSourceTruthWorkbook(book.rows(book.names[0])), people);
+      setImportStage('Matching outlet rows');
+      await new Promise((resolve) => setTimeout(resolve, 0));
       const deduped = dedupeSourceOutletRows(parsed.outlets);
       const sourceOutletRows = deduped.rows;
-      const existingOutlets = await selectAll('outlets', 'id,outlet_code,name,area,city,beat,tse_id,status,source,external_ref', (q) => q.order('name'));
+      const existingOutlets = data.outletsFull || [];
       const outletIndex = indexSourceOutlets(sourceOutletContext(existingOutlets, data.masters));
       const outletMasterPlan = planSourceTruthOutlets(sourceOutletRows, parsed.master, outletIndex, data.masters);
       const allPlannedOutlets = outletMasterPlan.rows;
       let createdOutlets = 0;
       let outletMasterErrors = [];
+      setImportStage(`Saving ${allPlannedOutlets.length.toLocaleString()} new outlet records`);
+      await new Promise((resolve) => setTimeout(resolve, 0));
       for (let i = 0; i < allPlannedOutlets.length; i += 500) {
         const imported = await rpc('import_outlets', { p_rows: allPlannedOutlets.slice(i, i + 500) }, { timeoutMs: 120000 });
         createdOutlets += imported.inserted || 0;
         outletMasterErrors = [...outletMasterErrors, ...(imported.errors || [])];
       }
-      const currentOutlets = await selectAll('outlets', 'id,outlet_code,name,area,city,beat,tse_id,status,source,external_ref', (q) => q.order('name'));
+      setImportStage('Resolving outlet assignments');
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      const currentOutlets = allPlannedOutlets.length
+        ? await selectAll('outlets', 'id,outlet_code,name,area,city,beat,tse_id,status,source,external_ref', (q) => q.order('name'))
+        : existingOutlets;
       const currentIndex = indexSourceOutlets(sourceOutletContext(currentOutlets, data.masters));
       const resolvedOutlets = sourceOutletRows.map((row) => ({ ...row, ...resolveSourceTruthOutlet(row, currentIndex) }));
+      const groupedRows = new Map();
+      for (const row of resolvedOutlets) {
+        const key = `${row.designation}|${row.employee_key}|${sourceStateKey(row.state_raw)}`;
+        if (!groupedRows.has(key)) groupedRows.set(key, []);
+        groupedRows.get(key).push(row);
+      }
       const groupAccess = (peopleRows) => peopleRows.map((person) => {
-        const assigned = resolvedOutlets.filter((row) => row.employee_key === person.employee_key && row.designation === person.designation
-          && sourceStateKey(row.state_raw) === person.source_state);
+        const assigned = groupedRows.get(`${person.designation}|${person.employee_key}|${person.source_state}`) || [];
         return { employee_key: person.employee_key, designation: person.designation, source_state: person.source_state,
           outlet_ids: [...new Set(assigned.map((row) => row.outlet_id).filter(Boolean))],
           unresolved_count: assigned.filter((row) => !row.outlet_id).length };
@@ -809,14 +831,16 @@ export default function OrgData({ data, reloadData }) {
         nearDuplicateOutlets: deduped.nearDuplicateRows,
       };
       setOutletImportReport(outletResolution);
+      setImportStage('Applying outlet access and inventory links');
+      await new Promise((resolve) => setTimeout(resolve, 0));
       const result = await rpc('import_org_source_of_truth', {
         p_master: parsed.master, p_inventory: parsed.inventory, p_run_key: runKey.trim(),
         p_promoter_mode: outletMode, p_promoter_rows: promoterRows, p_staff_rows: staffRows,
       }, { timeoutMs: 120000 });
       setNotice(`Imported ${result.master_rows} employee records and ${result.inventory_rows || 0} inventory records${result.inventory_already_imported ? ' (opening inventory for this run key was already applied)' : ''}. Created ${createdOutlets} outlet master records; matched ${resolvedOutlets.filter((r) => r.outlet_id).length} of ${sourceOutletRows.length} outlet rows, including ${fuzzyCount} fuzzy matches. Kept every source outlet row and flagged ${deduped.duplicateCount} possible duplicate rows. Promoter access: ${result.outlet_access?.assignments || 0} assignments; TSE/MER access: ${result.outlet_access?.staff_assignments || 0} assignments. ${parsed.warnings.length + outletMasterErrors.length + unresolvedPromoterRows.length + unresolvedStaffRows.length + (result.outlet_access?.missing_people || 0) + (result.outlet_access?.invalid_outlets || 0)} data-quality items need review (${result.outlet_access?.missing_people || 0} missing employee keys, ${result.outlet_access?.invalid_outlets || 0} rejected outlet IDs).`);
-      await refresh(); await reloadData();
+      setImportStage('Import complete');
     } catch (e) { setErr(friendly(e)); }
-    finally { setBusy(false); }
+    finally { setBusy(false); setImportStage(''); }
   }
 
   async function saveAssignment(person, field, value) {
@@ -829,7 +853,7 @@ export default function OrgData({ data, reloadData }) {
     setBusy(true); setErr('');
     try {
       await rpc('set_promoter_outlets', { p_promoter_id: personId, p_outlet_ids: outletIds });
-      await refresh(); setNotice('Outlet permissions saved.');
+      await refreshOutletAccess(); setNotice('Outlet permissions saved.');
     } catch (e) { setErr(friendly(e)); }
     finally { setBusy(false); }
   }
@@ -837,7 +861,7 @@ export default function OrgData({ data, reloadData }) {
     setBusy(true); setErr('');
     try {
       await rpc('set_promoter_mers', { p_promoter_id: personId, p_mer_ids: merIds });
-      await refresh(); setNotice('MER mappings saved. The promoter receives outlet access from each mapped MER’s matching beats.');
+      await refreshOutletAccess(); setNotice('MER mappings saved. The promoter receives outlet access from each mapped MER’s matching beats.');
     } catch (e) { setErr(friendly(e)); }
     finally { setBusy(false); }
   }
@@ -923,8 +947,8 @@ export default function OrgData({ data, reloadData }) {
       <div className="s-form"><Field label="Rio source-of-truth workbook"><input type="file" accept=".xlsx" onChange={(e) => setFiles({ source: e.target.files?.[0] || null })} /></Field>
         <Field label="Promoter outlet access"><select value={outletMode} onChange={(e) => setOutletMode(e.target.value)}><option value="">Choose access behavior</option><option value="workbook_exact">Use workbook list as exact access</option><option value="workbook_additive">Add workbook outlets to existing access</option></select></Field>
         <Field label="Import run key" hint="Keep the same key when retrying this workbook. Use a new key only for a distinct initial inventory snapshot; existing prize balances are not overwritten on repeat imports."><input value={runKey} onChange={(e) => setRunKey(e.target.value)} /></Field>
-        <p className="muted">Exact mode replaces a promoter’s workbook access when the full outlet list resolves. If some rows are unresolved, the importer keeps prior access and still adds every resolved outlet; unresolved rows remain available in the review CSV. Additive mode only adds resolved outlets. TSE/MER maps replace the matching state’s list when complete and retain prior access when some rows remain unresolved. Repeating a run key does not apply initial stock twice.</p>
-        <button className="s-btn" disabled={busy || !files.source || !outletMode} onClick={runImport}>{busy ? 'Importing…' : 'Import and reconcile'}</button>
+        <p className="muted">Exact mode replaces a promoter’s workbook access when the full outlet list resolves. If some rows are unresolved, the importer keeps prior access and still adds every resolved outlet; unresolved rows remain available in the review CSV. Additive mode only adds resolved outlets. TSE/MER workbook assignments are always added while existing access is retained. Repeating a run key does not apply initial stock twice.</p>
+        <button className="s-btn" disabled={busy || !files.source || !outletMode} onClick={runImport}>{busy ? `${importStage || 'Importing'}…` : 'Import and reconcile'}</button>
         {outletImportReport && <div className="org-import-summary">
           <b>Promoter outlet matching report</b>
           <p>{outletImportReport.stats.promoter_count} workbook promoters · {outletImportReport.stats.source_rows} outlet entries · {outletImportReport.stats.matched_rows} matched · {outletImportReport.stats.unresolved_rows} unresolved</p>
