@@ -831,13 +831,66 @@ export default function OrgData({ data }) {
         nearDuplicateOutlets: deduped.nearDuplicateRows,
       };
       setOutletImportReport(outletResolution);
-      setImportStage('Applying outlet access and inventory links');
+      setImportStage('Saving employee and inventory records');
       await new Promise((resolve) => setTimeout(resolve, 0));
-      const result = await rpc('import_org_source_of_truth', {
+      const result = await rpc('import_org_master_inventory', {
         p_master: parsed.master, p_inventory: parsed.inventory, p_run_key: runKey.trim(),
-        p_promoter_mode: outletMode, p_promoter_rows: promoterRows, p_staff_rows: staffRows,
       }, { timeoutMs: 120000 });
-      setNotice(`Imported ${result.master_rows} employee records and ${result.inventory_rows || 0} inventory records${result.inventory_already_imported ? ' (opening inventory for this run key was already applied)' : ''}. Created ${createdOutlets} outlet master records; matched ${resolvedOutlets.filter((r) => r.outlet_id).length} of ${sourceOutletRows.length} outlet rows, including ${fuzzyCount} fuzzy matches. Kept every source outlet row and flagged ${deduped.duplicateCount} possible duplicate rows. Promoter access: ${result.outlet_access?.assignments || 0} assignments; TSE/MER access: ${result.outlet_access?.staff_assignments || 0} assignments. ${parsed.warnings.length + outletMasterErrors.length + unresolvedPromoterRows.length + unresolvedStaffRows.length + (result.outlet_access?.missing_people || 0) + (result.outlet_access?.invalid_outlets || 0)} data-quality items need review (${result.outlet_access?.missing_people || 0} missing employee keys, ${result.outlet_access?.invalid_outlets || 0} rejected outlet IDs).`);
+      const makeBatches = (rows, maxIds = 1800, maxPeople = 6) => {
+        const batches = []; let batch = []; let batchIds = 0;
+        for (const row of rows) {
+          const size = row.outlet_ids.length;
+          if (batch.length && (batch.length >= maxPeople || batchIds + size > maxIds)) {
+            batches.push(batch); batch = []; batchIds = 0;
+          }
+          batch.push(row); batchIds += size;
+        }
+        if (batch.length) batches.push(batch);
+        return batches;
+      };
+      const promoterBatches = makeBatches(promoterRows);
+      const staffBatches = makeBatches(staffRows);
+      const accessBatches = [
+        ...promoterBatches.map((rows) => ({ kind: 'promoter', rows })),
+        ...staffBatches.map((rows) => ({ kind: 'staff', rows })),
+      ];
+      const accessTotals = { assignments: 0, staff_assignments: 0, missing_people: 0, invalid_outlets: 0, duplicate_outlet_ids: 0 };
+      let completedBatches = 0;
+      try {
+        for (let i = 0; i < accessBatches.length; i++) {
+          const batch = accessBatches[i];
+          setImportStage(`Saving ${batch.kind} outlet access ${i + 1}/${accessBatches.length}`);
+          await new Promise((resolve) => setTimeout(resolve, 0));
+          const access = await rpc('import_org_source_of_truth_access', {
+            p_run_key: runKey.trim(), p_promoter_mode: outletMode,
+            p_promoter_rows: batch.kind === 'promoter' ? batch.rows : [],
+            p_staff_rows: batch.kind === 'staff' ? batch.rows : [],
+          }, { timeoutMs: 120000 });
+          accessTotals.assignments += access.assignments || 0;
+          accessTotals.staff_assignments += access.staff_assignments || 0;
+          accessTotals.missing_people += access.missing_people || 0;
+          accessTotals.invalid_outlets += access.invalid_outlets || 0;
+          accessTotals.duplicate_outlet_ids += access.duplicate_outlet_ids || 0;
+          completedBatches++;
+        }
+      } catch (error) {
+        throw new Error(`Outlet access stopped after ${completedBatches} of ${accessBatches.length} batches. Completed batches are saved; retry with the same run key and selected access mode to resume safely. ${friendly(error)}`);
+      }
+      let postImportNote = '';
+      try {
+        setImportStage('Linking inventory and reconciling stock');
+        await new Promise((resolve) => setTimeout(resolve, 0));
+        await rpc('import_org_source_of_truth', {
+          p_master: [], p_inventory: parsed.inventory, p_run_key: runKey.trim(),
+          p_promoter_mode: outletMode, p_promoter_rows: [], p_staff_rows: [],
+        }, { timeoutMs: 120000 });
+      } catch (error) {
+        postImportNote = ` Outlet access was saved, but inventory linking/stock reconciliation needs a retry: ${friendly(error)}`;
+      }
+      const matchedCount = resolvedOutlets.filter((r) => r.outlet_id).length;
+      const dataQualityCount = parsed.warnings.length + outletMasterErrors.length + unresolvedPromoterRows.length + unresolvedStaffRows.length
+        + accessTotals.missing_people + accessTotals.invalid_outlets;
+      setNotice(`Imported ${result.master_rows} employee records and ${result.inventory_rows || 0} inventory records${result.inventory_already_imported ? ' (opening inventory for this run key was already applied)' : ''}. Created ${createdOutlets} outlet master records; matched ${matchedCount} of ${sourceOutletRows.length} outlet rows, including ${fuzzyCount} fuzzy matches. Kept every source outlet row and flagged ${deduped.duplicateCount} possible duplicate rows. Promoter access: ${accessTotals.assignments} assignments; TSE/MER access: ${accessTotals.staff_assignments} assignments. ${dataQualityCount} data-quality items need review (${accessTotals.missing_people} missing employee keys, ${accessTotals.invalid_outlets} rejected outlet IDs).${postImportNote}`);
       setImportStage('Import complete');
     } catch (e) { setErr(friendly(e)); }
     finally { setBusy(false); setImportStage(''); }
