@@ -46,14 +46,12 @@ export default function StaffApp({ profile, onLogout }) {
 
   const loadData = useCallback(async () => {
     try {
-      const [loadedMasters, campaigns, promoters, supervisorOutlets, adminOutlets] = await Promise.all([
-        loadMasters({ force: true, includeOutletData: role !== 'supervisor' }),
+      const [loadedMasters, campaigns, promoters, supervisorOutlets] = await Promise.all([
+        // Keep the large admin outlet directory out of the blocking page load.
+        loadMasters({ force: true, includeOutletData: false }),
         selectAll('campaigns', '*', (q) => q.order('created_at', { ascending: false })),
         selectAll('app_users', 'id,full_name,login_id,is_active,role', (q) => q.eq('role', 'promoter').order('full_name')),
         role === 'supervisor' ? rpc('get_supervisor_outlet_master') : Promise.resolve(null),
-        role === 'admin'
-          ? selectAll('outlets', 'id,outlet_code,name,area,city,beat,distributor,tse_id,status,source,external_ref', (q) => q.order('name'))
-          : Promise.resolve(null),
       ]);
       const masters = supervisorOutlets
         ? {
@@ -63,12 +61,44 @@ export default function StaffApp({ profile, onLogout }) {
             outlets: supervisorOutlets,
           }
         : loadedMasters;
-      const outletsFull = adminOutlets || supervisorOutlets || masters.outlets;
-      setData({ masters, campaigns, promoters, outletsFull, role, profile });
+      const outletsFull = supervisorOutlets || masters.outlets || [];
+      setData((previous) => ({
+        masters: role === 'admin' && previous?.outletsLoaded
+          ? { ...masters, tses: previous.masters.tses, outlets: previous.masters.outlets }
+          : masters,
+        campaigns,
+        promoters,
+        outletsFull: role === 'supervisor' ? outletsFull : (previous?.outletsFull || []),
+        outletsLoaded: role === 'supervisor' || !!previous?.outletsLoaded,
+        outletsLoadError: previous?.outletsLoadError || '',
+        role,
+        profile,
+      }));
     } catch (e) { setErr(e.message); }
   }, [role, profile]);
 
   useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => {
+    if (role !== 'admin' || !data || data.outletsLoaded) return undefined;
+    let cancelled = false;
+    Promise.all([
+      selectAll('tses', 'id,code,name,territory_id', (q) => q.eq('status', 'active').order('name')),
+      selectAll('outlets', 'id,outlet_code,name,area,city,beat,distributor,tse_id,status,source,external_ref', (q) => q.order('name')),
+    ]).then(([tses, outlets]) => {
+      if (cancelled) return;
+      setData((previous) => previous && ({
+        ...previous,
+        masters: { ...previous.masters, tses, outlets },
+        outletsFull: outlets,
+        outletsLoaded: true,
+        outletsLoadError: '',
+      }));
+    }).catch((error) => {
+      if (cancelled) return;
+      setData((previous) => previous && ({ ...previous, outletsLoaded: false, outletsLoadError: error.message }));
+    });
+    return () => { cancelled = true; };
+  }, [role, !!data, data?.outletsLoaded]);
   useEffect(() => { location.hash = page; }, [page]);
 
   const nav = NAV.filter((n) => n.roles.includes(role));

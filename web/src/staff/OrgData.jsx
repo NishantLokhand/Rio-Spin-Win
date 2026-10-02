@@ -772,7 +772,7 @@ export default function OrgData({ data }) {
     setBusy(true); setImportStage('Reading workbook'); setErr(''); setNotice('');
     try {
       if (!files.source) throw new Error('Choose the Rio single-source-of-truth workbook.');
-      if (!people || !data.outletsFull) throw new Error('Organizational people and the outlet directory are still loading. Wait a moment and try again.');
+      if (!people || !data.outletsLoaded) throw new Error('The outlet directory is still loading. Wait a moment and try again.');
       if (!outletMode) throw new Error('Choose how the workbook outlet list should interact with MER outlet access.');
       const book = await readWorkbook(files.source);
       const parsed = mapSourceTruthToExisting(parseSourceTruthWorkbook(book.rows(book.names[0])), people);
@@ -927,6 +927,7 @@ export default function OrgData({ data }) {
       ]} />}
     </Panel></>}
     {tab === 'outlets' && <Panel title="Promoter outlet access"><p className="muted">Access can come from mapped MER beats, manual outlet assignments, or the UP Promoter Wise workbook. The selected workbook mode controls whether that promoter’s workbook list replaces or adds to MER/manual access.</p>
+      {!data.outletsLoaded && <p className="muted">{data.outletsLoadError ? `Outlet directory could not load: ${data.outletsLoadError}` : 'Loading the outlet directory…'}</p>}
       {people?.filter((p) => p.designation === 'PROMOTER').map((p) => {
         const assigned = (assignments || []).filter((a) => a.promoter_id === p.id && a.active).map((a) => a.outlet_id);
         const workbook = workbookAssignments.filter((a) => a.promoter_id === p.id && a.source_state === 'UTTAR PRADESH').map((a) => a.outlet_id);
@@ -948,7 +949,8 @@ export default function OrgData({ data }) {
         <Field label="Promoter outlet access"><select value={outletMode} onChange={(e) => setOutletMode(e.target.value)}><option value="">Choose access behavior</option><option value="workbook_exact">Use workbook list as exact access</option><option value="workbook_additive">Add workbook outlets to existing access</option></select></Field>
         <Field label="Import run key" hint="Keep the same key when retrying this workbook. Use a new key only for a distinct initial inventory snapshot; existing prize balances are not overwritten on repeat imports."><input value={runKey} onChange={(e) => setRunKey(e.target.value)} /></Field>
         <p className="muted">Exact mode replaces a promoter’s workbook access when the full outlet list resolves. If some rows are unresolved, the importer keeps prior access and still adds every resolved outlet; unresolved rows remain available in the review CSV. Additive mode only adds resolved outlets. TSE/MER workbook assignments are always added while existing access is retained. Repeating a run key does not apply initial stock twice.</p>
-        <button className="s-btn" disabled={busy || !files.source || !outletMode} onClick={runImport}>{busy ? `${importStage || 'Importing'}…` : 'Import and reconcile'}</button>
+        {!data.outletsLoaded && <p className="muted">{data.outletsLoadError ? `Outlet directory could not load: ${data.outletsLoadError}` : 'Loading the outlet directory…'}</p>}
+        <button className="s-btn" disabled={busy || !files.source || !outletMode || !data.outletsLoaded} onClick={runImport}>{busy ? `${importStage || 'Importing'}…` : 'Import and reconcile'}</button>
         {outletImportReport && <div className="org-import-summary">
           <b>Promoter outlet matching report</b>
           <p>{outletImportReport.stats.promoter_count} workbook promoters · {outletImportReport.stats.source_rows} outlet entries · {outletImportReport.stats.matched_rows} matched · {outletImportReport.stats.unresolved_rows} unresolved</p>
