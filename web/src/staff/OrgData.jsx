@@ -284,9 +284,12 @@ function dedupeSourceOutletRows(rows) {
         }
       }
     }
-    if (duplicate) { duplicateCount++; continue; }
-    if (conflictingNearName) nearDuplicateRows.push({ row, prior: conflictingNearName });
-    bucket.byCode.set(code || `__row_${row.source_row}_${kept.length}`, row);
+    if (duplicate) {
+      duplicateCount++;
+      nearDuplicateRows.push({ row, prior: duplicate, kind: sameCode ? 'same outlet code' : exactName ? 'exact outlet name' : '90%+ similar outlet name', similarity: sourceTextScore(name, outletLabel(duplicate.outlet_label)) });
+    }
+    if (conflictingNearName) nearDuplicateRows.push({ row, prior: conflictingNearName, kind: 'similar name with different outlet code', similarity: sourceTextScore(name, outletLabel(conflictingNearName.outlet_label)) });
+    bucket.byCode.set(code || `__row_${row.source_row}_${kept.length}`, bucket.byCode.get(code) || row);
     bucket.byLabel.set(nameKey, [...exactNames, row]);
     bucket.byLength.set(nameKey.length, [...(bucket.byLength.get(nameKey.length) || []), row]);
     buckets.set(route, bucket); kept.push(row);
@@ -687,18 +690,19 @@ function downloadUnresolvedOutlets(report) {
 
 function downloadSimilarOutletCodes(report) {
   const rows = report?.nearDuplicateOutlets || [];
-  const columns = ['employee_name', 'designation', 'state', 'area', 'beat', 'kept_outlet_code', 'kept_outlet_name', 'similar_outlet_code', 'similar_outlet_name', 'similarity'];
+  const columns = ['issue', 'employee_name', 'designation', 'state', 'area', 'beat', 'outlet_code', 'outlet_name', 'related_outlet_code', 'related_outlet_name', 'similarity_percent', 'source_row'];
   const quote = (value) => `"${String(value ?? '').replaceAll('"', '""')}"`;
   const csv = [columns.map(quote).join(','), ...rows.map((entry) => {
-    const values = { employee_name: entry.row.employee_name, designation: entry.row.designation, state: entry.row.state_raw,
-      area: entry.row.area_raw, beat: entry.row.beat, kept_outlet_code: entry.row.outlet_code, kept_outlet_name: entry.row.outlet_label,
-      similar_outlet_code: entry.prior.outlet_code, similar_outlet_name: entry.prior.outlet_label,
-      similarity: Math.round(sourceTextScore(outletLabel(entry.row.outlet_label), outletLabel(entry.prior.outlet_label)) * 100) };
+    const values = { issue: entry.kind, employee_name: entry.row.employee_name, designation: entry.row.designation, state: entry.row.state_raw,
+      area: entry.row.area_raw, beat: entry.row.beat, outlet_code: entry.row.outlet_code, outlet_name: entry.row.outlet_label,
+      related_outlet_code: entry.prior.outlet_code, related_outlet_name: entry.prior.outlet_label,
+      similarity_percent: Math.round((entry.similarity ?? sourceTextScore(outletLabel(entry.row.outlet_label), outletLabel(entry.prior.outlet_label))) * 100),
+      source_row: entry.row.source_row };
     return columns.map((column) => quote(values[column])).join(',');
   })].join('\r\n');
   const blob = new Blob(['\uFEFF', csv], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob); const link = document.createElement('a');
-  link.href = url; link.download = 'source-truth-similar-outlet-codes-review.csv';
+  link.href = url; link.download = 'source-truth-outlet-duplicate-review.csv';
   document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url);
 }
 
@@ -801,7 +805,7 @@ export default function OrgData({ data, reloadData }) {
         staffOutlet: { stats: { employee_count: staffRows.length, source_rows: sourceOutletRows.filter((r) => ['TSE', 'MER'].includes(r.designation)).length,
           matched_rows: resolvedOutlets.filter((r) => ['TSE', 'MER'].includes(r.designation) && r.outlet_id).length, unresolved_rows: unresolvedStaffRows.length }, outletRows: unresolvedStaffRows },
         outletMaster: { created: createdOutlets, attempted: allPlannedOutlets.length, errors: outletMasterErrors.length, missingTse: outletMasterPlan.missingTse, staffMissingTse: [], outletConflicts: [], sharedTseOutlets: [...sharedTseOutlets.values()].filter((owners) => owners.size > 1).length },
-        warnings: parsed.warnings, duplicate_outlet_rows_removed: deduped.duplicateCount, fuzzy_matches: fuzzyCount,
+        warnings: parsed.warnings, duplicate_outlet_rows_flagged: deduped.duplicateCount, fuzzy_matches: fuzzyCount,
         nearDuplicateOutlets: deduped.nearDuplicateRows,
       };
       setOutletImportReport(outletResolution);
@@ -809,7 +813,7 @@ export default function OrgData({ data, reloadData }) {
         p_master: parsed.master, p_inventory: parsed.inventory, p_run_key: runKey.trim(),
         p_promoter_mode: outletMode, p_promoter_rows: promoterRows, p_staff_rows: staffRows,
       }, { timeoutMs: 120000 });
-      setNotice(`Imported ${result.master_rows} employee records and ${result.inventory_rows || 0} inventory records${result.inventory_already_imported ? ' (opening inventory for this run key was already applied)' : ''}. Created ${createdOutlets} outlet master records; matched ${resolvedOutlets.filter((r) => r.outlet_id).length} of ${sourceOutletRows.length} outlet rows, including ${fuzzyCount} fuzzy matches. Removed ${deduped.duplicateCount} duplicate outlet rows. Promoter access: ${result.outlet_access?.assignments || 0} assignments; TSE/MER access: ${result.outlet_access?.staff_assignments || 0} assignments. ${parsed.warnings.length + outletMasterErrors.length + unresolvedPromoterRows.length + unresolvedStaffRows.length + (result.outlet_access?.missing_people || 0) + (result.outlet_access?.invalid_outlets || 0)} data-quality items need review (${result.outlet_access?.missing_people || 0} missing employee keys, ${result.outlet_access?.invalid_outlets || 0} rejected outlet IDs).`);
+      setNotice(`Imported ${result.master_rows} employee records and ${result.inventory_rows || 0} inventory records${result.inventory_already_imported ? ' (opening inventory for this run key was already applied)' : ''}. Created ${createdOutlets} outlet master records; matched ${resolvedOutlets.filter((r) => r.outlet_id).length} of ${sourceOutletRows.length} outlet rows, including ${fuzzyCount} fuzzy matches. Kept every source outlet row and flagged ${deduped.duplicateCount} possible duplicate rows. Promoter access: ${result.outlet_access?.assignments || 0} assignments; TSE/MER access: ${result.outlet_access?.staff_assignments || 0} assignments. ${parsed.warnings.length + outletMasterErrors.length + unresolvedPromoterRows.length + unresolvedStaffRows.length + (result.outlet_access?.missing_people || 0) + (result.outlet_access?.invalid_outlets || 0)} data-quality items need review (${result.outlet_access?.missing_people || 0} missing employee keys, ${result.outlet_access?.invalid_outlets || 0} rejected outlet IDs).`);
       await refresh(); await reloadData();
     } catch (e) { setErr(friendly(e)); }
     finally { setBusy(false); }
@@ -915,7 +919,7 @@ export default function OrgData({ data, reloadData }) {
         { key: 'adjust', label: 'Adjust', noExport: true, render: (s) => <StockAdjust row={s} save={adjustOrgStock} /> },
       ]} />}
     </Panel>}
-    {tab === 'import' && <Panel title="Import Rio source-of-truth workbook"><p>Upload the single-sheet <b>Master Data</b> workbook. It contains employee, beat, outlet, and inventory rows; employee keys connect them. Outlet names are matched within the same state and route, with a best fuzzy match from 50% similarity when available. Repeated outlet assignments for the same person and beat are removed at 90% similarity and reported as warnings.</p>
+    {tab === 'import' && <Panel title="Import Rio source-of-truth workbook"><p>Upload the single-sheet <b>Master Data</b> workbook. It contains employee, beat, outlet, and inventory rows; employee keys connect them. Outlet names are matched within the same state and route, with a best fuzzy match from 50% similarity when available. Every source outlet row is retained; exact and 90%+ similar assignments are flagged for review without being removed.</p>
       <div className="s-form"><Field label="Rio source-of-truth workbook"><input type="file" accept=".xlsx" onChange={(e) => setFiles({ source: e.target.files?.[0] || null })} /></Field>
         <Field label="Promoter outlet access"><select value={outletMode} onChange={(e) => setOutletMode(e.target.value)}><option value="">Choose access behavior</option><option value="workbook_exact">Use workbook list as exact access</option><option value="workbook_additive">Add workbook outlets to existing access</option></select></Field>
         <Field label="Import run key" hint="Keep the same key when retrying this workbook. Use a new key only for a distinct initial inventory snapshot; existing prize balances are not overwritten on repeat imports."><input value={runKey} onChange={(e) => setRunKey(e.target.value)} /></Field>
@@ -933,11 +937,11 @@ export default function OrgData({ data, reloadData }) {
             </>}
           </>}
           <p>Created {outletImportReport.outletMaster.created} outlet master records · {outletImportReport.outletMaster.missingTse.length + outletImportReport.outletMaster.staffMissingTse.length} route groups without a unique TSE · {outletImportReport.outletMaster.outletConflicts.length} outlet code/name conflicts · {outletImportReport.outletMaster.errors} outlet import errors</p>
-          {outletImportReport.nearDuplicateOutlets?.length > 0 && <><p>{outletImportReport.nearDuplicateOutlets.length} similar outlet names have different outlet codes and were kept as separate records.</p><button type="button" className="s-btn sm" onClick={() => downloadSimilarOutletCodes(outletImportReport)}>Download similar-name / different-code review (CSV)</button></>}
+          {outletImportReport.nearDuplicateOutlets?.length > 0 && <><p>{outletImportReport.nearDuplicateOutlets.length} possible duplicate outlet pairs were flagged. All source outlet rows were kept.</p><button type="button" className="s-btn sm" onClick={() => downloadSimilarOutletCodes(outletImportReport)}>Download outlet duplicate review (CSV)</button></>}
           {outletImportReport.stats.unresolved_rows > 0 && <><button type="button" className="s-btn sm" onClick={() => downloadUnresolvedOutlets(outletImportReport)}>Download all {outletImportReport.stats.unresolved_rows} unresolved promoter entries (CSV)</button><div className="org-import-unmatched">{outletImportReport.outletRows.filter((r) => r.status !== 'matched').slice(0, 12).map((r, i) => <div key={`${r.source_row}-${r.outlet_index}-${i}`}><b>{r.promoter_name}</b> — {r.outlet_label} <small>({r.status.replaceAll('_', ' ')})</small></div>)}{outletImportReport.stats.unresolved_rows > 12 && <small>Showing first 12 unresolved entries. Download the CSV for the complete list.</small>}</div></>}
           {[...outletImportReport.outletMaster.missingTse, ...outletImportReport.outletMaster.staffMissingTse].length > 0 && <div className="org-import-unmatched">{[...outletImportReport.outletMaster.missingTse, ...outletImportReport.outletMaster.staffMissingTse].slice(0, 8).map((r, i) => <div key={`${r.employee_name || r.promoter_name}-${r.beat}-${i}`}><b>{r.employee_name || r.promoter_name}</b> — {r.market} / {r.beat} <small>({r.match_count ? 'ambiguous TSE beat match' : 'no TSE beat match'})</small></div>)}</div>}
           {outletImportReport.outletMaster.outletConflicts.length > 0 && <div className="org-import-unmatched">{outletImportReport.outletMaster.outletConflicts.slice(0, 8).map((r) => <div key={`${r.outlet_code}-${r.workbook_name}`}><b>{r.outlet_code}</b> — workbook “{r.workbook_name}”, existing “{r.existing_name}”</div>)}</div>}
-          {(outletImportReport.duplicate_outlet_rows_removed > 0 || outletImportReport.fuzzy_matches > 0 || outletImportReport.warnings.length > 0) && <div className="org-import-notes"><b>Import warnings</b><p>{outletImportReport.duplicate_outlet_rows_removed} exact/90% duplicate outlet rows removed · {outletImportReport.nearDuplicateOutlets?.length || 0} similar names with distinct outlet codes retained · {outletImportReport.fuzzy_matches} fuzzy outlet matches</p>{outletImportReport.warnings.slice(0, 12).map((warning, index) => <div key={index}>{warning}</div>)}{outletImportReport.warnings.length > 12 && <small>Showing 12 of {outletImportReport.warnings.length} data-quality warnings.</small>}</div>}
+          {(outletImportReport.duplicate_outlet_rows_flagged > 0 || outletImportReport.fuzzy_matches > 0 || outletImportReport.warnings.length > 0) && <div className="org-import-notes"><b>Import warnings</b><p>{outletImportReport.duplicate_outlet_rows_flagged} exact/90%+ duplicate candidates flagged and kept · {outletImportReport.nearDuplicateOutlets?.length || 0} possible duplicate pairs · {outletImportReport.fuzzy_matches} fuzzy outlet matches</p>{outletImportReport.warnings.slice(0, 12).map((warning, index) => <div key={index}>{warning}</div>)}{outletImportReport.warnings.length > 12 && <small>Showing 12 of {outletImportReport.warnings.length} data-quality warnings.</small>}</div>}
         </div>}
       </div>
     </Panel>}
