@@ -15,11 +15,13 @@ const PURCHASE_LABELS = {
 const purchaseLabel = (product) => PURCHASE_LABELS[product.sku_code] || product.name;
 
 // Add any mix of SKUs to one bill. Each unit in the basket earns one sequential spin.
-export default function SaleFlow({ ctx, products, online, onRecorded, onBack, onPending, say }) {
+export default function SaleFlow({ ctx, products, online, onRecorded, onBack, onResumePending }) {
   const [basket, setBasket] = useState([]);
   const [stage, setStage] = useState('basket');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
+  const [pendingBlocked, setPendingBlocked] = useState(false);
+  const [resumeBusy, setResumeBusy] = useState(false);
   const [saleId] = useState(() => uuid());
   const rules = ctx.campaign?.validation_rules || {};
   const required = Object.entries(rules).filter(([, v]) => v === 'required' || v === 'optional').map(([k, v]) => ({ k, v }));
@@ -45,7 +47,7 @@ export default function SaleFlow({ ctx, products, online, onRecorded, onBack, on
 
   async function submit() {
     if (!basket.length || !customerName.trim() || !validationReady()) return;
-    setBusy(true); setErr(null);
+    setBusy(true); setErr(null); setPendingBlocked(false);
     const idempotencySaleId = saleId;
     try {
       await rpc('record_basket_sale', {
@@ -57,9 +59,20 @@ export default function SaleFlow({ ctx, products, online, onRecorded, onBack, on
       const summary = basket.map((x) => `${purchaseLabel(x.product)} × ${x.quantity}`).join(', ');
       onRecorded({ saleId: idempotencySaleId, stage: 'recorded', spinNo: 1, spinsAllowed: total, sku: summary, qty: total, outletId: ctx.outletId, at: Date.now() });
     } catch (e) {
-      if (e.code === 'PENDING_HANDOVER' || e.code === 'SALE_IN_PROGRESS') { say('Complete the previous customer’s spins first', 'warn'); onPending(); return; }
+      if (e.code === 'PENDING_HANDOVER' || e.code === 'SALE_IN_PROGRESS') { setPendingBlocked(true); return; }
       setErr(e.code === 'OUT_OF_STOCK' ? `PRIZE STOCK NEEDED: ${e.detail || ''}. Ask your supervisor to replenish.` : friendly(e));
     } finally { setBusy(false); }
+  }
+
+  async function resumePrevious() {
+    if (resumeBusy) return;
+    setResumeBusy(true); setErr(null);
+    try {
+      const resumed = await onResumePending();
+      if (!resumed) setErr('The previous customer’s spin could not be found. Please try again or contact your supervisor.');
+    } catch (e) {
+      setErr(friendly(e));
+    } finally { setResumeBusy(false); }
   }
 
   return (
@@ -92,6 +105,13 @@ export default function SaleFlow({ ctx, products, online, onRecorded, onBack, on
         <label>Customer phone <small>(optional)</small><input type="tel" inputMode="tel" autoComplete="tel" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} /></label>
         {basket.map(({ product, quantity }) => <div className="basket-line compact" key={product.id}><span>{purchaseLabel(product)}</span><b>× {quantity}</b></div>)}
         {required.map(({ k, v }) => <label key={k}>{LABELS[k] || k.replace(/_/g, ' ')}{v === 'required' ? ' *' : ''}<input value={validation[k] || ''} onChange={(e) => setValidation({ ...validation, [k]: e.target.value })} /></label>)}
+        {pendingBlocked && <div className="pending-resume" role="alert">
+          <strong>Complete the previous customer’s spins first.</strong>
+          <span>Resume that customer’s existing spin to finish it before recording another bill.</span>
+          <button type="button" className="btn-secondary" disabled={resumeBusy} onClick={resumePrevious}>
+            {resumeBusy ? 'OPENING PREVIOUS SPIN…' : 'RESUME PREVIOUS CUSTOMER’S SPIN'}
+          </button>
+        </div>}
         <button className="btn-primary big" disabled={busy || !customerName.trim() || !validationReady()} onClick={submit}>{busy ? 'RECORDING…' : 'RECORD BILL & START SPINS'}</button>
       </div>}
       {busy && <div className="busy">Recording sale…</div>}{err && <div className="err big">{err}</div>}

@@ -74,6 +74,9 @@
 .form label { display: grid; gap: 5px; font-weight: 700; font-size: 14px; }
 .form input, .form select { padding: 14px; border-radius: 12px; border: 0; font-size: 17px; width: 100%; }
 .validation { background: #F4E8CF; color: #35250D; padding: 14px; border-radius: 16px; margin-top: 14px; }
+.sale-basket .pending-resume { display: grid; gap: 8px; padding: 12px; border-radius: 12px; background: #F6C34F; color: #35250D; }
+.sale-basket .pending-resume span { font-size: 14px; }
+.sale-basket .pending-resume button { width: 100%; }
 
 /* ---------- sale ---------- */
 .sale-outlet { font-size: 14px; opacity: .8; margin-bottom: 12px; }

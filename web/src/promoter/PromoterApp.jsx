@@ -168,6 +168,35 @@ export default function PromoterApp({ profile, onLogout }) {
     clearInflight(uid); setFlight(null); setView('home'); refreshHome();
   }
 
+  async function resumePreviousCustomer() {
+    // A prize already drawn is resumed from the authoritative pending-spin RPC.
+    const h = await refreshHome();
+    if (h?.pending_spin) return true;
+
+    // If a multi-spin bill was interrupted between spins, recover its next
+    // spin from the existing sale record instead of creating another bill.
+    const { data: sales, error } = await supabase.from('sales')
+      .select('id,spins_used,spins_allowed,quantity,product_name,sku_code,outlet_id,created_at')
+      .eq('promoter_id', uid).not('status', 'in', '(completed,cancelled)')
+      .gt('spins_used', 0).order('created_at', { ascending: false }).limit(10);
+    if (error) throw error;
+    const sale = (sales || []).find((row) => row.spins_used < row.spins_allowed);
+    if (!sale) return false;
+
+    const { data: items, error: itemsError } = await supabase.from('sale_items')
+      .select('product_name,quantity').eq('sale_id', sale.id);
+    if (itemsError) throw itemsError;
+    const sku = (items || []).map((item) => `${item.product_name} × ${item.quantity}`).join(', ')
+      || `${sale.product_name} × ${sale.quantity}`;
+    const resumed = {
+      saleId: sale.id, stage: 'recorded', spinNo: sale.spins_used + 1,
+      spinsAllowed: sale.spins_allowed, sku, qty: sale.quantity,
+      outletId: sale.outlet_id, at: Date.parse(sale.created_at),
+    };
+    setInflight(uid, resumed); setFlight(resumed); setSpin(null); setView('spin');
+    return true;
+  }
+
   const logout = () => { clearAllForUser(uid); onLogout(); };
   const toggleSound = () => { sound.set(!soundOn); setSoundOn(!soundOn); if (!soundOn) sound.win(); };
 
@@ -226,7 +255,7 @@ export default function PromoterApp({ profile, onLogout }) {
       {view === 'sale' && ctx && (
         <SaleFlow ctx={ctx} products={(masters?.products || []).filter((p) => !p.state_id || p.state_id === ctx.stateId)} online={online}
                   onRecorded={saleRecorded} onBack={() => setView('home')}
-                  onPending={() => refreshHome()} say={say} />
+                  onResumePending={resumePreviousCustomer} />
       )}
 
       {toast && <div className={`toast ${toast.kind}`}>{toast.msg}</div>}
