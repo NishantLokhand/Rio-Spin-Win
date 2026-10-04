@@ -9,7 +9,8 @@ export const TXN_COLUMNS = [
   { key: 'transaction_id', label: 'Transaction ID' }, { key: 'spin_id', label: 'Spin ID' }, { key: 'campaign_code', label: 'Campaign' },
   { key: 'date', label: 'Date' }, { key: 'time', label: 'Time' }, { key: 'state', label: 'State' }, { key: 'territory', label: 'Territory' },
   { key: 'tse_code', label: 'TSE Code' }, { key: 'tse_name', label: 'TSE Name' }, { key: 'outlet_code', label: 'Outlet Code' },
-  { key: 'outlet_name', label: 'Outlet Name' }, { key: 'city', label: 'City' }, { key: 'distributor', label: 'Distributor' },
+  { key: 'outlet_name', label: 'Outlet Name' }, { key: 'outlet_address', label: 'Outlet Address' },
+  { key: 'outlet_license_no', label: 'Licence No.' }, { key: 'city', label: 'City' }, { key: 'distributor', label: 'Distributor' },
   { key: 'promoter_code', label: 'Promoter ID' }, { key: 'promoter_name', label: 'Promoter Name' }, { key: 'promoter_type', label: 'Promoter Type' },
   { key: 'sku_code', label: 'SKU Code' }, { key: 'sku', label: 'SKU' }, { key: 'quantity', label: 'Quantity' },
   { key: 'prize_name', label: 'Prize' }, { key: 'prize_cost', label: 'Prize Cost' }, { key: 'substituted', label: 'Substituted' },
@@ -57,7 +58,8 @@ export default function Transactions({ data, filters, setFilters }) {
           <DataTable rows={list.data} maxHeight="70vh" columns={[
             { key: 'spin_id', label: 'Spin ID' },
             { key: 'date', label: 'Date', fmt: fmt.date }, { key: 'time', label: 'Time' },
-            { key: 'outlet_name', label: 'Outlet' }, { key: 'tse_name', label: 'TSE' }, { key: 'promoter_name', label: 'Promoter' },
+            { key: 'outlet_name', label: 'Outlet' }, { key: 'outlet_address', label: 'Address' },
+            { key: 'outlet_license_no', label: 'Licence No.' }, { key: 'tse_name', label: 'TSE' }, { key: 'promoter_name', label: 'Promoter' },
             { key: 'sku', label: 'SKU' }, { key: 'quantity', label: 'Qty', align: 'r' },
             { key: 'prize_name', label: 'Prize' }, { key: 'prize_cost', label: 'Cost', align: 'r', fmt: fmt.inr },
             { key: 'redemption_status', label: 'Status', render: (r) => r.redemption_status

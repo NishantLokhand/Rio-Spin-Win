@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase.js';
 import { rpc, selectAll, friendly } from '../lib/api.js';
+import { uuid } from '../lib/store.js';
 import { Panel, DataTable, Field, Badge, Tabs } from './ui.jsx';
 
 const norm = (v) => String(v ?? '').trim().replace(/\s+/g, ' ');
@@ -13,7 +14,44 @@ const role = (v) => ({ PROMOTER: 'PROMOTER', PROMO: 'PROMOTER', TSE: 'TSE', MER:
 async function readWorkbook(file) {
   const XLSX = await import('xlsx');
   const book = XLSX.read(await file.arrayBuffer(), { type: 'array' });
-  return { names: book.SheetNames, sheets: book.Sheets, rows: (name) => XLSX.utils.sheet_to_json(book.Sheets[name], { header: 1, defval: '' }) };
+  return {
+    names: book.SheetNames, sheets: book.Sheets,
+    rows: (name) => XLSX.utils.sheet_to_json(book.Sheets[name], { header: 1, defval: '' }),
+    formattedRows: (name) => XLSX.utils.sheet_to_json(book.Sheets[name], { header: 1, defval: '', raw: false }),
+  };
+}
+function parseUpOutletSearch(rows) {
+  if (!rows?.length) throw new Error('UP Outlet Search is empty.');
+  const header = rows[0].map((value) => norm(value).toLowerCase());
+  const col = (label) => header.indexOf(label.toLowerCase());
+  const nameCol = col('Outlet Name'); const licenseCol = col('License Number (LICNO)'); const addressCol = col('Address');
+  if ([nameCol, licenseCol, addressCol].some((index) => index < 0)) {
+    throw new Error('UP Outlet Search must contain Outlet Name, License Number (LICNO), and Address columns.');
+  }
+  const occurrences = new Map();
+  return rows.slice(1).map((row, index) => {
+    const outletName = norm(row[nameCol]); const licenseNo = norm(row[licenseCol]); const address = norm(row[addressCol]);
+    if (!outletName) throw new Error(`UP Outlet Search has a blank Outlet Name on row ${index + 2}.`);
+    const identity = [outletName, licenseNo, address]
+      .map((value) => value.normalize('NFKC').trim().replace(/\s+/g, ' ').toLocaleLowerCase('en'))
+      .join('\u001f');
+    const duplicateOccurrence = (occurrences.get(identity) || 0) + 1;
+    occurrences.set(identity, duplicateOccurrence);
+    return { outlet_name: outletName, license_no: licenseNo, address, duplicate_occurrence: duplicateOccurrence };
+  });
+}
+
+async function importUpOutletSearch(rows, setStage) {
+  const importId = uuid();
+  await rpc('begin_up_outlet_search_import', { p_import_id: importId, p_expected_rows: rows.length });
+  const batchSize = 400;
+  for (let start = 0; start < rows.length; start += batchSize) {
+    const end = Math.min(start + batchSize, rows.length);
+    setStage(`Importing UP Outlet Search ${end.toLocaleString()} / ${rows.length.toLocaleString()}`);
+    await rpc('import_up_outlet_search_batch', { p_import_id: importId, p_rows: rows.slice(start, end) }, { timeoutMs: 30000 });
+  }
+  setStage('Publishing UP Outlet Search');
+  return rpc('finalize_up_outlet_search_import', { p_import_id: importId }, { timeoutMs: 60000 });
 }
 function parseUP(rows) {
   return rows.slice(1).filter((r) => norm(r[2]) && role(r[3])).map((r) => ({
@@ -775,6 +813,13 @@ export default function OrgData({ data }) {
       if (!people || !data.outletsLoaded) throw new Error('The outlet directory is still loading. Wait a moment and try again.');
       if (!outletMode) throw new Error('Choose how the workbook outlet list should interact with MER outlet access.');
       const book = await readWorkbook(files.source);
+      let outletSearchRows = null;
+      let outletSearchNote = '';
+      const outletSearchSheet = book.names.find((name) => norm(name).toLowerCase() === 'up outlet search');
+      if (outletSearchSheet) {
+        try { outletSearchRows = parseUpOutletSearch(book.formattedRows(outletSearchSheet)); }
+        catch (error) { outletSearchNote = ` UP Outlet Search was not imported; the existing directory remains active. ${friendly(error)}`; }
+      } else outletSearchNote = ' UP Outlet Search sheet was not found; the existing directory remains active.';
       const parsed = mapSourceTruthToExisting(parseSourceTruthWorkbook(book.rows(book.names[0])), people);
       setImportStage('Matching outlet rows');
       await new Promise((resolve) => setTimeout(resolve, 0));
@@ -887,10 +932,19 @@ export default function OrgData({ data }) {
       } catch (error) {
         postImportNote = ` Outlet access was saved, but inventory linking/stock reconciliation needs a retry: ${friendly(error)}`;
       }
+      if (outletSearchRows) {
+        try {
+          const searchImport = await importUpOutletSearch(outletSearchRows, setImportStage);
+          const exactDuplicateRows = outletSearchRows.filter((row) => row.duplicate_occurrence > 1).length;
+          outletSearchNote = ` UP Outlet Search published ${searchImport.rows} rows (${exactDuplicateRows} exact duplicate source rows preserved).`;
+        } catch (error) {
+          outletSearchNote = ` UP Outlet Search was not published; the previously active directory remains available. ${friendly(error)}`;
+        }
+      }
       const matchedCount = resolvedOutlets.filter((r) => r.outlet_id).length;
       const dataQualityCount = parsed.warnings.length + outletMasterErrors.length + unresolvedPromoterRows.length + unresolvedStaffRows.length
         + accessTotals.missing_people + accessTotals.invalid_outlets;
-      setNotice(`Imported ${result.master_rows} employee records and ${result.inventory_rows || 0} inventory records${result.inventory_already_imported ? ' (opening inventory for this run key was already applied)' : ''}. Created ${createdOutlets} outlet master records; matched ${matchedCount} of ${sourceOutletRows.length} outlet rows, including ${fuzzyCount} fuzzy matches. Kept every source outlet row and flagged ${deduped.duplicateCount} possible duplicate rows. Promoter access: ${accessTotals.assignments} assignments; TSE/MER access: ${accessTotals.staff_assignments} assignments. ${dataQualityCount} data-quality items need review (${accessTotals.missing_people} missing employee keys, ${accessTotals.invalid_outlets} rejected outlet IDs).${postImportNote}`);
+      setNotice(`Imported ${result.master_rows} employee records and ${result.inventory_rows || 0} inventory records${result.inventory_already_imported ? ' (opening inventory for this run key was already applied)' : ''}. Created ${createdOutlets} outlet master records; matched ${matchedCount} of ${sourceOutletRows.length} outlet rows, including ${fuzzyCount} fuzzy matches. Kept every source outlet row and flagged ${deduped.duplicateCount} possible duplicate rows. Promoter access: ${accessTotals.assignments} assignments; TSE/MER access: ${accessTotals.staff_assignments} assignments. ${dataQualityCount} data-quality items need review (${accessTotals.missing_people} missing employee keys, ${accessTotals.invalid_outlets} rejected outlet IDs).${postImportNote}${outletSearchNote}`);
       setImportStage('Import complete');
     } catch (e) { setErr(friendly(e)); }
     finally { setBusy(false); setImportStage(''); }
@@ -997,7 +1051,7 @@ export default function OrgData({ data }) {
         { key: 'adjust', label: 'Adjust', noExport: true, render: (s) => <StockAdjust row={s} save={adjustOrgStock} /> },
       ]} />}
     </Panel>}
-    {tab === 'import' && <Panel title="Import Rio source-of-truth workbook"><p>Upload the single-sheet <b>Master Data</b> workbook. It contains employee, beat, outlet, and inventory rows; employee keys connect them. Outlet names are matched within the same state and route, with a best fuzzy match from 50% similarity when available. Every source outlet row is retained; exact and 90%+ similar assignments are flagged for review without being removed.</p>
+    {tab === 'import' && <Panel title="Import Rio source-of-truth workbook"><p>Upload the workbook with its existing <b>Master Data</b> sheet and optional <b>UP Outlet Search</b> sheet. Master Data continues through the current employee, outlet, access, and inventory import. UP Outlet Search is staged and published separately as a reference directory; it does not create operational outlets or grant access.</p>
       <div className="s-form"><Field label="Rio source-of-truth workbook"><input type="file" accept=".xlsx" onChange={(e) => setFiles({ source: e.target.files?.[0] || null })} /></Field>
         <Field label="Promoter outlet access"><select value={outletMode} onChange={(e) => setOutletMode(e.target.value)}><option value="">Choose access behavior</option><option value="workbook_exact">Use workbook list as exact access</option><option value="workbook_additive">Add workbook outlets to existing access</option></select></Field>
         <Field label="Import run key" hint="Keep the same key when retrying this workbook. Use a new key only for a distinct initial inventory snapshot; existing prize balances are not overwritten on repeat imports."><input value={runKey} onChange={(e) => setRunKey(e.target.value)} /></Field>

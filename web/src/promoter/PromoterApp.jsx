@@ -117,14 +117,28 @@ export default function PromoterApp({ profile, onLogout }) {
 
   async function selectOutlet(outlet) {
     try {
-      const res = await rpc('set_work_context', { p_outlet_id: outlet.id, p_device_ref: deviceRef() }, { retries: 2 });
+      const workContextArgs = { p_outlet_id: outlet.id, p_device_ref: deviceRef() };
+      let res;
+      try {
+        res = await rpc('set_work_context_with_search', {
+          ...workContextArgs, p_directory_record_id: outlet.directory_record_id || null,
+        }, { retries: 2 });
+      } catch (error) {
+        // Keep ordinary outlet selection usable while a deployment's database
+        // migration is pending. Enriched records must never silently lose audit data.
+        if (outlet.directory_record_id || !['PGRST202', '42883'].includes(error.code)) throw error;
+        res = await rpc('set_work_context', workContextArgs, { retries: 2 });
+      }
       const picked = res.outlet;
       const next = {
         stateId: picked.state_id, stateName: picked.state_name,
         territoryId: picked.territory_id, territoryName: picked.territory_name,
         tseId: picked.tse_id, tseName: picked.tse_name,
         outletId: picked.outlet_id, outletName: picked.outlet_name, outletCode: picked.outlet_code,
-        outletArea: picked.area, outletCity: picked.city, campaign: res.campaign || null,
+        outletArea: picked.area, outletCity: picked.city,
+        outletDirectoryRecordId: outlet.directory_record_id || null,
+        outletLicenseNo: outlet.license_no || null, outletAddress: outlet.address || null,
+        campaign: res.campaign || null,
       };
       saveCtx(uid, next); setCtx(next); pushRecent(uid, picked.outlet_id);
       setView('home');
