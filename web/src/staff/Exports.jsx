@@ -27,8 +27,8 @@ export default function Exports({ data, filters, setFilters }) {
         .map((m) => ({ date_time: m.created_at, promoter: users[m.promoter_id], prize: prizes[m.prize_id], type: m.movement_type, qty: m.qty,
           stock_after: m.on_hand_after, issued_by: m.performed_by, reference: m.reference, note: m.note })) },
     { key: 'outlet_master', label: 'Outlet master', run: async () => data.outletsFull.map((o) => {
-        const t = data.masters.tses.find((x) => x.id === o.tse_id); const tr = data.masters.territories.find((x) => x.id === t?.territory_id);
-        return { state: data.masters.states.find((s) => s.id === tr?.state_id)?.name, territory: tr?.name, tse_code: t?.code, tse_name: t?.name,
+        const t = data.masters.tses.find((x) => x.id === o.tse_id); const tr = data.masters.territories.find((x) => x.id === (o.territory_id || t?.territory_id));
+        return { state: data.masters.states.find((s) => s.id === (o.state_id || tr?.state_id))?.name, territory: tr?.name, tse_code: t?.code, tse_name: t?.name,
           outlet_code: o.outlet_code, outlet_name: o.name, area: o.area, city: o.city, distributor: o.distributor, status: o.status };
       }) },
   ];

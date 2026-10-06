@@ -39,8 +39,8 @@ export default function Masters({ data, reloadData }) {
         { key: 'mobile', label: 'Mobile' }, status, { key: 'external_ref', label: 'External ref (FieldAssist ID)' }],
       columns: [{ key: 'code', label: 'TSE Code' }, { key: 'name', label: 'TSE Name' }, { key: 'territory', label: 'Territory' }, { key: 'mobile', label: 'Mobile' }] },
     outlets: { table: 'outlets', rows: data.outletsFull.map((o) => {
-        const t = A.tses.find((x) => x.id === o.tse_id); const tr = A.territories.find((x) => x.id === t?.territory_id);
-        return { ...o, tse_code: t?.code, tse_name: t?.name, territory: tr?.name, state: A.states.find((s) => s.id === tr?.state_id)?.name };
+        const t = A.tses.find((x) => x.id === o.tse_id); const tr = A.territories.find((x) => x.id === (o.territory_id || t?.territory_id));
+        return { ...o, tse_code: t?.code, tse_name: t?.name, territory: tr?.name, state: A.states.find((s) => s.id === (o.state_id || tr?.state_id))?.name };
       }),
       fields: [{ key: 'tse_id', label: 'Mapped TSE', type: 'select', options: tseOpts }, { key: 'outlet_code', label: 'Outlet code' }, { key: 'name', label: 'Outlet name' },
         { key: 'area', label: 'Area' }, { key: 'beat', label: 'Beat' }, { key: 'city', label: 'City' }, { key: 'distributor', label: 'Distributor' }, status, { key: 'external_ref', label: 'External ref' }],

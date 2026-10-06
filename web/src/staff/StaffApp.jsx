@@ -83,7 +83,7 @@ export default function StaffApp({ profile, onLogout }) {
     let cancelled = false;
     Promise.all([
       selectAll('tses', 'id,code,name,territory_id', (q) => q.eq('status', 'active').order('name')),
-      selectAll('outlets', 'id,outlet_code,name,area,city,beat,distributor,tse_id,status,source,external_ref', (q) => q.order('name')),
+      selectAll('outlets', 'id,outlet_code,name,area,city,beat,distributor,tse_id,state_id,territory_id,status,source,external_ref', (q) => q.order('name')),
     ]).then(([tses, outlets]) => {
       if (cancelled) return;
       setData((previous) => previous && ({

@@ -17,7 +17,9 @@ export default function FilterBar({ data, filters, setFilters, show = 'all' }) {
   const tses = useMemo(() => m.tses.filter((t) => (!f.territory_id || t.territory_id === f.territory_id)
     && (!f.state_id || territories.some((x) => x.id === t.territory_id))), [m, f.territory_id, f.state_id, territories]);
   const outlets = useMemo(() => m.outlets.filter((o) => (!f.tse_id || o.tse_id === f.tse_id)
-    && (f.tse_id || !f.territory_id || tses.some((t) => t.id === o.tse_id))), [m, f.tse_id, f.territory_id, tses]);
+    && (!f.territory_id || (o.territory_id ? o.territory_id === f.territory_id : tses.some((t) => t.id === o.tse_id)))
+    && (!f.state_id || (o.state_id ? o.state_id === f.state_id : territories.some((x) => x.id === (o.territory_id || tses.find((t) => t.id === o.tse_id)?.territory_id))))),
+  [m, f.tse_id, f.territory_id, f.state_id, tses, territories]);
   const cities = useMemo(() => [...new Set(m.outlets.map((o) => o.city).filter(Boolean))].sort(), [m]);
   const distributors = useMemo(() => [...new Set((data.outletsFull || []).map((o) => o.distributor).filter(Boolean))].sort(), [data]);
 
