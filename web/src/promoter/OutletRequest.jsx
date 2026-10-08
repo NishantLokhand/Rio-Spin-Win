@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { rpc, friendly } from '../lib/api.js';
 
-export default function OutletRequest({ masters, ctx, onDone }) {
-  const [f, setF] = useState({ name: '', area: '', city: ctx?.outletCity || '', ref: '', tse: ctx?.tseId || '', note: '' });
+export default function OutletRequest({ ctx, onDone }) {
+  const [f, setF] = useState({ name: '', area: '', city: ctx?.outletCity || '', ref: '', note: '' });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
@@ -13,7 +13,7 @@ export default function OutletRequest({ masters, ctx, onDone }) {
     setBusy(true); setErr('');
     try {
       await rpc('submit_outlet_request', { p_name: f.name, p_area: f.area, p_city: f.city, p_ref_code: f.ref || null,
-        p_suggested_tse: f.tse || null, p_note: f.note || null }, { retries: 2 });
+        p_suggested_tse: null, p_note: f.note || null }, { retries: 2 });
       onDone(true);
     } catch (e2) { setErr(friendly(e2)); } finally { setBusy(false); }
   }
@@ -27,12 +27,6 @@ export default function OutletRequest({ masters, ctx, onDone }) {
         <label>Area / locality *<input value={f.area} onChange={set('area')} /></label>
         <label>City<input value={f.city} onChange={set('city')} /></label>
         <label>Outlet code / reference (optional)<input value={f.ref} onChange={set('ref')} /></label>
-        <label>Suggested mapped TSE
-          <select value={f.tse} onChange={set('tse')}>
-            <option value="">— Not sure —</option>
-            {masters.tses.map((t) => <option key={t.id} value={t.id}>{t.name} ({t.code})</option>)}
-          </select>
-        </label>
         <label>Note<input value={f.note} onChange={set('note')} /></label>
         {err && <div className="err">{err}</div>}
         <button className="btn-primary big" disabled={busy}>{busy ? 'Sending…' : 'SUBMIT FOR APPROVAL'}</button>
