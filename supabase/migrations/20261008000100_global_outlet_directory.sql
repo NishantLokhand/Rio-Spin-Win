@@ -289,7 +289,7 @@ begin
         case when position(v_license in coalesce(d.normalized_license_no,''))>0 then 0.75 else 0.0 end,
         extensions.similarity(d.normalized_license_no,v_license)) end license_score
     from public.outlets o
-    left join lateral (select m.id,m.license_no,m.address,m.normalized_license_no from public.outlet_search_master m
+    left join lateral (select m.id,m.license_no,m.address,m.normalized_license_no,m.area,m.route,m.state_code from public.outlet_search_master m
       where m.is_active and m.operational_outlet_id=o.id order by m.imported_at desc,m.id limit 1) d on true
     where o.status='active'
       and (v_name is null or public.normalize_outlet_search_text(o.name)=v_name
