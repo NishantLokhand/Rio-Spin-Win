@@ -62,6 +62,8 @@
 .crumbs .link { color: #8B5B0A; }
 .search { width: 100%; padding: 16px; border-radius: 16px; border: 0; font-size: 18px; margin-bottom: 12px; }
 .outlet-search-fields { display: grid; gap: 2px; }
+.outlet-search-hint { color: #786441; padding: 10px 4px; margin: 0; }
+.match-group { list-style: none; color: #786441; font-size: 12px; font-weight: 900; letter-spacing: .04em; padding: 12px 4px 2px; }
 .outlet-search-fallback { margin: 0 2px 10px; color: #8C202D; font-size: 13px; font-weight: 700; }
 .list-h { font-size: 12px; font-weight: 800; letter-spacing: 1px; opacity: .7; margin: 12px 4px 6px; }
 .pick-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
