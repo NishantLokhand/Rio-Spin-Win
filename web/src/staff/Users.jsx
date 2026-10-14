@@ -61,7 +61,7 @@ export default function Users({ data, reloadData }) {
 
 function UserModal({ u, data, sups, onClose }) {
   const isNew = !u.id;
-  const [f, setF] = useState({ ...u });
+  const [f, setF] = useState({ ...u, market: u.org_profile?.market_override ?? u.org_profile?.market_raw ?? '', area: u.org_profile?.area_override ?? u.org_profile?.area_raw ?? '' });
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const people = useAsync(() => f.role === 'promoter' ? selectAll('org_people', '*', (q) => q.order('employee_name')) : Promise.resolve([]), []);
@@ -91,6 +91,21 @@ function UserModal({ u, data, sups, onClose }) {
           const { error: e2 } = await supabase.from('promoters').update({ promoter_code: f.promoter_code, promoter_type: f.promoter_type,
             agency_name: f.agency_name || null, supervisor_id: f.supervisor_id || null, home_state_id: f.home_state_id || null }).eq('user_id', u.id);
           if (e2) throw e2;
+          if (u.org_profile) {
+            const patch = {};
+            for (const field of ['market', 'area']) {
+              const value = String(f[field] || '').trim().replace(/\s+/g, ' ');
+              const original = u.org_profile[`${field}_override`] ?? u.org_profile[`${field}_raw`] ?? '';
+              if (value !== original) patch[`${field}_override`] = value;
+            }
+            if (Object.keys(patch).length) {
+              const { data: updated, error: orgError } = await supabase.from('org_people')
+                .update({ ...patch, updated_at: new Date().toISOString() })
+                .eq('id', u.org_profile.id).eq('auth_user_id', u.id).select('id');
+              if (orgError) throw orgError;
+              if (!updated?.length) throw new Error('The organizational link has changed. Close this form, refresh Users and try again.');
+            }
+          }
         }
       }
       onClose(true);
@@ -117,7 +132,7 @@ function UserModal({ u, data, sups, onClose }) {
         {isNew && <Field label="Login ID" hint="Mobile number (promoters) or username. Cannot be changed later."><input value={f.login_id || ''} onChange={set('login_id')} /></Field>}
         {isNew && <Field label="PIN / password" hint="At least 6 characters. Share it privately."><input type="password" autoComplete="new-password" value={f.pin || ''} onChange={set('pin')} /></Field>}
         {(!isNew || f.role !== 'promoter') && <Field label="Mobile"><input value={f.mobile || ''} onChange={set('mobile')} /></Field>}
-        {f.role === 'promoter' && <details open={isNew ? undefined : true}><summary>Optional details — state, supervisor and employee code</summary>
+        {f.role === 'promoter' && <details open={isNew ? undefined : true}><summary>Optional details — market, area, state and supervisor</summary>
           <Field label="Mobile (if different from login)"><input value={f.mobile || ''} onChange={set('mobile')} /></Field>
           <div className="s-grid2">
             <Field label="Employee code" hint="Optional for new users; generated automatically if blank."><input value={f.promoter_code || ''} onChange={set('promoter_code')} /></Field>
@@ -130,11 +145,12 @@ function UserModal({ u, data, sups, onClose }) {
             <Field label="Home state"><select value={f.home_state_id || ''} onChange={set('home_state_id')}>
               <option value="">—</option>{data.masters.states.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></Field>
           </div>
-        {isNew && f.role === 'promoter' && !f.person_id && <div className="s-grid2">
+        {((isNew && !f.person_id) || (!isNew && u.org_profile)) && <div className="s-grid2">
           <Field label="Market (optional)"><input value={f.market || ''} onChange={set('market')} /></Field>
           <Field label="Area (optional)"><input value={f.area || ''} onChange={set('area')} /></Field>
-          <Field label="Beat (optional)"><input value={f.beat || ''} onChange={set('beat')} /></Field>
+          {isNew && <Field label="Beat (optional)"><input value={f.beat || ''} onChange={set('beat')} /></Field>}
         </div>}
+        {!isNew && !u.org_profile && <p className="muted">Link this user to an organizational record in Organization & Inventory to edit Market and Area.</p>}
         </details>}
         {f.role === 'supervisor' && <label className="check"><input type="checkbox" checked={!!f.can_approve_outlets} onChange={set('can_approve_outlets')} /> Authorised to approve new outlets</label>}
         {f.role === 'admin' && <label className="check"><input type="checkbox" checked={!!f.can_override_cost_target} onChange={set('can_override_cost_target')} /> Authorised to override the cost-per-spin target</label>}
