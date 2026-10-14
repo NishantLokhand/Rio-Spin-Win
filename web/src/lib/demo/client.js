@@ -9,7 +9,7 @@ const RPCS = new Set(['set_work_context', 'record_sale', 'record_basket_sale', '
   'submit_outlet_request', 'adjust_stock', 'issue_stock_kit', 'resolve_spin', 'review_outlet_request', 'review_flag', 'raise_flag', 'report_summary', 'prize_distribution_report',
   'dashboard_kpis', 'run_flag_scan', 'save_prize_config', 'pool_status', 'import_outlets', 'verify_audit_chain']);
 const MASTER = new Set(['states', 'territories', 'tses', 'outlets', 'products', 'prizes', 'campaigns', 'campaign_states', 'campaign_territory_budgets',
-  'campaign_products', 'campaign_promoters', 'app_users', 'promoters']);
+  'campaign_products', 'campaign_promoters', 'app_users', 'promoters', 'org_people']);
 const PROMOTER_SCOPED = { sales: 'promoter_id', spins: 'promoter_id', promoter_sessions: 'promoter_id', promoter_inventory: 'promoter_id',
   inventory_movements: 'promoter_id', outlet_requests: 'promoter_id', promoters: 'user_id' };
 
@@ -164,11 +164,24 @@ export function createDemoClient() {
             const login = String(body.login_id).trim().toLowerCase();
             if (db._auth.some((x) => x.email === login)) throw new Error('That login ID already exists');
             if (!body.pin || body.pin.length < 6) throw new Error('PIN must be at least 6 characters');
+            const org = body.organization || {}; const designation = org.designation || 'PROMOTER';
+            const mobile = body.mobile || login;
+            const person = org.person_id ? db.org_people.find((p) => p.id === org.person_id) : null;
+            if (body.role === 'promoter') {
+              if (!['PROMOTER','TSE','MER'].includes(designation)) throw new Error('Invalid field role');
+              if (org.person_id && (!person || !person.active || person.auth_user_id || person.designation !== designation)) throw new Error('The selected employee is unavailable');
+              if (!person && db.org_people.some((p) => p.mobile === mobile)) throw new Error('Select the existing organizational record for this mobile');
+              if (body.promoter?.promoter_code && db.promoters.some((p) => p.promoter_code === body.promoter.promoter_code)) throw new Error('Employee code already exists');
+            }
             const id = crypto.randomUUID(); const ts = new Date().toISOString();
             db._auth.push({ id, email: login, password: body.pin });
-            db.app_users.push({ id, role: body.role, login_id: login, full_name: body.full_name, mobile: body.mobile, email: null, is_active: true,
+            db.app_users.push({ id, role: body.role, login_id: login, full_name: body.full_name, mobile: body.mobile || (body.role === 'promoter' ? login : null), email: null, is_active: true,
               can_approve_outlets: !!body.can_approve_outlets, can_override_cost_target: !!body.can_override_cost_target, created_at: ts, updated_at: ts });
-            if (body.role === 'promoter') db.promoters.push({ user_id: id, ...body.promoter, joined_on: null, notes: null, created_at: ts, updated_at: ts });
+            if (body.role === 'promoter') {
+              db.promoters.push({ user_id: id, ...body.promoter, promoter_code: body.promoter?.promoter_code || `${designation}-${id}`, joined_on: null, notes: null, created_at: ts, updated_at: ts });
+              if (person) person.auth_user_id = id;
+              else db.org_people.push({ id: crypto.randomUUID(), designation, employee_name: body.full_name, mobile, auth_user_id: id, active: true, state_raw: org.state, market_raw: org.market, area_raw: org.area, beat_values: org.beat ? [org.beat] : [] });
+            }
             E.audit('USER_CREATED', 'app_users', id, { role: body.role, login_id: login });
           } else if (body.action === 'reset_pin') {
             const a = db._auth.find((x) => x.id === body.user_id); if (!a) throw new Error('User not found'); a.password = String(body.pin);

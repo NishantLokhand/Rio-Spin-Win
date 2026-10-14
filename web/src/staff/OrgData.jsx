@@ -1076,7 +1076,7 @@ export default function OrgData({ data }) {
   }
   async function linkLogin(person, authUserId) {
     if (!authUserId || (person.auth_user_id && person.auth_user_id !== authUserId)) return;
-    try { await rpc('link_org_promoter', { p_person_id: person.id, p_user_id: authUserId }); await refresh(); setNotice('Promoter login linked. Initial snack allocation was seeded only if the account had no existing balance.'); }
+    try { await rpc('link_org_promoter', { p_person_id: person.id, p_user_id: authUserId }); await refresh(); setNotice('Field login linked. Initial snack allocation was seeded only if the account had no existing balance.'); }
     catch (e) { setErr(friendly(e)); }
   }
   async function toggleActive(person) {
@@ -1128,7 +1128,7 @@ export default function OrgData({ data }) {
         { key: 'area_override', label: 'Manual area', render: (p) => <InlineEdit value={p.area_override} placeholder={p.area_raw || 'Add override'} save={(v) => saveOverride(p,'area_override',v)} /> },
         { key: 'beat_override', label: 'Manual beats', render: (p) => <InlineEdit value={(p.beat_override || []).join(', ')} placeholder={(p.beat_values || []).join(', ') || 'Add override'} save={(v) => saveOverride(p,'beat_override',v)} /> },
         { key: 'linked', label: 'Login' },
-        { key: 'auth_user_id', label: 'Link promoter login', render: (p) => p.designation !== 'PROMOTER' ? '—' : <select aria-label={`Login for ${p.employee_name}`} value={p.auth_user_id || ''} disabled={!!p.auth_user_id} onChange={(e) => linkLogin(p, e.target.value)}><option value="">No login linked</option>{users.filter((u) => !(people || []).some((x) => x.auth_user_id === u.id && x.id !== p.id)).map((u) => <option key={u.id} value={u.id}>{u.full_name} · {u.login_id}</option>)}</select> },
+        { key: 'auth_user_id', label: 'Link field login', render: (p) => !['PROMOTER', 'MER', 'TSE'].includes(p.designation) ? '—' : <select aria-label={`Login for ${p.employee_name}`} value={p.auth_user_id || ''} disabled={!!p.auth_user_id} onChange={(e) => linkLogin(p, e.target.value)}><option value="">No login linked</option>{users.filter((u) => !(people || []).some((x) => x.auth_user_id === u.id && x.id !== p.id)).map((u) => <option key={u.id} value={u.id}>{u.full_name} · {u.login_id}</option>)}</select> },
         { key: 'assignment_status', label: 'Assignment status' },
         { key: 'mapped_tse_id', label: 'Mapped TSE', render: (p) => p.designation !== 'PROMOTER' ? '—' : <select aria-label={`TSE for ${p.employee_name}`} value={p.mapped_tse_id || ''} onChange={(e) => saveAssignment(p, 'mapped_tse_id', e.target.value)}><option value="">None</option>{(people || []).filter((x) => x.designation === 'TSE').map((x) => <option key={x.id} value={x.id}>{x.employee_name}</option>)}</select> },
         { key: 'mapped_mer_ids', label: 'Mapped MERs', noExport: true, render: (p) => p.designation !== 'PROMOTER' ? '—' : <MerMapping person={p} relations={merAssignments.filter((a) => a.promoter_id === p.id)} mers={(people || []).filter((x) => x.designation === 'MER' && x.active)} save={setMers} busy={busy} /> },

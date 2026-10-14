@@ -18,6 +18,7 @@ export class Engine {
   load() {
     try { this.db = JSON.parse(localStorage.getItem(KEY)); } catch { this.db = null; }
     if (!this.db || !this.db.states) { this.db = seedDb(); this.save(); this.generateHistory(); }
+    if (!this.db.org_people) this.db.org_people = this.db.app_users.filter((u) => u.role === 'promoter').map((u) => ({ id: `org-${u.id}`, designation: 'PROMOTER', employee_name: u.full_name, mobile: u.mobile, auth_user_id: u.id, active: true }));
     if (!this.db.sale_items) this.db.sale_items = [];
   }
   save() { try { localStorage.setItem(KEY, JSON.stringify(this.db)); } catch { /* quota */ } }

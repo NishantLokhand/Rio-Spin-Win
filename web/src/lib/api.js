@@ -7,7 +7,7 @@ const MESSAGES = {
   PENDING_HANDOVER: 'Hand over the previous prize first.',
   OUTLET_NOT_ACTIVE: 'This outlet is not active in the outlet master.',
   OUTLET_NOT_ASSIGNED: 'This outlet is not assigned to your login. Ask an administrator to assign it in Organization & Inventory → Outlet access.',
-  ORG_PROFILE_MISSING: 'Your login is not linked to an organizational promoter record. Ask an administrator to import or create your real promoter record, link your existing login, and assign an outlet.',
+  ORG_PROFILE_MISSING: 'Your login is not linked to an active organizational field profile. Ask an administrator to link your existing login to your PROMOTER, TSE or MER record in Organization & Inventory → People & assignments.',
   NO_ACTIVE_CAMPAIGN: 'No active campaign covers this outlet.',
   PRODUCT_NOT_ALLOWED: 'This SKU is not part of the campaign.',
   INVALID_QUANTITY: 'Invalid quantity.',

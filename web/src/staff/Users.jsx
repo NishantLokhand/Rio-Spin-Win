@@ -20,8 +20,8 @@ export default function Users({ data, reloadData }) {
   const [pin, setPin] = useState(null);
   const [err, setErr] = useState('');
   const us = useAsync(async () => {
-    const [users, promoters] = await Promise.all([selectAll('app_users', '*', (q) => q.order('full_name')), selectAll('promoters', '*')]);
-    return users.map((u) => ({ ...u, ...(promoters.find((p) => p.user_id === u.id) || {}) }));
+    const [users, promoters, people] = await Promise.all([selectAll('app_users', '*', (q) => q.order('full_name')), selectAll('promoters', '*'), selectAll('org_people', '*')]);
+    return users.map((u) => ({ ...u, ...(promoters.find((p) => p.user_id === u.id) || {}), org_profile: people.find((p) => p.auth_user_id === u.id) }));
   }, []);
   if (!us.data) return <div className="s-page"><Loading state={us} /></div>;
   const sups = us.data.filter((u) => u.role === 'supervisor');
@@ -35,12 +35,12 @@ export default function Users({ data, reloadData }) {
 
   return (
     <div className="s-page">
-      <Tabs value={role} onChange={setRole} tabs={[{ key: 'promoter', label: 'Promoters' }, { key: 'supervisor', label: 'Supervisors' }, { key: 'admin', label: 'Admins' }]} />
+      <Tabs value={role} onChange={setRole} tabs={[{ key: 'promoter', label: 'Field team' }, { key: 'supervisor', label: 'Supervisors' }, { key: 'admin', label: 'Admins' }]} />
       {err && <div className="s-err">{err}</div>}
-      <Panel title={`${role[0].toUpperCase() + role.slice(1)}s`} actions={<button className="s-btn sm" onClick={() => setEdit({ role, is_active: true, promoter_type: 'permanent' })}>+ Create {role}</button>}>
+      <Panel title={role === 'promoter' ? 'Field team — Promoters, TSEs & MERs' : `${role[0].toUpperCase() + role.slice(1)}s`} actions={<button className="s-btn sm" onClick={() => setEdit({ role, is_active: true, promoter_type: 'permanent', designation: 'PROMOTER' })}>+ Create {role === 'promoter' ? 'field user' : role}</button>}>
         <DataTable rows={us.data.filter((u) => u.role === role).map((u) => ({ ...u, supervisor: supName(u.supervisor_id) }))} exportName={`${role}s`} columns={[
           { key: 'full_name', label: 'Name' }, { key: 'login_id', label: 'Login (mobile / username)' }, { key: 'mobile', label: 'Mobile' },
-          ...(role === 'promoter' ? [{ key: 'promoter_code', label: 'Promoter ID' }, { key: 'promoter_type', label: 'Type' },
+          ...(role === 'promoter' ? [{ key: 'designation', label: 'Field role', render: (u) => u.org_profile?.designation || 'Not linked' }, { key: 'org_link', label: 'Organization', render: (u) => <Badge tone={u.org_profile?.active ? 'green' : 'red'}>{u.org_profile?.active ? 'Linked' : 'Needs linking'}</Badge> }, { key: 'promoter_code', label: 'Promoter ID' }, { key: 'promoter_type', label: 'Type' },
             { key: 'agency_name', label: 'Agency' }, { key: 'supervisor', label: 'Supervisor' }] : []),
           ...(role === 'supervisor' ? [{ key: 'can_approve_outlets', label: 'Approves outlets', fmt: (v) => (v ? 'Yes' : 'No') }] : []),
           ...(role === 'admin' ? [{ key: 'can_override_cost_target', label: 'Can override cost target', fmt: (v) => (v ? 'Yes' : 'No') }] : []),
@@ -64,6 +64,12 @@ function UserModal({ u, data, sups, onClose }) {
   const [f, setF] = useState({ ...u });
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
+  const people = useAsync(() => f.role === 'promoter' ? selectAll('org_people', '*', (q) => q.order('employee_name')) : Promise.resolve([]), []);
+  const available = (people.data || []).filter((p) => p.active && !p.auth_user_id && ['PROMOTER', 'TSE', 'MER'].includes(p.designation));
+  function choosePerson(e) {
+    const person = available.find((p) => p.id === e.target.value);
+    setF({ ...f, person_id: person?.id || '', ...(person ? { full_name: person.employee_name, mobile: person.mobile || '', login_id: person.mobile || f.login_id, designation: person.designation } : {}) });
+  }
   const set = (k) => (e) => setF({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value });
 
   async function save() {
@@ -74,7 +80,9 @@ function UserModal({ u, data, sups, onClose }) {
         await adminCall({ action: 'create', role: f.role, login_id: f.login_id, pin: f.pin, full_name: f.full_name, mobile: f.mobile || null,
           can_approve_outlets: !!f.can_approve_outlets, can_override_cost_target: !!f.can_override_cost_target,
           promoter: f.role === 'promoter' ? { promoter_code: f.promoter_code, promoter_type: f.promoter_type, agency_name: f.agency_name || null,
-            supervisor_id: f.supervisor_id || null, home_state_id: f.home_state_id || null } : null });
+            supervisor_id: f.supervisor_id || null, home_state_id: f.home_state_id || null } : null,
+          organization: f.role === 'promoter' ? { person_id: f.person_id || null, designation: f.designation || 'PROMOTER',
+            state: data.masters.states.find((s) => s.id === f.home_state_id)?.name || null, market: f.market || null, area: f.area || null, beat: f.beat || null } : null });
       } else {
         const { error } = await supabase.from('app_users').update({ full_name: f.full_name, mobile: f.mobile || null,
           can_approve_outlets: !!f.can_approve_outlets, can_override_cost_target: !!f.can_override_cost_target }).eq('id', u.id);
@@ -90,15 +98,29 @@ function UserModal({ u, data, sups, onClose }) {
   }
 
   return (
-    <Modal title={isNew ? `Create ${f.role}` : `Edit ${u.full_name}`} onClose={() => onClose(false)}>
+    <Modal title={isNew ? f.role === 'promoter' ? 'Add field team member' : `Create ${f.role}` : `Edit ${u.full_name}`} onClose={() => onClose(false)}>
       <div className="s-form">
+        {isNew && f.role === 'promoter' && <>
+          <p className="muted">Create a login and linked organizational profile together. The user can select active outlets immediately; prize stock is managed separately.</p>
+          <Field label="Organizational record" hint="Select an imported employee, or create their record here.">
+            <select value={f.person_id || ''} onChange={choosePerson} disabled={people.loading || !!people.error}>
+              <option value="">Create new organizational record</option>
+              {available.map((p) => <option key={p.id} value={p.id}>{p.employee_name} · {p.designation} · {p.mobile || p.state_raw || 'No mobile'}</option>)}
+            </select>
+          </Field>
+          {people.error && <div className="s-err">Could not load organizational records. <button className="s-btn ghost sm" onClick={people.reload}>Retry</button></div>}
+          <Field label="Field role"><select value={f.designation || 'PROMOTER'} onChange={set('designation')} disabled={!!f.person_id}>
+            <option value="PROMOTER">Promoter</option><option value="TSE">TSE</option><option value="MER">MER</option>
+          </select></Field>
+        </>}
         <Field label="Full name"><input value={f.full_name || ''} onChange={set('full_name')} /></Field>
         {isNew && <Field label="Login ID" hint="Mobile number (promoters) or username. Cannot be changed later."><input value={f.login_id || ''} onChange={set('login_id')} /></Field>}
-        {isNew && <Field label="PIN / password" hint="At least 6 characters. Share it privately."><input value={f.pin || ''} onChange={set('pin')} /></Field>}
-        <Field label="Mobile"><input value={f.mobile || ''} onChange={set('mobile')} /></Field>
-        {f.role === 'promoter' && <>
+        {isNew && <Field label="PIN / password" hint="At least 6 characters. Share it privately."><input type="password" autoComplete="new-password" value={f.pin || ''} onChange={set('pin')} /></Field>}
+        {(!isNew || f.role !== 'promoter') && <Field label="Mobile"><input value={f.mobile || ''} onChange={set('mobile')} /></Field>}
+        {f.role === 'promoter' && <details open={isNew ? undefined : true}><summary>Optional details — state, supervisor and employee code</summary>
+          <Field label="Mobile (if different from login)"><input value={f.mobile || ''} onChange={set('mobile')} /></Field>
           <div className="s-grid2">
-            <Field label="Promoter ID / code"><input value={f.promoter_code || ''} onChange={set('promoter_code')} /></Field>
+            <Field label="Employee code" hint="Optional for new users; generated automatically if blank."><input value={f.promoter_code || ''} onChange={set('promoter_code')} /></Field>
             <Field label="Promoter type"><select value={f.promoter_type || 'permanent'} onChange={set('promoter_type')}>
               <option value="permanent">Permanent</option><option value="temporary">Temporary</option>
               <option value="spot_selling">Spot-selling</option><option value="agency">Agency</option></select></Field>
@@ -108,12 +130,17 @@ function UserModal({ u, data, sups, onClose }) {
             <Field label="Home state"><select value={f.home_state_id || ''} onChange={set('home_state_id')}>
               <option value="">—</option>{data.masters.states.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></Field>
           </div>
-        </>}
+        {isNew && f.role === 'promoter' && !f.person_id && <div className="s-grid2">
+          <Field label="Market (optional)"><input value={f.market || ''} onChange={set('market')} /></Field>
+          <Field label="Area (optional)"><input value={f.area || ''} onChange={set('area')} /></Field>
+          <Field label="Beat (optional)"><input value={f.beat || ''} onChange={set('beat')} /></Field>
+        </div>}
+        </details>}
         {f.role === 'supervisor' && <label className="check"><input type="checkbox" checked={!!f.can_approve_outlets} onChange={set('can_approve_outlets')} /> Authorised to approve new outlets</label>}
         {f.role === 'admin' && <label className="check"><input type="checkbox" checked={!!f.can_override_cost_target} onChange={set('can_override_cost_target')} /> Authorised to override the cost-per-spin target</label>}
         {err && <div className="s-err">{err}</div>}
         <div className="s-actions"><button className="s-btn ghost" onClick={() => onClose(false)}>Cancel</button>
-          <button className="s-btn" disabled={busy} onClick={save}>{busy ? 'Saving…' : 'Save'}</button></div>
+          <button className="s-btn" disabled={busy || (isNew && f.role === 'promoter' && (people.loading || !!people.error))} onClick={save}>{busy ? 'Saving…' : isNew && f.role === 'promoter' ? 'Create linked user' : 'Save'}</button></div>
       </div>
     </Modal>
   );

@@ -38,7 +38,8 @@ Deno.serve(async (req) => {
       if (!['promoter', 'supervisor', 'admin'].includes(role)) return json({ error: 'Invalid role' }, 400);
       if (!login_id || !full_name) return json({ error: 'Login ID and name are required' }, 400);
       if (!pin || String(pin).length < 6) return json({ error: 'PIN must be at least 6 characters' }, 400);
-      if (role === 'promoter' && !body.promoter?.promoter_code) return json({ error: 'Promoter code is required' }, 400);
+      const designation = body.organization?.designation ?? 'PROMOTER';
+      if (role === 'promoter' && !['PROMOTER', 'TSE', 'MER'].includes(designation)) return json({ error: 'Invalid field role' }, 400);
 
       const { data: created, error } = await admin.auth.admin.createUser({
         email: loginEmail(login_id), password: String(pin), email_confirm: true,
@@ -47,19 +48,26 @@ Deno.serve(async (req) => {
       if (error) return json({ error: error.message.includes('already') ? 'That login ID already exists' : error.message }, 400);
       const id = created.user.id;
 
+      if (role === 'promoter') {
+        const { data: linked, error: linkError } = await admin.rpc('create_linked_field_user', {
+          p_actor: user.id, p_user_id: id, p_login: String(login_id).trim().toLowerCase(),
+          p_name: String(full_name).trim(), p_mobile: body.mobile ?? null,
+          p_promoter: body.promoter ?? {}, p_organization: body.organization ?? {},
+        });
+        if (linkError) {
+          const { error: cleanupError } = await admin.auth.admin.deleteUser(id);
+          return json({ error: cleanupError
+            ? `Setup failed: ${linkError.message}. Login cleanup failed; contact an administrator before retrying.`
+            : `User was not created: ${linkError.message}` }, 400);
+        }
+        return json(linked);
+      }
+
       const { error: e1 } = await admin.from('app_users').insert({
         id, role, login_id: String(login_id).trim().toLowerCase(), full_name, mobile: body.mobile ?? null,
         can_approve_outlets: !!body.can_approve_outlets, can_override_cost_target: !!body.can_override_cost_target,
       });
       if (e1) { await admin.auth.admin.deleteUser(id); return json({ error: e1.message }, 400); }
-      if (role === 'promoter') {
-        const p = body.promoter;
-        const { error: e2 } = await admin.from('promoters').insert({
-          user_id: id, promoter_code: p.promoter_code, promoter_type: p.promoter_type ?? 'permanent',
-          agency_name: p.agency_name ?? null, supervisor_id: p.supervisor_id ?? null, home_state_id: p.home_state_id ?? null,
-        });
-        if (e2) { await admin.from('app_users').delete().eq('id', id); await admin.auth.admin.deleteUser(id); return json({ error: e2.message }, 400); }
-      }
       await audit('USER_CREATED', id, { role, login_id, full_name });
       return json({ ok: true, id });
     }
