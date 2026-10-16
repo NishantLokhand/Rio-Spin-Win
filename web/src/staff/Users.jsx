@@ -68,13 +68,14 @@ function UserModal({ u, data, sups, onClose }) {
   const available = (people.data || []).filter((p) => p.active && !p.auth_user_id && ['PROMOTER', 'TSE', 'MER'].includes(p.designation));
   function choosePerson(e) {
     const person = available.find((p) => p.id === e.target.value);
-    setF({ ...f, person_id: person?.id || '', ...(person ? { full_name: person.employee_name, mobile: person.mobile || '', login_id: person.mobile || f.login_id, designation: person.designation } : {}) });
+    setF({ ...f, person_id: person?.id || '', ...(person ? { full_name: person.employee_name, mobile: person.mobile || '', login_id: person.mobile || f.login_id, designation: person.designation, home_state_id: data.masters.states.find((s) => s.name.toLowerCase() === (person.state_raw || '').toLowerCase() || s.code.toLowerCase() === (person.state_raw || '').toLowerCase() || (s.code === 'MH' && person.state_raw === 'MAHARASHTRA_ROM'))?.id || '' } : {}) });
   }
   const set = (k) => (e) => setF({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value });
 
   async function save() {
     setBusy(true); setErr('');
     try {
+      if (f.role === 'promoter' && !f.home_state_id && !(u.org_profile?.state_raw || (people.data || []).find((p) => p.id === f.person_id)?.state_raw)) throw new Error('Select a Home state: Maharashtra or Uttar Pradesh.');
       if (isNew) {
         if (!/^\S{6,}$/.test(f.pin || '')) throw new Error('PIN must be at least 6 characters');
         await adminCall({ action: 'create', role: f.role, login_id: f.login_id, pin: f.pin, full_name: f.full_name, mobile: f.mobile || null,
@@ -131,6 +132,8 @@ function UserModal({ u, data, sups, onClose }) {
         <Field label="Full name"><input value={f.full_name || ''} onChange={set('full_name')} /></Field>
         {isNew && <Field label="Login ID" hint="Mobile number (promoters) or username. Cannot be changed later."><input value={f.login_id || ''} onChange={set('login_id')} /></Field>}
         {isNew && <Field label="PIN / password" hint="At least 6 characters. Share it privately."><input type="password" autoComplete="new-password" value={f.pin || ''} onChange={set('pin')} /></Field>}
+        {f.role === 'promoter' && <Field label="Home state" hint="Required for outlet request approvals."><select value={f.home_state_id || ''} onChange={set('home_state_id')}>
+          <option value="">Select state</option>{data.masters.states.filter((s) => ['MH','UP'].includes(s.code)).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></Field>}
         {(!isNew || f.role !== 'promoter') && <Field label="Mobile"><input value={f.mobile || ''} onChange={set('mobile')} /></Field>}
         {f.role === 'promoter' && <details open={isNew ? undefined : true}><summary>Optional details — market, area, state and supervisor</summary>
           <Field label="Mobile (if different from login)"><input value={f.mobile || ''} onChange={set('mobile')} /></Field>

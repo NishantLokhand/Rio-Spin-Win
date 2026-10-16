@@ -50,6 +50,22 @@ for (const options of [{ designation: 'ASM' }, { actorId: randomUUID() }, { desi
   assert.equal((await db.query('select * from public.app_users where id=$1', [request.id])).rows.length, 0);
   assert.equal((await db.query('select * from public.org_people where auth_user_id=$1', [request.id])).rows.length, 0);
 }
+await db.exec('alter table public.states add column code text, add column name text');
+const mh = randomUUID(); const up = randomUUID();
+await db.query("insert into public.states values ($1,'MH','Maharashtra'),($2,'UP','Uttar Pradesh')", [mh,up]);
+const stateMigration = await read('20261016000100_consistent_field_user_states.sql');
+await db.exec(stateMigration.split('-- Outlet requests under global access')[0]);
+const stateUser = await create({ promoter: { home_state_id: mh } }); await stateUser.run();
+await db.query('update public.promoters set home_state_id=$1 where user_id=$2',[up,stateUser.id]);
+assert.equal((await db.query('select state_raw from public.org_people where auth_user_id=$1',[stateUser.id])).rows[0].state_raw,'Uttar Pradesh');
+const missing = randomUUID();
+await db.query('insert into auth.users values ($1)',[missing]);
+await db.query("insert into public.app_users(id,role,login_id,full_name) values ($1,'promoter','missing-state','Missing')",[missing]);
+await assert.rejects(() => db.query("insert into public.org_people(designation,employee_name,auth_user_id,source_key,source_system) values ('PROMOTER','Missing',$1,'missing','admin')",[missing]), /FIELD_STATE_REQUIRED/);
+await db.query("insert into public.promoters(user_id,promoter_code,home_state_id) values ($1,'missing-state',$2)",[missing,mh]);
+await db.query("insert into public.org_people(designation,employee_name,auth_user_id,source_key,source_system) values ('PROMOTER','Missing',$1,'missing','admin')",[missing]);
+assert.equal((await db.query('select state_raw from public.org_people where auth_user_id=$1',[missing])).rows[0].state_raw,'Maharashtra');
+console.log('PASS: state required on linking, source-state fallback and Home-state edit synchronization');
 await db.exec('set role authenticated');
 await assert.rejects(() => db.query('select public.create_linked_field_user($1,$2,$3,$4,$5,$6,$7)', [actor, randomUUID(), 'forbidden', 'Forbidden', null, {}, {}]), /permission denied/);
 await db.exec('reset role');
