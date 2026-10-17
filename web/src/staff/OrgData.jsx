@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase.js';
 import { rpc, selectAll, friendly } from '../lib/api.js';
+import { parseGlobalOutletWorkbook } from '../lib/globalOutletWorkbook.js';
 import { uuid } from '../lib/store.js';
 import { Panel, DataTable, Field, Badge, Tabs } from './ui.jsx';
 
@@ -41,45 +42,6 @@ function parseUpOutletSearch(rows) {
   });
 }
 
-function parseGlobalOutletWorkbook(rows) {
-  if (!rows?.length) throw new Error('The outlet workbook is empty.');
-  const header = rows[0].map((value) => norm(value).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim());
-  const find = (...labels) => header.findIndex((value) => labels.includes(value));
-  const stateCol = find('state', 'state code');
-  const nameCol = find('outlet name', 'outlet name ');
-  const routeCol = find('route', 'beat', 'route beat');
-  const areaCol = find('area', 'market area');
-  const licenseCol = find('licno', 'lic no', 'license no', 'license number', 'licence no', 'licence number');
-  const addressCol = find('address', 'outlet address');
-  if ([stateCol, nameCol, routeCol, areaCol, licenseCol].some((index) => index < 0)) {
-    throw new Error('The first sheet must have State, Outlet NAME, ROUTE, AREA, and LICNO columns.');
-  }
-  const occurrences = new Map();
-  const parsed = [];
-  rows.slice(1).forEach((row, index) => {
-    const stateRaw = norm(row[stateCol]).toUpperCase().replace(/[^A-Z]/g, '');
-    const stateCode = ['UP', 'UTTARPRADESH'].includes(stateRaw) ? 'UP'
-      : ['MH', 'MAHARASHTRA'].includes(stateRaw) ? 'MH' : '';
-    const outletName = norm(row[nameCol]);
-    const route = norm(row[routeCol]);
-    const area = norm(row[areaCol]);
-    const rawLicense = norm(row[licenseCol]);
-    const licenseNo = rawLicense;
-    const address = addressCol < 0 ? '' : norm(row[addressCol]);
-    if (!stateCode || !outletName) {
-      if ([stateRaw, outletName, route, area, rawLicense].some(Boolean)) {
-        throw new Error(`Row ${index + 2} needs a valid UP/MH state and outlet name.`);
-      }
-      return;
-    }
-    const identity = [stateCode, outletName, route, area, licenseNo, address].map((value) => value.normalize('NFKC').trim().replace(/\s+/g, ' ').toLocaleLowerCase('en')).join('\u001f');
-    const duplicateOccurrence = (occurrences.get(identity) || 0) + 1;
-    occurrences.set(identity, duplicateOccurrence);
-    parsed.push({ state_code: stateCode, outlet_name: outletName, route, area, license_no: licenseNo, address, duplicate_occurrence: duplicateOccurrence });
-  });
-  if (!parsed.length) throw new Error('No valid outlet rows were found.');
-  return parsed;
-}
 
 async function importGlobalOutlets(rows, setStage) {
   const importId = uuid();
@@ -834,6 +796,7 @@ export default function OrgData({ data }) {
   const [outletImportReport, setOutletImportReport] = useState(null);
   const [files, setFiles] = useState({ source: null });
   const [globalOutletFile, setGlobalOutletFile] = useState(null);
+  const [globalPreview, setGlobalPreview] = useState(null);
   const [runKey, setRunKey] = useState('rio-source-truth-2026-10-02-v1');
   const [outletMode, setOutletMode] = useState('');
   const [filters, setFilters] = useState({ designation: 'all', state: 'all', market: 'all', area: 'all', beat: 'all', tse: 'all', mer: 'all', assignment: 'all', inventory: 'all', active: 'all', q: '' });
@@ -1038,15 +1001,27 @@ export default function OrgData({ data }) {
     finally { setBusy(false); setImportStage(''); }
   }
 
+  async function previewGlobalOutletFile(file) {
+    setGlobalOutletFile(null); setGlobalPreview(null); setErr('');
+    if (!file) return;
+    setBusy(true);
+    try {
+      const book = await readWorkbook(file);
+      const rows = parseGlobalOutletWorkbook(book.formattedRows(book.names[0]));
+      setGlobalPreview(rows); setGlobalOutletFile(file);
+    } catch (error) { setErr(friendly(error)); }
+    finally { setBusy(false); }
+  }
+
   async function runGlobalOutletImport() {
     setBusy(true); setImportStage('Reading outlet workbook'); setErr(''); setNotice('');
     try {
       if (!globalOutletFile) throw new Error('Choose the combined UP and Maharashtra outlet workbook.');
-      const book = await readWorkbook(globalOutletFile);
-      const rows = parseGlobalOutletWorkbook(book.formattedRows(book.names[0]));
+      const rows = globalPreview;
+      if (!rows?.length) throw new Error('Choose and preview the workbook first.');
       const result = await importGlobalOutlets(rows, setImportStage);
-      setNotice(`Outlet import complete: ${Number(result.rows || rows.length).toLocaleString()} rows processed, ${Number(result.matched_outlets || 0).toLocaleString()} linked to existing outlets, ${Number(result.created_outlets || 0).toLocaleString()} new operational outlets created. Previous outlet-access rows remain inactive for audit, and recorded purchases and spins are unchanged.`);
-      setGlobalOutletFile(null);
+      setNotice(`Outlet import complete: ${Number(result.rows || rows.length).toLocaleString()} rows processed, ${Number(result.matched_outlets || 0).toLocaleString()} linked to existing outlets, ${Number(result.created_outlets || 0).toLocaleString()} new operational outlets created. MARKET values are saved as City. Missing historical sale cities are filled for matched outlets; existing sale cities and purchase/spin totals are preserved. Refresh the app to reload outlet filters.`);
+      setGlobalOutletFile(null); setGlobalPreview(null);
       setOutletImportReport(null);
     } catch (error) { setErr(friendly(error)); }
     finally { setBusy(false); setImportStage(''); }
@@ -1154,9 +1129,16 @@ export default function OrgData({ data }) {
       ]} />}
     </Panel>}
     {tab === 'import' && <>
-      <Panel title="Import global UP + Maharashtra outlets"><p>Use the new combined outlet workbook with <b>State, Outlet NAME, ROUTE, AREA, and LICNO</b>; an Address column is optional and retained when supplied. The database migration makes every active outlet available to all field users and disables old outlet-to-person assignments while retaining those rows as inactive history. Existing outlet IDs and all recorded purchases and spins are preserved. The import reuses an existing outlet only when state, name, area, and route identify exactly one record; unmatched rows receive a new outlet record with no TSE mapping. Address is not used for search.</p>
-        <div className="s-form"><Field label="Combined outlet workbook"><input type="file" accept=".xlsx" onChange={(e) => setGlobalOutletFile(e.target.files?.[0] || null)} /></Field>
-          <button className="s-btn" disabled={busy || !globalOutletFile} onClick={runGlobalOutletImport}>{busy ? `${importStage || 'Importing'}…` : 'Import global outlets'}</button>
+      <Panel title="Import global UP + Maharashtra outlets"><p>Upload your combined workbook with <b>State, Outlet NAME, ROUTE, AREA, LICNO, and MARKET</b>. <b>MARKET is imported as City</b>, using the workbook values exactly (for example ROM_AMRAVATI). AREA remains separate. City is also accepted as a column heading; Address is optional. Older files without MARKET keep existing city values. Existing outlet IDs, user access, purchases and spins are preserved. Missing historical sale cities are filled from matched outlets.</p>
+        <div className="s-form"><Field label="Combined outlet workbook"><input type="file" accept=".xlsx" disabled={busy} onChange={(e) => previewGlobalOutletFile(e.target.files?.[0] || null)} /></Field>
+          {globalPreview && <>
+            <p>{globalPreview.length.toLocaleString()} rows ready · {globalPreview.filter((r) => r.city).length.toLocaleString()} with MARKET / City. Blank or omitted cities retain existing outlet cities.</p>
+            <DataTable rows={globalPreview.slice(0, 5)} columns={[
+              { key: 'state_code', label: 'State' }, { key: 'outlet_name', label: 'Outlet' },
+              { key: 'area', label: 'Area' }, { key: 'city', label: 'MARKET → City' }, { key: 'route', label: 'Route' },
+            ]} />
+          </>}
+          <button className="s-btn" disabled={busy || !globalOutletFile || !globalPreview} onClick={runGlobalOutletImport}>{busy ? `${importStage || 'Importing'}…` : 'Import global outlets'}</button>
         </div>
       </Panel>
       <Panel title="Legacy: Import Rio source-of-truth workbook"><p><b>Do not use this legacy importer after enabling global outlet access.</b> It can restore outlet-to-user assignments, which conflicts with the new global outlet rule. The new outlet-only workbook belongs in the panel above. Existing user-to-user relationships remain managed separately under People &amp; assignments.</p>

@@ -25,7 +25,8 @@ export default function FilterBar({ data, filters, setFilters, show = 'all' }) {
   const areaOptions = useAsync(() => rpc('get_report_areas', { p_state_id: f.state_id || null }), [f.state_id]);
   const areas = areaOptions.data || [...new Set(outlets.map((o) => o.area).filter(Boolean))].sort();
   const areaOutlets = outlets.filter((o) => !f.area || o.area === f.area);
-  const cities = useMemo(() => [...new Set(m.outlets.map((o) => o.city).filter(Boolean))].sort(), [m]);
+  const cityOptions = useAsync(() => rpc('get_report_cities', { p_state_id: f.state_id || null, p_area: f.area || null }), [f.state_id, f.area]);
+  const cities = cityOptions.data || [...new Set(areaOutlets.map((o) => o.city).filter(Boolean))].sort();
   const distributors = useMemo(() => [...new Set((data.outletsFull || []).map((o) => o.distributor).filter(Boolean))].sort(), [data]);
 
   const preset = (from, to) => set({ date_from: from, date_to: to });
@@ -52,12 +53,13 @@ export default function FilterBar({ data, filters, setFilters, show = 'all' }) {
       {show === 'all' && (
         <div className="fb-dims">
           {sel('campaign_id', data.campaigns, 'Campaign')}
-          {sel('state_id', m.states, 'State', undefined, { territory_id: undefined, tse_id: undefined, area: undefined, outlet_id: undefined })}
+          {sel('state_id', m.states, 'State', undefined, { territory_id: undefined, tse_id: undefined, area: undefined, city: undefined, outlet_id: undefined })}
           {sel('territory_id', territories, 'Territory', undefined, { tse_id: undefined, outlet_id: undefined })}
           {sel('tse_id', tses, 'TSE', undefined, { outlet_id: undefined })}
-          {sel('area', areas, 'Area', (x) => x, { outlet_id: undefined })}
+          {sel('area', areas, 'Area', (x) => x, { city: undefined, outlet_id: undefined })}
           {areaOptions.error && <span className="muted">Area list unavailable: {areaOptions.error.message}</span>}
           {sel('city', cities, 'City', (x) => x)}
+          {cityOptions.error && <span className="muted">City list unavailable: {cityOptions.error.message}</span>}
           {distributors.length > 0 && sel('distributor', distributors, 'Distributor', (x) => x)}
           {sel('outlet_id', areaOutlets, 'Outlet')}
           {sel('promoter_id', data.promoters, 'Promoter', (x) => x.full_name)}
