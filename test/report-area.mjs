@@ -36,7 +36,12 @@ insert into spins values ('${admin}','${product}','Snack',5,'handed_over'),('${o
 insert into sale_items values ('${admin}','${product}');
 set test.actor='${admin}';`);
 await db.exec(await readFile(new URL('../supabase/migrations/20261017000100_report_area_filter.sql', import.meta.url), 'utf8'));
+await db.exec(await readFile(new URL('../supabase/migrations/20261017000200_promoter_report_cities.sql', import.meta.url), 'utf8'));
+await db.query("update sales set outlet_city=case when id=$1 then 'Amravati' else 'Mumbai' end, promoter_name='Test Promoter'",[admin]);
 const summary = async (group, filters = {}) => (await db.query('select report_summary($1,$2) as report', [group, filters])).rows[0].report;
+const promoterReport = await summary('promoter');
+assert.equal(promoterReport.find((r) => r.key === promoter).city, 'Amravati, Mumbai');
+assert.equal((await summary('promoter', { area: 'AMRAVATI AREA1' })).find((r) => r.key === promoter).city, 'Amravati');
 const area = await summary('area');
 assert.equal(area.find((r) => r.label === 'AMRAVATI AREA1').units, 7);
 assert.equal(area.find((r) => r.label === 'AMRAVATI AREA1').spins, 2);

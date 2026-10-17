@@ -560,11 +560,11 @@ export class Engine {
     const g = {};
     for (const s of sales) {
       const [key, label, extra] = G(s); const sp = bySale[s.id] || [];
-      const r = (g[key] ||= { key, label, ...extra, sales: 0, units: 0, spins: 0, giveaway_cost: 0, prizes_given: 0, _o: new Set(), _p: new Set(), _st: new Set(), _tr: new Set() });
+      const r = (g[key] ||= { key, label, ...extra, sales: 0, units: 0, spins: 0, giveaway_cost: 0, prizes_given: 0, _o: new Set(), _p: new Set(), _st: new Set(), _tr: new Set(), _cities: new Set() });
       r.sales++; r.units += s.quantity; r.spins += sp.length; r.giveaway_cost += sp.filter((x) => x.redemption_status !== 'not_redeemed').reduce((a, x) => a + x.prize_cost, 0);
-      r.prizes_given += sp.filter((x) => x.redemption_status === 'handed_over').length; r._o.add(s.outlet_id); r._p.add(s.promoter_id); r._st.add(s.state_name); r._tr.add(s.territory_name);
+      r.prizes_given += sp.filter((x) => x.redemption_status === 'handed_over').length; r._o.add(s.outlet_id); r._p.add(s.promoter_id); r._st.add(s.state_name); r._tr.add(s.territory_name); if (s.outlet_city?.trim()) r._cities.add(s.outlet_city.trim());
     }
-    return Object.values(g).map(({ _o, _p, _st, _tr, ...r }) => ({ ...r, ...(p_group === 'promoter' ? { state: [..._st].join(', '), territory: [..._tr].join(', ') } : {}),
+    return Object.values(g).map(({ _o, _p, _st, _tr, _cities, ...r }) => ({ ...r, ...(p_group === 'promoter' ? { state: [..._st].join(', '), territory: [..._tr].join(', '), city: [..._cities].sort().join(', ') } : {}),
       active_outlets: _o.size, promoters: _p.size, avg_cost: r.spins ? r2(r.giveaway_cost / r.spins) : null })).sort((a, b) => b.spins - a.spins);
   }
   prize_distribution_report({ p_filters }) {
