@@ -15,7 +15,7 @@ const COLS = {
   ],
   promoter: [
     { key: 'label', label: 'Promoter' }, { key: 'promoter_code', label: 'Code' }, { key: 'promoter_type', label: 'Type' },
-    { key: 'state', label: 'State' }, { key: 'territory', label: 'Territory' }, { key: 'city', label: 'City' },
+    { key: 'state', label: 'State' }, { key: 'territory', label: 'Territory' }, { key: 'city', label: 'City' }, { key: 'area', label: 'Area' },
     { key: 'active_outlets', label: 'Outlets Covered', align: 'r' },
     { key: 'spins', label: 'Spins', align: 'r', fmt: fmt.num }, { key: 'units', label: 'Units Sold', align: 'r', fmt: fmt.num },
     { key: 'giveaway_cost', label: 'Giveaway Cost', ...money }, { key: 'avg_cost', label: 'Average Cost', align: 'r', fmt: fmt.inr2 },
@@ -47,7 +47,7 @@ const TABS = [
   { key: 'tse', label: 'TSE Performance' }, { key: 'promoter', label: 'Promoter Performance' },
   { key: 'outlet', label: 'Outlet Performance' }, { key: 'prize', label: 'Prize Usage' },
   { key: 'product', label: 'SKU' }, { key: 'state', label: 'State' }, { key: 'territory', label: 'Territory' }, { key: 'city', label: 'City' },
-  { key: 'area', label: 'Area' }, { key: 'city', label: 'City' }, { key: 'distributor', label: 'Distributor' }, { key: 'date', label: 'Daily' },
+  { key: 'area', label: 'Area' }, { key: 'distributor', label: 'Distributor' }, { key: 'date', label: 'Daily' },
 ];
 
 export default function Reports({ data, filters, setFilters }) {
@@ -70,6 +70,8 @@ export default function Reports({ data, filters, setFilters }) {
   } : null;
   const reportRows = tab === 'date' ? [...(rep.data || [])].sort((a, b) => String(b.key).localeCompare(String(a.key))) : rep.data || [];
   const totalRow = reportTotal(reportRows, tab === 'prize');
+  const promoterCount = new Set(reportRows.map((row) => row.key)).size;
+  if (tab === 'promoter') totalRow.label = `TOTAL (${promoterCount} promoters)`;
   const exportRows = [...reportRows, totalRow].map((row) => ({ ...row,
     date_from: filters.date_from || 'Beginning', date_to: filters.date_to || 'No end date' }));
   const exportColumns = [{ key: 'date_from', label: 'Date From' }, { key: 'date_to', label: 'Date To' }, ...cols];
@@ -81,7 +83,7 @@ export default function Reports({ data, filters, setFilters }) {
       <Tabs tabs={TABS} value={tab} onChange={setTab} />
       <Panel title={TABS.find((t) => t.key === tab).label}
              actions={totals
-               ? <span className="muted">Total: {fmt.num(totals.spins)} spins · {fmt.num(totals.units)} units · {fmt.inr(totals.cost)} · avg {fmt.inr2(totals.spins ? totals.cost / totals.spins : 0)}</span>
+               ? <span className="muted">Total: {tab === 'promoter' && `${fmt.num(promoterCount)} promoters · `}{fmt.num(totals.spins)} spins · {fmt.num(totals.units)} units · {fmt.inr(totals.cost)} · avg {fmt.inr2(totals.spins ? totals.cost / totals.spins : 0)}</span>
                : prizeTotals && <span className="muted">Total: {fmt.num(prizeTotals.spins)} spins · {fmt.inr(prizeTotals.cost)} giveaway cost · avg {fmt.inr2(prizeTotals.avg)} / spin</span>}>
         {!rep.data ? <Loading state={rep} /> : (
           <>
