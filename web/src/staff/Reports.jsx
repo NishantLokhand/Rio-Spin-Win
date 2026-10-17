@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { rpc } from '../lib/api.js';
 import FilterBar from './FilterBar.jsx';
+import ZeroSpinDownload from './ZeroSpinDownload.jsx';
 import { reportTotal, reportPeriod } from '../lib/reportTotals.js';
 import { useAsync, Panel, Loading, DataTable, Tabs, BarList, fmt } from './ui.jsx';
 
@@ -76,6 +77,7 @@ export default function Reports({ data, filters, setFilters }) {
   return (
     <div className="s-page">
       <FilterBar data={data} filters={filters} setFilters={setFilters} />
+      <div className="pad"><ZeroSpinDownload users={data.promoters} dates={filters} /></div>
       <Tabs tabs={TABS} value={tab} onChange={setTab} />
       <Panel title={TABS.find((t) => t.key === tab).label}
              actions={totals

@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase.js';
 import { rpc, selectAll, friendly } from '../lib/api.js';
 import { istToday } from '../lib/store.js';
+import ZeroSpinDownload from './ZeroSpinDownload.jsx';
 import { useAsync, Panel, Loading, DataTable, Modal, Field, Badge, fmt } from './ui.jsx';
 
 export default function Promoters({ data }) {
@@ -44,7 +45,9 @@ export default function Promoters({ data }) {
 
   return (
     <div className="s-page">
-      <Panel title={`Promoters — today ${fmt.date(today)}`} actions={<button className="s-btn ghost sm" onClick={st.reload}>↻ Refresh</button>}>
+      <Panel title={`Promoters — today ${fmt.date(today)}`} actions={<div className="row-actions">
+        <ZeroSpinDownload users={data.promoters} dates={{ date_from: today, date_to: today }} snapshot={st.data} />
+        <button className="s-btn ghost sm" onClick={st.reload}>↻ Refresh</button></div>}>
         <DataTable rows={rows} exportName="promoter_stock" columns={[
           { key: 'name', label: 'Promoter', render: (r) => <><b>{r.name}</b><br /><small className="muted">{r.code} · {r.type}</small>{!r.active && <> <Badge tone="red">disabled</Badge></>}</> },
           { key: 'outlet', label: 'Current outlet', fmt: (v) => v || <span className="muted">not started</span> },
