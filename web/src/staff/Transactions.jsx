@@ -10,7 +10,7 @@ export const TXN_COLUMNS = [
   { key: 'date', label: 'Date' }, { key: 'time', label: 'Time' }, { key: 'state', label: 'State' }, { key: 'territory', label: 'Territory' },
   { key: 'tse_code', label: 'TSE Code' }, { key: 'tse_name', label: 'TSE Name' }, { key: 'outlet_code', label: 'Outlet Code' },
   { key: 'outlet_name', label: 'Outlet Name' }, { key: 'outlet_address', label: 'Outlet Address' },
-  { key: 'outlet_license_no', label: 'Licence No.' }, { key: 'city', label: 'City' }, { key: 'distributor', label: 'Distributor' },
+  { key: 'outlet_license_no', label: 'Licence No.' }, { key: 'area', label: 'Area' }, { key: 'city', label: 'City' }, { key: 'distributor', label: 'Distributor' },
   { key: 'promoter_code', label: 'Promoter ID' }, { key: 'promoter_name', label: 'Promoter Name' }, { key: 'promoter_type', label: 'Promoter Type' },
   { key: 'sku_code', label: 'SKU Code' }, { key: 'sku', label: 'SKU' }, { key: 'quantity', label: 'Quantity' },
   { key: 'prize_name', label: 'Prize' }, { key: 'prize_cost', label: 'Prize Cost' }, { key: 'substituted', label: 'Substituted' },
@@ -21,7 +21,7 @@ export const TXN_COLUMNS = [
 export function applyTxnFilters(q, f) {
   if (f.date_from) q = q.gte('date', f.date_from);
   if (f.date_to) q = q.lte('date', f.date_to);
-  for (const k of ['campaign_id', 'state_id', 'territory_id', 'tse_id', 'outlet_id', 'promoter_id', 'city', 'distributor']) {
+  for (const k of ['campaign_id', 'state_id', 'territory_id', 'tse_id', 'outlet_id', 'promoter_id', 'area', 'city', 'distributor']) {
     if (f[k]) q = q.eq(k, f[k]);
   }
   if (f.product_id) q = q.contains('product_ids', [f.product_id]);

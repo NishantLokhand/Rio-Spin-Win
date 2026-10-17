@@ -1,4 +1,6 @@
 import React, { useMemo } from 'react';
+import { rpc } from '../lib/api.js';
+import { useAsync } from './ui.jsx';
 import { istToday } from '../lib/store.js';
 
 export const defaultFilters = () => ({ date_from: istToday(), date_to: istToday() });
@@ -20,6 +22,9 @@ export default function FilterBar({ data, filters, setFilters, show = 'all' }) {
     && (!f.territory_id || (o.territory_id ? o.territory_id === f.territory_id : tses.some((t) => t.id === o.tse_id)))
     && (!f.state_id || (o.state_id ? o.state_id === f.state_id : territories.some((x) => x.id === (o.territory_id || tses.find((t) => t.id === o.tse_id)?.territory_id))))),
   [m, f.tse_id, f.territory_id, f.state_id, tses, territories]);
+  const areaOptions = useAsync(() => rpc('get_report_areas', { p_state_id: f.state_id || null }), [f.state_id]);
+  const areas = areaOptions.data || [...new Set(outlets.map((o) => o.area).filter(Boolean))].sort();
+  const areaOutlets = outlets.filter((o) => !f.area || o.area === f.area);
   const cities = useMemo(() => [...new Set(m.outlets.map((o) => o.city).filter(Boolean))].sort(), [m]);
   const distributors = useMemo(() => [...new Set((data.outletsFull || []).map((o) => o.distributor).filter(Boolean))].sort(), [data]);
 
@@ -47,12 +52,14 @@ export default function FilterBar({ data, filters, setFilters, show = 'all' }) {
       {show === 'all' && (
         <div className="fb-dims">
           {sel('campaign_id', data.campaigns, 'Campaign')}
-          {sel('state_id', m.states, 'State', undefined, { territory_id: undefined, tse_id: undefined, outlet_id: undefined })}
+          {sel('state_id', m.states, 'State', undefined, { territory_id: undefined, tse_id: undefined, area: undefined, outlet_id: undefined })}
           {sel('territory_id', territories, 'Territory', undefined, { tse_id: undefined, outlet_id: undefined })}
           {sel('tse_id', tses, 'TSE', undefined, { outlet_id: undefined })}
+          {sel('area', areas, 'Area', (x) => x, { outlet_id: undefined })}
+          {areaOptions.error && <span className="muted">Area list unavailable: {areaOptions.error.message}</span>}
           {sel('city', cities, 'City', (x) => x)}
           {distributors.length > 0 && sel('distributor', distributors, 'Distributor', (x) => x)}
-          {sel('outlet_id', outlets, 'Outlet')}
+          {sel('outlet_id', areaOutlets, 'Outlet')}
           {sel('promoter_id', data.promoters, 'Promoter', (x) => x.full_name)}
           {sel('product_id', m.products, 'SKU')}
           <button className="s-btn ghost sm" onClick={() => setFilters({ date_from: f.date_from, date_to: f.date_to })}>Clear</button>

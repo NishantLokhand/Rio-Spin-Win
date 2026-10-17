@@ -1,0 +1,59 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+const { PGlite } = await import(process.env.PGLITE_MODULE || '../.cache/onboarding-tests/node_modules/@electric-sql/pglite/dist/index.js');
+const db = new PGlite();
+const admin = '00000000-0000-0000-0000-000000000001';
+const supervisor = '00000000-0000-0000-0000-000000000002';
+const promoter = '00000000-0000-0000-0000-000000000003';
+const other = '00000000-0000-0000-0000-000000000004';
+const mh = '00000000-0000-0000-0000-000000000005';
+const product = '00000000-0000-0000-0000-000000000006';
+await db.exec(`create role anon; create role authenticated;
+create table app_users(id uuid,role text);
+create table promoters(user_id uuid,supervisor_id uuid);
+create table states(id uuid,code text);
+create table outlets(id uuid,state_id uuid,area text);
+create table outlet_search_master(state_code text,area text,is_active boolean);
+create table sales(id uuid,status text,biz_date date,campaign_id uuid,state_id uuid,state_name text,
+territory_id uuid,territory_name text,tse_id uuid,tse_code text,tse_name text,outlet_id uuid,
+outlet_name text,outlet_code text,outlet_area text,outlet_city text,distributor text,promoter_id uuid,
+promoter_name text,promoter_code text,promoter_type text,product_id uuid,product_name text,sku_code text,quantity int);
+create table spins(sale_id uuid,prize_id uuid,prize_name text,prize_cost numeric,redemption_status text);
+create table sale_items(sale_id uuid,product_id uuid);
+create function _require_staff() returns app_users language plpgsql as $$ declare u app_users; begin
+select * into u from app_users where id=current_setting('test.actor')::uuid;
+if u.role not in ('admin','supervisor') or u.id is null then raise exception 'STAFF_ONLY'; end if;
+return u; end $$;
+insert into app_users values ('${admin}','admin'),('${supervisor}','supervisor'),('${promoter}','promoter');
+insert into promoters values ('${promoter}','${supervisor}');
+insert into states values ('${mh}','MH');
+insert into outlet_search_master values ('MH','AMRAVATI AREA1',true),('MH','AMRAVATI AREA1',true),('MH','No sales area',true),('MH','Inactive area',false);
+insert into sales(id,status,biz_date,state_id,outlet_area,promoter_id,quantity,outlet_id)
+values ('${admin}','completed','2026-10-17','${mh}','AMRAVATI AREA1','${promoter}',2,'${admin}'),
+('${supervisor}','completed','2026-10-17','${mh}','MUMBAI MKT','${promoter}',3,'${supervisor}'),
+('${other}','completed','2026-10-17','${mh}','AMRAVATI AREA1','${other}',5,'${other}');
+insert into spins values ('${admin}','${product}','Snack',5,'handed_over'),('${other}','${product}','Snack',10,'pending');
+insert into sale_items values ('${admin}','${product}');
+set test.actor='${admin}';`);
+await db.exec(await readFile(new URL('../supabase/migrations/20261017000100_report_area_filter.sql', import.meta.url), 'utf8'));
+const summary = async (group, filters = {}) => (await db.query('select report_summary($1,$2) as report', [group, filters])).rows[0].report;
+const area = await summary('area');
+assert.equal(area.find((r) => r.label === 'AMRAVATI AREA1').units, 7);
+assert.equal(area.find((r) => r.label === 'AMRAVATI AREA1').spins, 2);
+const filtered = await summary('area', { area: 'AMRAVATI AREA1' });
+assert.equal(filtered.length, 1); assert.equal(filtered[0].giveaway_cost, 15);
+assert.equal((await summary('area', { area: 'MUMBAI MKT' }))[0].units, 3);
+assert.deepEqual(await summary('area', { area: 'No sales area' }), []);
+assert.equal((await summary('area', { area: 'AMRAVATI AREA1', product_id: product }))[0].units, 2);
+assert.equal((await summary('prize', { area: 'AMRAVATI AREA1' }))[0].quantity, 2);
+const areas = (await db.query('select get_report_areas($1) as areas', [mh])).rows[0].areas;
+assert.equal(areas.filter((a) => a === 'AMRAVATI AREA1').length, 1);
+assert.ok(areas.includes('No sales area')); assert.ok(!areas.includes('Inactive area'));
+await db.exec(`set test.actor='${supervisor}'`);
+assert.equal((await summary('area', { area: 'AMRAVATI AREA1' }))[0].units, 2);
+assert.ok(!(await db.query('select get_report_areas(null) as areas')).rows[0].areas.includes('No sales area'));
+await db.exec(`set test.actor='${promoter}'`);
+await assert.rejects(() => summary('area'), /STAFF_ONLY/);
+await assert.rejects(() => db.query('select get_report_areas(null)'), /STAFF_ONLY/);
+await db.close();
+console.log('PASS: Area grouping/filtering, prize totals, product intersection, no-sales master options and supervisor isolation');

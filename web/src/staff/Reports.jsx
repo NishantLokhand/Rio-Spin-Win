@@ -45,7 +45,7 @@ const TABS = [
   { key: 'tse', label: 'TSE Performance' }, { key: 'promoter', label: 'Promoter Performance' },
   { key: 'outlet', label: 'Outlet Performance' }, { key: 'prize', label: 'Prize Usage' },
   { key: 'product', label: 'SKU' }, { key: 'state', label: 'State' }, { key: 'territory', label: 'Territory' },
-  { key: 'city', label: 'City' }, { key: 'distributor', label: 'Distributor' }, { key: 'date', label: 'Daily' },
+  { key: 'area', label: 'Area' }, { key: 'city', label: 'City' }, { key: 'distributor', label: 'Distributor' }, { key: 'date', label: 'Daily' },
 ];
 
 export default function Reports({ data, filters, setFilters }) {
@@ -54,7 +54,8 @@ export default function Reports({ data, filters, setFilters }) {
     ? rpc('prize_distribution_report', { p_filters: filters })
     : rpc('report_summary', { p_group: tab, p_filters: filters }), [tab, JSON.stringify(filters)]);
   const cols = COLS[tab] || generic(TABS.find((t) => t.key === tab).label);
-  const drill = tab === 'tse' ? (r) => { setFilters({ ...filters, tse_id: r.key }); setTab('outlet'); }
+  const drill = tab === 'area' ? (r) => { setFilters({ ...filters, area: r.key }); setTab('outlet'); }
+    : tab === 'tse' ? (r) => { setFilters({ ...filters, tse_id: r.key }); setTab('outlet'); }
     : tab === 'territory' ? (r) => { setFilters({ ...filters, territory_id: r.key }); setTab('tse'); }
     : tab === 'state' ? (r) => { setFilters({ ...filters, state_id: r.key }); setTab('territory'); } : undefined;
 

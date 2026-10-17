@@ -531,11 +531,13 @@ export class Engine {
   }
 
   // ---------- reporting ----------
+  get_report_areas({ p_state_id } = {}) { this.requireStaff(); return [...new Set(this.t('outlets').filter((o) => !p_state_id || this.t('territories').find((t) => t.id === this.t('tses').find((t) => t.id === o.tse_id)?.territory_id)?.state_id === p_state_id).map((o) => o.area).filter(Boolean))].sort(); }
   scopedSales(f = {}) {
     const u = this.me(); const clean = Object.fromEntries(Object.entries(f || {}).filter(([, v]) => v !== '' && v != null));
     return this.t('sales').filter((s) => s.status !== 'cancelled' && this.canSee(s.promoter_id)
       && (!clean.date_from || s.biz_date >= clean.date_from) && (!clean.date_to || s.biz_date <= clean.date_to)
       && ['campaign_id', 'state_id', 'territory_id', 'tse_id', 'outlet_id', 'promoter_id', 'product_id'].every((k) => !clean[k] || s[k] === clean[k])
+      && (!clean.area || s.outlet_area === clean.area)
       && (!clean.city || s.outlet_city === clean.city) && (!clean.distributor || s.distributor === clean.distributor) && u);
   }
   spinsBySale() { const m = {}; for (const s of this.t('spins')) (m[s.sale_id] ||= []).push(s); return m; }
@@ -552,6 +554,7 @@ export class Engine {
       outlet: (s) => [s.outlet_id, s.outlet_name, { outlet_code: s.outlet_code, area: s.outlet_area, city: s.outlet_city, tse: s.tse_name, territory: s.territory_name, distributor: s.distributor }],
       promoter: (s) => [s.promoter_id, s.promoter_name, { promoter_code: s.promoter_code, promoter_type: s.promoter_type }],
       product: (s) => [s.product_id, s.product_name, { sku_code: s.sku_code }], date: (s) => [s.biz_date, s.biz_date, {}],
+      area: (s) => [s.outlet_area || '—', s.outlet_area || '—', {}],
       city: (s) => [s.outlet_city || '—', s.outlet_city || '—', {}], distributor: (s) => [s.distributor || '—', s.distributor || '—', {}],
     }[p_group]; if (!G) fail('INVALID_GROUP');
     const g = {};
