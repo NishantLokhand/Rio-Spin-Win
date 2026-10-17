@@ -48,7 +48,7 @@ export function Loading({ state }) {
 /**
  * columns: [{ key, label, fmt?: fn, align?: 'r', render?: (row) => node }]
  */
-export function DataTable({ rows, columns, exportName, onRowClick, empty = 'No data', maxHeight, footer }) {
+export function DataTable({ rows, columns, exportName, exportRows, exportColumns, onRowClick, empty = 'No data', maxHeight, footer }) {
   const [sort, setSort] = useState(null);
   const sorted = useMemo(() => {
     if (!sort || !rows) return rows || [];
@@ -61,14 +61,14 @@ export function DataTable({ rows, columns, exportName, onRowClick, empty = 'No d
       return dir === 'asc' ? c : -c;
     });
   }, [rows, sort]);
-  const exp = columns.filter((c) => !c.noExport);
+  const exp = (exportColumns || columns).filter((c) => !c.noExport);
   return (
     <div className="dt">
       {exportName && rows?.length > 0 && (
         <div className="dt-tools">
           <span>{rows.length} rows</span>
-          <button className="s-btn ghost sm" onClick={() => exportCSV(rows, exp, exportName)}>CSV</button>
-          <button className="s-btn ghost sm" onClick={() => exportXLSX(rows, exp, exportName)}>Excel</button>
+          <button className="s-btn ghost sm" onClick={() => exportCSV(exportRows || rows, exp, exportName)}>CSV</button>
+          <button className="s-btn ghost sm" onClick={() => exportXLSX(exportRows || rows, exp, exportName)}>Excel</button>
         </div>
       )}
       <div className="dt-scroll" style={maxHeight ? { maxHeight } : null}>

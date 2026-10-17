@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { rpc } from '../lib/api.js';
 import FilterBar from './FilterBar.jsx';
+import { reportTotal, reportPeriod } from '../lib/reportTotals.js';
 import { useAsync, Panel, Loading, DataTable, Tabs, BarList, fmt } from './ui.jsx';
 
 const money = { align: 'r', fmt: fmt.inr };
@@ -66,6 +67,11 @@ export default function Reports({ data, filters, setFilters }) {
     spins: Number(rep.data[0].total_spins || 0), cost: Number(rep.data[0].giveaway_cost || 0),
     avg: Number(rep.data[0].avg_giveaway_cost || 0),
   } : null;
+  const reportRows = tab === 'date' ? [...(rep.data || [])].sort((a, b) => String(b.key).localeCompare(String(a.key))) : rep.data || [];
+  const totalRow = reportTotal(reportRows, tab === 'prize');
+  const exportRows = [...reportRows, totalRow].map((row) => ({ ...row,
+    date_from: filters.date_from || 'Beginning', date_to: filters.date_to || 'No end date' }));
+  const exportColumns = [{ key: 'date_from', label: 'Date From' }, { key: 'date_to', label: 'Date To' }, ...cols];
 
   return (
     <div className="s-page">
@@ -77,11 +83,15 @@ export default function Reports({ data, filters, setFilters }) {
                : prizeTotals && <span className="muted">Total: {fmt.num(prizeTotals.spins)} spins · {fmt.inr(prizeTotals.cost)} giveaway cost · avg {fmt.inr2(prizeTotals.avg)} / spin</span>}>
         {!rep.data ? <Loading state={rep} /> : (
           <>
+            <p className="muted pad">Report period: <strong>{reportPeriod(filters)}</strong></p>
             {tab === 'prize' && rep.data.length > 0 && (
               <div className="pad"><BarList rows={rep.data} labelKey="label" valueKey="pct" format={fmt.pct} sub={(r) => `${fmt.num(r.quantity)} won`} /></div>
             )}
-            <DataTable rows={tab === 'date' ? [...rep.data].sort((a, b) => String(b.key).localeCompare(String(a.key))) : rep.data}
-                       columns={cols} exportName={`${tab}_report`} onRowClick={drill} />
+            <DataTable rows={reportRows} columns={cols} exportRows={exportRows} exportColumns={exportColumns}
+                       exportName={`${tab}_report_${filters.date_from || 'beginning'}_${filters.date_to || 'all'}`} onRowClick={drill}
+                       footer={<tfoot><tr>{cols.map((c) => <th key={c.key} className={c.align === 'r' ? 'r' : ''}>
+                         {totalRow[c.key] == null ? '' : c.fmt ? c.fmt(totalRow[c.key], totalRow) : totalRow[c.key]}
+                       </th>)}</tr></tfoot>} />
             {drill && <small className="muted">Click a row to drill down.</small>}
           </>
         )}
