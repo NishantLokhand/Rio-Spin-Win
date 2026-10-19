@@ -89,7 +89,7 @@ export default function OutletPicker({ masters, ctx, loading = false, loadError 
                 return <React.Fragment key={`${o.id}:${o.directory_record_id || 'operational'}`}>
                   {tier !== previousTier && <li className="match-group">{tierTitle}</li>}
                   <li><button className={ctx?.outletId === o.id ? 'current' : ''} onClick={() => onPick(o)}>
-                    {o.name}<small>State: {stateName} · Area: {o.area || 'Unavailable'} · Licence No.: {o.license_no || 'Unavailable'}{o.outlet_code ? ` · Code: ${o.outlet_code}` : ''}</small>
+                    {o.name}<small>State: {stateName} · City: {o.city || 'Unavailable'} · Area: {o.area || 'Unavailable'} · Licence No.: {o.license_no || 'Unavailable'}{o.outlet_code ? ` · Code: ${o.outlet_code}` : ''}</small>
                   </button></li>
                 </React.Fragment>;
               });
