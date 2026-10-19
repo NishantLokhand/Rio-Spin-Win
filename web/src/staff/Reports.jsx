@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { rpc, selectAll } from '../lib/api.js';
-import { attachMetrics, performanceColumns } from '../lib/performanceMetrics.js';
+import { userPerformanceColumns } from '../lib/userReportColumns.js';
+import { attachMetrics } from '../lib/performanceMetrics.js';
 import { istToday } from '../lib/store.js';
 import FilterBar from './FilterBar.jsx';
 import SpinHistory from './SpinHistory.jsx';
@@ -10,17 +11,7 @@ import { useAsync, Panel, Loading, DataTable, Tabs, BarList, fmt } from './ui.js
 
 const money = { align: 'r', fmt: fmt.inr };
 const COLS = {
-  user: [
-    { key: 'date', label: 'Date' },
-    { key: 'label', label: 'User' }, { key: 'user_type', label: 'Type' },
-    { key: 'state', label: 'State' }, { key: 'city', label: 'City' }, { key: 'area', label: 'Area' },
-    { key: 'outlets', label: 'Outlets Visited' }, { key: 'active_outlets', label: 'Outlets Covered', align: 'r' },
-    { key: 'spins', label: 'Spins', align: 'r', fmt: fmt.num },
-    { key: 'units', label: 'Units Sold', align: 'r', fmt: fmt.num },
-    { key: 'giveaway_cost', label: 'Giveaway Cost', ...money },
-    { key: 'avg_cost', label: 'Average Cost', align: 'r', fmt: fmt.inr2 },
-    { key: 'user_code', label: 'User Code' }, ...performanceColumns,
-  ],
+  user: userPerformanceColumns,
   outlet: [
     { key: 'label', label: 'Outlet' }, { key: 'outlet_code', label: 'Outlet Code' }, { key: 'area', label: 'Area' },
     { key: 'tse', label: 'TSE' }, { key: 'territory', label: 'Territory' },
@@ -85,7 +76,7 @@ export default function Reports({ data, filters, setFilters }) {
     <div className="s-page">
       <FilterBar data={data} filters={filters} setFilters={setFilters}
         userPerformance={tab === 'user'} userType={userType} setUserType={setUserType} userPeople={people.data || []} />
-      <div className="pad row-actions"><ZeroSpinDownload users={data.promoters} dates={filters} /><SpinHistory filters={filters} userType={userType} /></div>
+      <div className="pad row-actions"><ZeroSpinDownload users={data.promoters} dates={filters} userType={userType} userId={filters.promoter_id} /><SpinHistory filters={filters} userType={userType} /></div>
       <Tabs tabs={TABS} value={tab} onChange={setTab} />
       <Panel title={TABS.find((t) => t.key === tab).label}
              actions={totals

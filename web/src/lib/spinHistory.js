@@ -1,17 +1,6 @@
-export function shiftDate(date, days) {
-  const d = new Date(`${date}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
-export function historyRange(mode, end) {
-  if (mode === 'monthly') return { from: `${end.slice(0, 7)}-01`, to: end };
-  if (mode === 'weekly') {
-    const weekday = new Date(`${end}T00:00:00Z`).getUTCDay();
-    return { from: shiftDate(end, -((weekday + 6) % 7)), to: end };
-  }
-  return { from: '', to: end };
-}
+import { shiftDate } from './reportDates.js';
+import { summarizeActivity } from './userActivity.js';
+export { shiftDate, historyRange } from './reportDates.js';
 
 export function spinHistory(rows, { from = '', to, today }, people = [], accounts = []) {
   if (!to || to > today || (from && from > to)) throw new Error('Choose a valid date range ending today or earlier.');
@@ -33,7 +22,7 @@ export function spinHistory(rows, { from = '', to, today }, people = [], account
     const person = org.get(id) || {};
     const base = { key: id, label: latest.label, user_type: latest.user_type,
       state: person.state_raw || latest.state || '',
-      city: person.market_override ?? person.market_raw ?? latest.city ?? '',
+      city: person.market_override ?? person.market_raw ?? latest.city ?? '', user_code: latest.user_code || '',
       area: person.area_override ?? person.area_raw ?? latest.area ?? '' };
     const byDate = new Map(userRows.map((r) => [r.date, r]));
     const accountStart = accountDates.get(id) || first;
@@ -53,7 +42,8 @@ export function spinHistory(rows, { from = '', to, today }, people = [], account
         outlets: r?.outlets || '', status: spins ? 'Spins recorded' : date === today ? 'Today in progress' : 'No spins recorded' });
     }
     const asOf = spun.filter((r) => r.date <= to).at(-1).date;
-    summary.push({ ...base, first_spin: first, last_spin: last,
+    const totals = summarizeActivity(userRows.filter((r) => r.date >= start && r.date <= to));
+    summary.push({ ...base, ...totals, state: totals.state || base.state, city: totals.city || base.city, area: totals.area || base.area, date: to, first_spin: first, last_spin: last,
       last_spin_as_of: asOf, date_from: start, date_to: to, total_spins: totalSpins,
       active_days: active, no_spin_days: elapsed - active, completed_days: elapsed,
       consistency_pct: elapsed ? Math.round(active * 10000 / elapsed) / 100 : null,

@@ -65,8 +65,11 @@ await db.query("update sales set outlet_name='Outlet '||outlet_area,outlet_code=
 await db.exec(await readFile(new URL('../supabase/migrations/20261019000100_user_performance.sql', import.meta.url), 'utf8'));
 const performance = async (filters={},type=null) => (await db.query('select report_user_performance($1,$2) r',[filters,type])).rows[0].r;
 await db.exec(await readFile(new URL('../supabase/migrations/20261019000200_user_daily_performance.sql', import.meta.url), 'utf8'));
+await db.exec('create view report_sales_resolved as select * from sales');
+await db.exec(await readFile(new URL('../supabase/migrations/20261019000500_daily_report_outlet_details.sql', import.meta.url), 'utf8'));
 const userDaily = async (filters={},type=null) => (await db.query('select report_user_daily($1,$2) r',[filters,type])).rows[0].r;
 assert.equal((await userDaily()).length,2);
+assert.equal((await userDaily()).find(r=>r.key===promoter).outlet_entries.length,2);
 await db.query("update sales set biz_date='2026-10-18' where id=$1",[supervisor]);
 const days=await userDaily();
 assert.equal(days.length,3); assert.equal(new Set(days.map(r=>r.id)).size,3);
