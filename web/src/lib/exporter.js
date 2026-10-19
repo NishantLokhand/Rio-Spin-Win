@@ -25,8 +25,23 @@ export async function exportXLSX(rows, columns, name) {
   const cols = columns || Object.keys(rows[0] || {}).map((k) => ({ key: k, label: k }));
   const data = rows.map((r) => Object.fromEntries(cols.map((c) => [c.label, r[c.key]])));
   const ws = XLSX.utils.json_to_sheet(data, { header: cols.map((c) => c.label) });
+  if (ws['!ref']) ws['!autofilter'] = { ref: ws['!ref'] };
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, name.slice(0, 31));
+  const out = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  download(new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `${name}.xlsx`);
+}
+
+export async function exportWorkbook(sheets, name) {
+  const XLSX = await import('xlsx');
+  const wb = XLSX.utils.book_new();
+  for (const sheet of sheets) {
+    const headers = sheet.columns.map((c) => c.label);
+    const rows = sheet.rows.map((r) => Object.fromEntries(sheet.columns.map((c) => [c.label, r[c.key]])));
+    const ws = XLSX.utils.json_to_sheet(rows, { header: headers });
+    if (ws['!ref']) ws['!autofilter'] = { ref: ws['!ref'] };
+    XLSX.utils.book_append_sheet(wb, ws, sheet.name);
+  }
   const out = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
   download(new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `${name}.xlsx`);
 }

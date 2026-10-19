@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { rpc, selectAll } from '../lib/api.js';
 import FilterBar from './FilterBar.jsx';
+import SpinHistory from './SpinHistory.jsx';
 import ZeroSpinDownload from './ZeroSpinDownload.jsx';
 import { reportTotal, reportPeriod } from '../lib/reportTotals.js';
 import { useAsync, Panel, Loading, DataTable, Tabs, BarList, fmt } from './ui.jsx';
@@ -8,6 +9,7 @@ import { useAsync, Panel, Loading, DataTable, Tabs, BarList, fmt } from './ui.js
 const money = { align: 'r', fmt: fmt.inr };
 const COLS = {
   user: [
+    { key: 'date', label: 'Date' },
     { key: 'label', label: 'User' }, { key: 'user_type', label: 'Type' },
     { key: 'state', label: 'State' }, { key: 'city', label: 'City' }, { key: 'area', label: 'Area' },
     { key: 'outlets', label: 'Outlets Visited' }, { key: 'active_outlets', label: 'Outlets Covered', align: 'r' },
@@ -53,11 +55,11 @@ export default function Reports({ data, filters, setFilters }) {
   const people = useAsync(() => selectAll('org_people', 'auth_user_id,designation', (q) => q.not('auth_user_id', 'is', null)), []);
   const rep = useAsync(() => tab === 'prize'
     ? rpc('prize_distribution_report', { p_filters: filters })
-    : tab === 'user' ? rpc('report_user_performance', { p_filters: filters, p_user_type: userType || null })
+    : tab === 'user' ? rpc('report_user_daily', { p_filters: filters, p_user_type: userType || null })
     : rpc('report_summary', { p_group: tab, p_filters: filters }), [tab, userType, JSON.stringify(filters)]);
   const cols = COLS[tab] || generic(TABS.find((t) => t.key === tab).label);
   const drill = tab === 'area' ? (r) => { setFilters({ ...filters, area: r.key }); setTab('outlet'); }
-    : tab === 'user' ? (r) => { setFilters({ ...filters, promoter_id: r.key }); setTab('outlet'); }
+    : tab === 'user' ? (r) => { setFilters({ ...filters, promoter_id: r.key, date_from: r.date, date_to: r.date }); setTab('outlet'); }
     : tab === 'territory' ? (r) => { setFilters({ ...filters, territory_id: r.key }); setTab('user'); }
     : tab === 'state' ? (r) => { setFilters({ ...filters, state_id: r.key }); setTab('territory'); } : undefined;
 
@@ -80,7 +82,7 @@ export default function Reports({ data, filters, setFilters }) {
     <div className="s-page">
       <FilterBar data={data} filters={filters} setFilters={setFilters}
         userPerformance={tab === 'user'} userType={userType} setUserType={setUserType} userPeople={people.data || []} />
-      <div className="pad"><ZeroSpinDownload users={data.promoters} dates={filters} /></div>
+      <div className="pad row-actions"><ZeroSpinDownload users={data.promoters} dates={filters} /><SpinHistory filters={filters} userType={userType} /></div>
       <Tabs tabs={TABS} value={tab} onChange={setTab} />
       <Panel title={TABS.find((t) => t.key === tab).label}
              actions={totals
