@@ -11,7 +11,7 @@ function daysAgo(n) {
 }
 
 /** One row of filters above the charts/tables. Cascading: State → Territory → TSE → Outlet */
-export default function FilterBar({ data, filters, setFilters, show = 'all' }) {
+export default function FilterBar({ data, filters, setFilters, show = 'all', userPerformance = false, userType = '', setUserType, userPeople = [] }) {
   const f = filters;
   const set = (patch) => setFilters({ ...f, ...patch });
   const m = data.masters;
@@ -62,9 +62,14 @@ export default function FilterBar({ data, filters, setFilters, show = 'all' }) {
           {cityOptions.error && <span className="muted">City list unavailable: {cityOptions.error.message}</span>}
           {distributors.length > 0 && sel('distributor', distributors, 'Distributor', (x) => x)}
           {sel('outlet_id', areaOutlets, 'Outlet')}
-          {sel('promoter_id', data.promoters, 'Promoter', (x) => x.full_name)}
+          {userPerformance && <select aria-label="User Type" value={userType} onChange={(e) => {
+            setUserType(e.target.value); set({ promoter_id: undefined, tse_id: undefined });
+          }}><option value="">Type: All</option><option value="PROMOTER">Promoter</option><option value="TSE">TSE</option><option value="MER">MER</option></select>}
+          {sel('promoter_id', userPerformance && userType
+            ? data.promoters.filter((u) => userPeople.some((p) => p.auth_user_id === u.id && p.designation === userType))
+            : data.promoters, userPerformance ? 'User' : 'Promoter', (x) => x.full_name)}
           {sel('product_id', m.products, 'SKU')}
-          <button className="s-btn ghost sm" onClick={() => setFilters({ date_from: f.date_from, date_to: f.date_to })}>Clear</button>
+          <button className="s-btn ghost sm" onClick={() => { if (userPerformance) setUserType(''); setFilters({ date_from: f.date_from, date_to: f.date_to }); }}>Clear</button>
         </div>
       )}
     </div>

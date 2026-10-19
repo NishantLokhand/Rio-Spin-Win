@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { rpc } from '../lib/api.js';
+import { rpc, selectAll } from '../lib/api.js';
 import FilterBar from './FilterBar.jsx';
 import ZeroSpinDownload from './ZeroSpinDownload.jsx';
 import { reportTotal, reportPeriod } from '../lib/reportTotals.js';
@@ -7,18 +7,15 @@ import { useAsync, Panel, Loading, DataTable, Tabs, BarList, fmt } from './ui.js
 
 const money = { align: 'r', fmt: fmt.inr };
 const COLS = {
-  tse: [
-    { key: 'label', label: 'TSE' }, { key: 'tse_code', label: 'TSE Code' }, { key: 'territory', label: 'Territory' },
-    { key: 'active_outlets', label: 'Active Outlets', align: 'r' }, { key: 'promoters', label: 'Promoters Deployed', align: 'r' },
-    { key: 'spins', label: 'Spins', align: 'r', fmt: fmt.num }, { key: 'units', label: 'Units Sold', align: 'r', fmt: fmt.num },
-    { key: 'giveaway_cost', label: 'Giveaway Cost', ...money }, { key: 'avg_cost', label: 'Average Giveaway Cost', align: 'r', fmt: fmt.inr2 },
-  ],
-  promoter: [
-    { key: 'label', label: 'Promoter' }, { key: 'promoter_code', label: 'Code' }, { key: 'promoter_type', label: 'Type' },
-    { key: 'state', label: 'State' }, { key: 'territory', label: 'Territory' }, { key: 'city', label: 'City' }, { key: 'area', label: 'Area' },
-    { key: 'active_outlets', label: 'Outlets Covered', align: 'r' },
-    { key: 'spins', label: 'Spins', align: 'r', fmt: fmt.num }, { key: 'units', label: 'Units Sold', align: 'r', fmt: fmt.num },
-    { key: 'giveaway_cost', label: 'Giveaway Cost', ...money }, { key: 'avg_cost', label: 'Average Cost', align: 'r', fmt: fmt.inr2 },
+  user: [
+    { key: 'label', label: 'User' }, { key: 'user_type', label: 'Type' },
+    { key: 'state', label: 'State' }, { key: 'city', label: 'City' },
+    { key: 'outlets', label: 'Outlets Visited' }, { key: 'active_outlets', label: 'Outlets Covered', align: 'r' },
+    { key: 'spins', label: 'Spins', align: 'r', fmt: fmt.num },
+    { key: 'units', label: 'Units Sold', align: 'r', fmt: fmt.num },
+    { key: 'giveaway_cost', label: 'Giveaway Cost', ...money },
+    { key: 'avg_cost', label: 'Average Cost', align: 'r', fmt: fmt.inr2 },
+    { key: 'area', label: 'Area' }, { key: 'user_code', label: 'User Code' },
   ],
   outlet: [
     { key: 'label', label: 'Outlet' }, { key: 'outlet_code', label: 'Outlet Code' }, { key: 'area', label: 'Area' },
@@ -44,21 +41,24 @@ const generic = (label) => [
 ];
 
 const TABS = [
-  { key: 'tse', label: 'TSE Performance' }, { key: 'promoter', label: 'Promoter Performance' },
+  { key: 'user', label: 'User Performance' },
   { key: 'outlet', label: 'Outlet Performance' }, { key: 'prize', label: 'Prize Usage' },
   { key: 'product', label: 'SKU' }, { key: 'state', label: 'State' }, { key: 'territory', label: 'Territory' }, { key: 'city', label: 'City' },
   { key: 'area', label: 'Area' }, { key: 'distributor', label: 'Distributor' }, { key: 'date', label: 'Daily' },
 ];
 
 export default function Reports({ data, filters, setFilters }) {
-  const [tab, setTab] = useState('tse');
+  const [tab, setTab] = useState('user');
+  const [userType, setUserType] = useState('');
+  const people = useAsync(() => selectAll('org_people', 'auth_user_id,designation', (q) => q.not('auth_user_id', 'is', null)), []);
   const rep = useAsync(() => tab === 'prize'
     ? rpc('prize_distribution_report', { p_filters: filters })
-    : rpc('report_summary', { p_group: tab, p_filters: filters }), [tab, JSON.stringify(filters)]);
+    : tab === 'user' ? rpc('report_user_performance', { p_filters: filters, p_user_type: userType || null })
+    : rpc('report_summary', { p_group: tab, p_filters: filters }), [tab, userType, JSON.stringify(filters)]);
   const cols = COLS[tab] || generic(TABS.find((t) => t.key === tab).label);
   const drill = tab === 'area' ? (r) => { setFilters({ ...filters, area: r.key }); setTab('outlet'); }
-    : tab === 'tse' ? (r) => { setFilters({ ...filters, tse_id: r.key }); setTab('outlet'); }
-    : tab === 'territory' ? (r) => { setFilters({ ...filters, territory_id: r.key }); setTab('tse'); }
+    : tab === 'user' ? (r) => { setFilters({ ...filters, promoter_id: r.key }); setTab('outlet'); }
+    : tab === 'territory' ? (r) => { setFilters({ ...filters, territory_id: r.key }); setTab('user'); }
     : tab === 'state' ? (r) => { setFilters({ ...filters, state_id: r.key }); setTab('territory'); } : undefined;
 
   const totals = rep.data && tab !== 'prize' ? rep.data.reduce((a, r) => ({
@@ -71,19 +71,20 @@ export default function Reports({ data, filters, setFilters }) {
   const reportRows = tab === 'date' ? [...(rep.data || [])].sort((a, b) => String(b.key).localeCompare(String(a.key))) : rep.data || [];
   const totalRow = reportTotal(reportRows, tab === 'prize');
   const promoterCount = new Set(reportRows.map((row) => row.key)).size;
-  if (tab === 'promoter') totalRow.label = `TOTAL (${promoterCount} promoters)`;
+  if (tab === 'user') totalRow.label = `TOTAL (${promoterCount} users)`;
   const exportRows = [...reportRows, totalRow].map((row) => ({ ...row,
     date_from: filters.date_from || 'Beginning', date_to: filters.date_to || 'No end date' }));
   const exportColumns = [{ key: 'date_from', label: 'Date From' }, { key: 'date_to', label: 'Date To' }, ...cols];
 
   return (
     <div className="s-page">
-      <FilterBar data={data} filters={filters} setFilters={setFilters} />
+      <FilterBar data={data} filters={filters} setFilters={setFilters}
+        userPerformance={tab === 'user'} userType={userType} setUserType={setUserType} userPeople={people.data || []} />
       <div className="pad"><ZeroSpinDownload users={data.promoters} dates={filters} /></div>
       <Tabs tabs={TABS} value={tab} onChange={setTab} />
       <Panel title={TABS.find((t) => t.key === tab).label}
              actions={totals
-               ? <span className="muted">Total: {tab === 'promoter' && `${fmt.num(promoterCount)} promoters · `}{fmt.num(totals.spins)} spins · {fmt.num(totals.units)} units · {fmt.inr(totals.cost)} · avg {fmt.inr2(totals.spins ? totals.cost / totals.spins : 0)}</span>
+               ? <span className="muted">Total: {tab === 'user' && `${fmt.num(promoterCount)} users · `}{fmt.num(totals.spins)} spins · {fmt.num(totals.units)} units · {fmt.inr(totals.cost)} · avg {fmt.inr2(totals.spins ? totals.cost / totals.spins : 0)}</span>
                : prizeTotals && <span className="muted">Total: {fmt.num(prizeTotals.spins)} spins · {fmt.inr(prizeTotals.cost)} giveaway cost · avg {fmt.inr2(prizeTotals.avg)} / spin</span>}>
         {!rep.data ? <Loading state={rep} /> : (
           <>
