@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { rpc } from '../lib/api.js';
 import { useAsync } from './ui.jsx';
 import { istToday } from '../lib/store.js';
+import { reportingExclusions } from '../lib/reportingScope.js';
 
 export const defaultFilters = () => ({ date_from: istToday(), date_to: istToday() });
 
@@ -15,6 +16,8 @@ export default function FilterBar({ data, filters, setFilters, show = 'all', use
   const f = filters;
   const set = (patch) => setFilters({ ...f, ...patch });
   const m = data.masters;
+  const exclusion = useAsync(reportingExclusions, []);
+  const reportUsers = data.promoters.filter((u) => exclusion.data && !exclusion.data.has(u.id));
   const territories = useMemo(() => m.territories.filter((t) => !f.state_id || t.state_id === f.state_id), [m, f.state_id]);
   const tses = useMemo(() => m.tses.filter((t) => (!f.territory_id || t.territory_id === f.territory_id)
     && (!f.state_id || territories.some((x) => x.id === t.territory_id))), [m, f.territory_id, f.state_id, territories]);
@@ -66,8 +69,8 @@ export default function FilterBar({ data, filters, setFilters, show = 'all', use
             setUserType(e.target.value); set({ promoter_id: undefined, tse_id: undefined });
           }}><option value="">Type: All</option><option value="PROMOTER">Promoter</option><option value="TSE">TSE</option><option value="MER">MER</option></select>}
           {sel('promoter_id', userPerformance && userType
-            ? data.promoters.filter((u) => userPeople.some((p) => p.auth_user_id === u.id && p.designation === userType))
-            : data.promoters, userPerformance ? 'User' : 'Promoter', (x) => x.full_name)}
+            ? reportUsers.filter((u) => userPeople.some((p) => p.auth_user_id === u.id && p.designation === userType))
+            : reportUsers, userPerformance ? 'User' : 'Promoter', (x) => x.full_name)}
           {sel('product_id', m.products, 'SKU')}
           <button className="s-btn ghost sm" onClick={() => { if (userPerformance) setUserType(''); setFilters({ date_from: f.date_from, date_to: f.date_to }); }}>Clear</button>
         </div>

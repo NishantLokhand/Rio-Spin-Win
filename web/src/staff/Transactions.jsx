@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase.js';
 import { selectAll } from '../lib/api.js';
+import { reportingExclusions, applyReportingScope } from '../lib/reportingScope.js';
 import { exportCSV, exportXLSX } from '../lib/exporter.js';
 import FilterBar from './FilterBar.jsx';
 import { useAsync, Panel, Loading, DataTable, Badge, fmt } from './ui.jsx';
@@ -31,8 +32,9 @@ export function applyTxnFilters(q, f) {
 export default function Transactions({ data, filters, setFilters }) {
   const [busy, setBusy] = useState(false);
   const list = useAsync(async () => {
+    const excluded = await reportingExclusions();
     let q = supabase.from('v_transactions').select('*').order('spun_at', { ascending: false, nullsFirst: false }).limit(300);
-    q = applyTxnFilters(q, filters);
+    q = applyReportingScope(applyTxnFilters(q, filters), excluded);
     const { data: rows, error } = await q;
     if (error) throw error;
     return rows;
@@ -41,7 +43,8 @@ export default function Transactions({ data, filters, setFilters }) {
   async function exportAll(kind) {
     setBusy(true);
     try {
-      const rows = await selectAll('v_transactions', '*', (q) => applyTxnFilters(q, filters).order('spun_at', { ascending: false }));
+      const excluded = await reportingExclusions();
+      const rows = await selectAll('v_transactions', '*', (q) => applyReportingScope(applyTxnFilters(q, filters), excluded).order('spun_at', { ascending: false }));
       (kind === 'csv' ? exportCSV : exportXLSX)(rows, TXN_COLUMNS, `transactions_${filters.date_from || 'all'}_${filters.date_to || ''}`);
     } finally { setBusy(false); }
   }

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { rpc, selectAll, friendly } from '../lib/api.js';
 import { exportCSV, exportXLSX } from '../lib/exporter.js';
+import { reportingExclusions, applyReportingScope, withoutExcluded } from '../lib/reportingScope.js';
 import FilterBar from './FilterBar.jsx';
 import { Panel } from './ui.jsx';
 import { TXN_COLUMNS, applyTxnFilters } from './Transactions.jsx';
@@ -14,18 +15,27 @@ export default function Exports({ data, filters, setFilters }) {
   const users = Object.fromEntries(data.promoters.map((u) => [u.id, u.full_name]));
 
   const ITEMS = [
-    { key: 'transactions', label: 'Transactions / spins', uses: true, run: (f) => selectAll('v_transactions', '*', (q) => applyTxnFilters(q, f).order('spun_at')), cols: TXN_COLUMNS },
+    { key: 'transactions', label: 'Transactions / spins', uses: true, run: async (f) => {
+      const excluded = await reportingExclusions();
+      return selectAll('v_transactions', '*', (q) => applyReportingScope(applyTxnFilters(q, f), excluded).order('spun_at'));
+    }, cols: TXN_COLUMNS },
     { key: 'promoter_performance', label: 'Promoter performance', uses: true, run: report('promoter') },
     { key: 'tse_performance', label: 'TSE performance', uses: true, run: report('tse') },
     { key: 'outlet_performance', label: 'Outlet performance', uses: true, run: report('outlet') },
     { key: 'prize_usage', label: 'Prize usage', uses: true, run: report('prize') },
     { key: 'campaign_spend_daily', label: 'Campaign spend (daily)', uses: true, run: report('date') },
     { key: 'sku_performance', label: 'SKU performance', uses: true, run: report('product') },
-    { key: 'inventory_balances', label: 'Inventory — current balances', run: async () => (await selectAll('promoter_inventory', '*'))
-        .map((i) => ({ promoter: users[i.promoter_id], prize: prizes[i.prize_id], on_hand: i.on_hand, reserved_pending_handover: i.reserved, updated_at: i.updated_at })) },
-    { key: 'inventory_movements', label: 'Inventory — movement log', run: async () => (await selectAll('inventory_movements', '*', (q) => q.order('created_at')))
+    { key: 'inventory_balances', label: 'Inventory — current balances', run: async () => {
+      const excluded = await reportingExclusions();
+      return withoutExcluded(await selectAll('promoter_inventory', '*'), excluded)
+        .map((i) => ({ promoter: users[i.promoter_id], prize: prizes[i.prize_id], on_hand: i.on_hand, reserved_pending_handover: i.reserved, updated_at: i.updated_at }));
+    } },
+    { key: 'inventory_movements', label: 'Inventory — movement log', run: async () => {
+      const excluded = await reportingExclusions();
+      return withoutExcluded(await selectAll('inventory_movements', '*', (q) => q.order('created_at')), excluded)
         .map((m) => ({ date_time: m.created_at, promoter: users[m.promoter_id], prize: prizes[m.prize_id], type: m.movement_type, qty: m.qty,
-          stock_after: m.on_hand_after, issued_by: m.performed_by, reference: m.reference, note: m.note })) },
+          stock_after: m.on_hand_after, issued_by: m.performed_by, reference: m.reference, note: m.note }));
+    } },
     { key: 'outlet_master', label: 'Outlet master', run: async () => data.outletsFull.map((o) => {
         const t = data.masters.tses.find((x) => x.id === o.tse_id); const tr = data.masters.territories.find((x) => x.id === (o.territory_id || t?.territory_id));
         return { state: data.masters.states.find((s) => s.id === (o.state_id || tr?.state_id))?.name, territory: tr?.name, tse_code: t?.code, tse_name: t?.name,

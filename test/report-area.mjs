@@ -102,5 +102,27 @@ await assert.rejects(() => summary('area'), /STAFF_ONLY/);
 await assert.rejects(()=>performance(),/STAFF_ONLY/);
 await assert.rejects(()=>userDaily(),/STAFF_ONLY/);
 await assert.rejects(() => db.query('select get_report_areas(null)'), /STAFF_ONLY/);
+// Report exclusions happen before aggregation and never alter recorded activity.
+await db.exec(`set test.actor='${admin}';
+  alter table app_users add primary key(id);
+  alter table app_users add column login_id text;
+  insert into app_users(id,role,full_name) values ('${other}','promoter','Demo Promoter');`);
+const exclusionMigration = await readFile(new URL('../supabase/migrations/20261019000600_exclude_test_demo_reports.sql', import.meta.url), 'utf8');
+await db.exec(exclusionMigration);
+await db.exec(exclusionMigration); // Safe to reapply; no duplicate predicates/registrations.
+assert.deepEqual((await db.query('select get_reporting_excluded_users() ids')).rows[0].ids,[other]);
+assert.equal((await summary('area')).reduce((n,r)=>n+Number(r.units),0),5);
+assert.equal((await userDaily()).length,1);
+assert.equal((await performance()).length,1);
+assert.deepEqual(await summary('area',{promoter_id:other}),[]);
+await db.exec(`update app_users set full_name='Renamed sample' where id='${other}'`);
+assert.equal((await userDaily()).length,1); // Identity stays excluded after rename.
+await db.exec(`update app_users set full_name='Contest Winner' where id='${promoter}'`);
+assert.equal((await userDaily()).length,1); // A substring such as conTEST is a real name.
+await db.exec(`update app_users set full_name='TEST Promoter Future' where id='${promoter}'`);
+assert.deepEqual(await userDaily(),[]); // Newly named demo/test accounts are also excluded.
+assert.equal((await db.query('select count(*) n from sales')).rows[0].n,3);
+await db.exec(`set test.actor='${promoter}'`);
+await assert.rejects(()=>db.query('select get_reporting_excluded_users()'),/STAFF_ONLY/);
 await db.close();
 console.log('PASS: Area grouping/filtering, prize totals, product intersection, no-sales master options and supervisor isolation');
