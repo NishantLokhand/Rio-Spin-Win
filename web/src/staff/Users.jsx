@@ -38,9 +38,13 @@ export default function Users({ data, reloadData }) {
       <Tabs value={role} onChange={setRole} tabs={[{ key: 'promoter', label: 'Field team' }, { key: 'supervisor', label: 'Supervisors' }, { key: 'admin', label: 'Admins' }]} />
       {err && <div className="s-err">{err}</div>}
       <Panel title={role === 'promoter' ? 'Field team — Promoters, TSEs & MERs' : `${role[0].toUpperCase() + role.slice(1)}s`} actions={<button className="s-btn sm" onClick={() => setEdit({ role, is_active: true, promoter_type: 'permanent', designation: 'PROMOTER' })}>+ Create {role === 'promoter' ? 'field user' : role}</button>}>
-        <DataTable rows={us.data.filter((u) => u.role === role).map((u) => ({ ...u, supervisor: supName(u.supervisor_id) }))} exportName={`${role}s`} columns={[
+        <DataTable rows={us.data.filter((u) => u.role === role).map((u) => ({ ...u, supervisor: supName(u.supervisor_id),
+          city: u.org_profile?.market_override ?? u.org_profile?.market_raw ?? '',
+          area: u.org_profile?.area_override ?? u.org_profile?.area_raw ?? '',
+        }))} exportName={`${role}s`} columns={[
           { key: 'full_name', label: 'Name' }, { key: 'login_id', label: 'Login (mobile / username)' }, { key: 'mobile', label: 'Mobile' },
           ...(role === 'promoter' ? [{ key: 'designation', label: 'Field role', render: (u) => u.org_profile?.designation || 'Not linked' }, { key: 'org_link', label: 'Organization', render: (u) => <Badge tone={u.org_profile?.active ? 'green' : 'red'}>{u.org_profile?.active ? 'Linked' : 'Needs linking'}</Badge> }, { key: 'promoter_code', label: 'Promoter ID' }, { key: 'promoter_type', label: 'Type' },
+            { key: 'city', label: 'City' }, { key: 'area', label: 'Area' },
             { key: 'agency_name', label: 'Agency' }, { key: 'supervisor', label: 'Supervisor' }] : []),
           ...(role === 'supervisor' ? [{ key: 'can_approve_outlets', label: 'Approves outlets', fmt: (v) => (v ? 'Yes' : 'No') }] : []),
           ...(role === 'admin' ? [{ key: 'can_override_cost_target', label: 'Can override cost target', fmt: (v) => (v ? 'Yes' : 'No') }] : []),
