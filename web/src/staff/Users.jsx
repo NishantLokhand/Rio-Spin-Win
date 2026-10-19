@@ -20,8 +20,8 @@ export default function Users({ data, reloadData }) {
   const [pin, setPin] = useState(null);
   const [err, setErr] = useState('');
   const us = useAsync(async () => {
-    const [users, promoters, people] = await Promise.all([selectAll('app_users', '*', (q) => q.order('full_name')), selectAll('promoters', '*'), selectAll('org_people', '*')]);
-    return users.map((u) => ({ ...u, ...(promoters.find((p) => p.user_id === u.id) || {}), org_profile: people.find((p) => p.auth_user_id === u.id) }));
+    const [users, promoters, people, deleted] = await Promise.all([selectAll('app_users', '*', (q) => q.order('full_name')), selectAll('promoters', '*'), selectAll('org_people', '*'), rpc('get_deleted_field_users')]);
+    return users.filter((u) => !deleted.includes(u.id)).map((u) => ({ ...u, ...(promoters.find((p) => p.user_id === u.id) || {}), org_profile: people.find((p) => p.auth_user_id === u.id) }));
   }, []);
   if (!us.data) return <div className="s-page"><Loading state={us} /></div>;
   const sups = us.data.filter((u) => u.role === 'supervisor');
@@ -76,6 +76,7 @@ function UserModal({ u, data, sups, onClose }) {
   }));
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
+  const [deleting, setDeleting] = useState(false), [confirmLogin, setConfirmLogin] = useState('');
   const people = useAsync(() => f.role === 'promoter' ? selectAll('org_people', '*', (q) => q.order('employee_name')) : Promise.resolve([]), []);
   const available = (people.data || []).filter((p) => p.active && !p.auth_user_id && ['PROMOTER', 'TSE', 'MER'].includes(p.designation));
   function choosePerson(e) {
@@ -114,8 +115,16 @@ function UserModal({ u, data, sups, onClose }) {
     } catch (e) { setErr(friendly(e)); setBusy(false); }
   }
 
+  async function remove() {
+    setBusy(true); setErr('');
+    try {
+      await rpc('delete_field_user', { p_user_id: u.id, p_confirm_login: confirmLogin });
+      onClose(true);
+    } catch (e) { setErr(friendly(e)); setBusy(false); }
+  }
+
   return (
-    <Modal title={isNew ? f.role === 'promoter' ? 'Add field team member' : `Create ${f.role}` : `Edit ${u.full_name}`} onClose={() => onClose(false)}>
+    <Modal title={isNew ? f.role === 'promoter' ? 'Add field team member' : `Create ${f.role}` : `Edit ${u.full_name}`} onClose={() => { if (!busy) onClose(false); }}>
       <div className="s-form">
         {isNew && f.role === 'promoter' && <>
           <p className="muted">Create a login and linked organizational profile together. The user can select active outlets immediately; prize stock is managed separately.</p>
@@ -173,8 +182,16 @@ function UserModal({ u, data, sups, onClose }) {
         {f.role === 'supervisor' && <label className="check"><input type="checkbox" checked={!!f.can_approve_outlets} onChange={set('can_approve_outlets')} /> Authorised to approve new outlets</label>}
         {f.role === 'admin' && <label className="check"><input type="checkbox" checked={!!f.can_override_cost_target} onChange={set('can_override_cost_target')} /> Authorised to override the cost-per-spin target</label>}
         {err && <div className="s-err">{err}</div>}
-        <div className="s-actions"><button className="s-btn ghost" onClick={() => onClose(false)}>Cancel</button>
-          <button className="s-btn" disabled={busy || (isNew && f.role === 'promoter' && (people.loading || !!people.error))} onClick={save}>{busy ? 'Saving…' : isNew && f.role === 'promoter' ? 'Create linked user' : 'Save'}</button></div>
+        {!isNew && u.role === 'promoter' && <div>
+          {!deleting ? <button className="s-btn danger" disabled={busy} onClick={() => { setDeleting(true); setErr(''); }}>Delete user</button> : <>
+            <p><strong>Delete {u.full_name} ({u.login_id})?</strong> This removes the user from Users and reports and blocks app access. Sales, spins and stock history are retained. The login ID stays reserved.</p>
+            <Field label={`Type ${u.login_id} to confirm deletion`}><input aria-label="Confirm delete login ID" value={confirmLogin} onChange={(e) => setConfirmLogin(e.target.value)} disabled={busy} autoComplete="off" /></Field>
+            <div className="s-actions"><button className="s-btn ghost" disabled={busy} onClick={() => { setDeleting(false); setConfirmLogin(''); }}>Keep user</button>
+              <button className="s-btn danger" disabled={busy || confirmLogin !== u.login_id} onClick={remove}>{busy ? 'Deleting…' : 'Confirm delete user'}</button></div>
+          </>}
+        </div>}
+        <div className="s-actions"><button className="s-btn ghost" disabled={busy} onClick={() => onClose(false)}>Cancel</button>
+          <button className="s-btn" disabled={busy || deleting || (isNew && f.role === 'promoter' && (people.loading || !!people.error))} onClick={save}>{busy ? 'Working…' : isNew && f.role === 'promoter' ? 'Create linked user' : 'Save'}</button></div>
       </div>
     </Modal>
   );
