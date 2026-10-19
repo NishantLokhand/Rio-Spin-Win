@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { zeroSpinUsers } from '../web/src/lib/zeroSpins.js';
+import { zeroSpinUsers, neverSpunUsers } from '../web/src/lib/zeroSpins.js';
 
 const users = [
   { id: 'a', full_name: 'Same name', is_active: true },
@@ -26,4 +26,23 @@ const located = zeroSpinUsers(users, profiles, [], dates, [
 ]);
 assert.deepEqual(located.map((r) => r.city), ['ROM_AMRAVATI', 'MUMBAI MKT', '']);
 assert.equal(located[1].status, 'Disabled');
+const neverUsers = [
+  ...users, { id: 'd', full_name: 'MER user', login_id: '9876543210' },
+  { id: 'e', full_name: 'Unlinked', login_id: 'not-a-phone' },
+];
+const never = neverSpunUsers(neverUsers, [{ user_id: 'b', home_state_id: 'mh' }],
+  [{ promoter_id: 'a' }, { promoter_id: 'a' }], [
+    { auth_user_id: 'b', designation: 'PROMOTER', mobile: '9000000001', market_raw: 'ROM_AMRAVATI' },
+    { auth_user_id: 'c', designation: 'TSE', state_raw: 'Uttar Pradesh' },
+    { auth_user_id: 'd', designation: 'MER', market_raw: 'Old', market_override: 'MUMBAI MKT' },
+  ], [{ id: 'mh', name: 'Maharashtra' }]);
+assert.deepEqual(never.map((r) => r.id), ['b', 'c', 'd', 'e']);
+assert.deepEqual(never.slice(0, 3).map((r) => r.type), ['Promoter', 'TSE', 'MER']);
+assert.equal(never[0].state, 'Maharashtra');
+assert.equal(never[1].state, 'Uttar Pradesh');
+assert.equal(never[2].city, 'MUMBAI MKT');
+assert.equal(never[0].mobile, '9000000001');
+assert.equal(never[2].mobile, '9876543210');
+assert.equal(never[3].mobile, '');
+assert.ok(never.every((r) => r.spins === 0));
 console.log('Zero-spin export checks passed.');
