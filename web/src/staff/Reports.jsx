@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { rpc, selectAll } from '../lib/api.js';
 import { userPerformanceColumns } from '../lib/userReportColumns.js';
-import { attachMetrics } from '../lib/performanceMetrics.js';
+import { loadUserActivityData } from '../lib/userActivityData.js';
+import { completeUserPerformance } from '../lib/userPerformance.js';
 import { istToday } from '../lib/store.js';
 import FilterBar from './FilterBar.jsx';
 import SpinHistory from './SpinHistory.jsx';
@@ -11,7 +12,7 @@ import { useAsync, Panel, Loading, DataTable, Tabs, BarList, fmt } from './ui.js
 
 const money = { align: 'r', fmt: fmt.inr };
 const COLS = {
-  user: userPerformanceColumns,
+  user: [...userPerformanceColumns, { key: 'account_status', label: 'Account Status' }, { key: 'activity', label: 'Activity' }],
   outlet: [
     { key: 'label', label: 'Outlet' }, { key: 'outlet_code', label: 'Outlet Code' }, { key: 'area', label: 'Area' },
     { key: 'tse', label: 'TSE' }, { key: 'territory', label: 'Territory' },
@@ -48,8 +49,8 @@ export default function Reports({ data, filters, setFilters }) {
   const people = useAsync(() => selectAll('org_people', 'auth_user_id,designation', (q) => q.not('auth_user_id', 'is', null)), []);
   const rep = useAsync(() => tab === 'prize'
     ? rpc('prize_distribution_report', { p_filters: filters })
-    : tab === 'user' ? Promise.all([rpc('report_user_daily', { p_filters: filters, p_user_type: userType || null }), rpc('get_field_user_metrics')])
-      .then(([rows, metrics]) => attachMetrics(rows, metrics, filters.date_from, filters.date_to, istToday()))
+    : tab === 'user' ? Promise.all([loadUserActivityData(), rpc('report_user_daily', { p_filters: filters, p_user_type: userType || null })])
+      .then(([source, rows]) => completeUserPerformance(source, rows, filters, userType, istToday()))
     : rpc('report_summary', { p_group: tab, p_filters: filters }), [tab, userType, JSON.stringify(filters)]);
   const cols = COLS[tab] || generic(TABS.find((t) => t.key === tab).label);
   const drill = tab === 'area' ? (r) => { setFilters({ ...filters, area: r.key }); setTab('outlet'); }
@@ -86,6 +87,7 @@ export default function Reports({ data, filters, setFilters }) {
           <>
             <p className="muted pad">Report period: <strong>{reportPeriod(filters)}</strong></p>
             {tab === 'user' && <p className="muted pad">Activity % uses calendar days from account creation within the selected period, through yesterday. Stock used % is current stock received minus current balance, divided by stock received; it includes other stock reductions. Blank percentages mean no usable stock baseline.</p>}
+            {tab === 'user' && <p className="muted pad">Includes disabled accounts and zero-spin dates from account creation. Today is in progress. Dates without recorded activity use profile State/City/Area and have no visited outlets. Campaign, Territory, TSE, Outlet, Distributor or SKU filters show recorded activity only.</p>}
             {tab === 'prize' && rep.data.length > 0 && (
               <div className="pad"><BarList rows={rep.data} labelKey="label" valueKey="pct" format={fmt.pct} sub={(r) => `${fmt.num(r.quantity)} won`} /></div>
             )}
