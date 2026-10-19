@@ -19,4 +19,11 @@ assert.equal(rows[1].date_to, dates.date_to);
 assert.equal(zeroSpinUsers(users, [], []).length, 0);
 assert.equal(zeroSpinUsers(users, profiles, []).length, 3);
 assert.throws(() => zeroSpinUsers(users, profiles, [{ key: 'a', spins: 'bad' }]));
+const located = zeroSpinUsers(users, profiles, [], dates, [
+  { auth_user_id: 'a', market_raw: 'ROM_AMRAVATI' },
+  { auth_user_id: 'b', market_raw: 'Old city', market_override: 'MUMBAI MKT' },
+  { auth_user_id: null, market_raw: 'Unlinked city' },
+]);
+assert.deepEqual(located.map((r) => r.city), ['ROM_AMRAVATI', 'MUMBAI MKT', '']);
+assert.equal(located[1].status, 'Disabled');
 console.log('Zero-spin export checks passed.');
