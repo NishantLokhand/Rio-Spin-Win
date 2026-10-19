@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { rpc, selectAll } from '../lib/api.js';
+import { attachMetrics, performanceColumns } from '../lib/performanceMetrics.js';
+import { istToday } from '../lib/store.js';
 import FilterBar from './FilterBar.jsx';
 import SpinHistory from './SpinHistory.jsx';
 import ZeroSpinDownload from './ZeroSpinDownload.jsx';
@@ -17,7 +19,7 @@ const COLS = {
     { key: 'units', label: 'Units Sold', align: 'r', fmt: fmt.num },
     { key: 'giveaway_cost', label: 'Giveaway Cost', ...money },
     { key: 'avg_cost', label: 'Average Cost', align: 'r', fmt: fmt.inr2 },
-    { key: 'user_code', label: 'User Code' },
+    { key: 'user_code', label: 'User Code' }, ...performanceColumns,
   ],
   outlet: [
     { key: 'label', label: 'Outlet' }, { key: 'outlet_code', label: 'Outlet Code' }, { key: 'area', label: 'Area' },
@@ -55,7 +57,8 @@ export default function Reports({ data, filters, setFilters }) {
   const people = useAsync(() => selectAll('org_people', 'auth_user_id,designation', (q) => q.not('auth_user_id', 'is', null)), []);
   const rep = useAsync(() => tab === 'prize'
     ? rpc('prize_distribution_report', { p_filters: filters })
-    : tab === 'user' ? rpc('report_user_daily', { p_filters: filters, p_user_type: userType || null })
+    : tab === 'user' ? Promise.all([rpc('report_user_daily', { p_filters: filters, p_user_type: userType || null }), rpc('get_field_user_metrics')])
+      .then(([rows, metrics]) => attachMetrics(rows, metrics, filters.date_from, filters.date_to, istToday()))
     : rpc('report_summary', { p_group: tab, p_filters: filters }), [tab, userType, JSON.stringify(filters)]);
   const cols = COLS[tab] || generic(TABS.find((t) => t.key === tab).label);
   const drill = tab === 'area' ? (r) => { setFilters({ ...filters, area: r.key }); setTab('outlet'); }
@@ -91,6 +94,7 @@ export default function Reports({ data, filters, setFilters }) {
         {!rep.data ? <Loading state={rep} /> : (
           <>
             <p className="muted pad">Report period: <strong>{reportPeriod(filters)}</strong></p>
+            {tab === 'user' && <p className="muted pad">Activity % uses calendar days from account creation within the selected period, through yesterday. Stock used % is current stock received minus current balance, divided by stock received; it includes other stock reductions. Blank percentages mean no usable stock baseline.</p>}
             {tab === 'prize' && rep.data.length > 0 && (
               <div className="pad"><BarList rows={rep.data} labelKey="label" valueKey="pct" format={fmt.pct} sub={(r) => `${fmt.num(r.quantity)} won`} /></div>
             )}

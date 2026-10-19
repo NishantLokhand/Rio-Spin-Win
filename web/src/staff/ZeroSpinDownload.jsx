@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { rpc, selectAll, friendly } from '../lib/api.js';
 import { zeroSpinUsers, neverSpunUsers } from '../lib/zeroSpins.js';
+import { attachMetrics, performanceColumns } from '../lib/performanceMetrics.js';
+import { istToday } from '../lib/store.js';
 import { reportPeriod } from '../lib/reportTotals.js';
 import { Modal, DataTable } from './ui.jsx';
 
@@ -9,12 +11,13 @@ const columns = [
   { key: 'code', label: 'Promoter Code' }, { key: 'type', label: 'Type' },
   { key: 'city', label: 'City' },
   { key: 'status', label: 'Status' }, { key: 'spins', label: 'Spins' },
+  ...performanceColumns,
   { key: 'date_from', label: 'Date From' }, { key: 'date_to', label: 'Date To' },
 ];
 const neverColumns = [
   { key: 'name', label: 'Name' }, { key: 'state', label: 'State' },
   { key: 'type', label: 'Type' }, { key: 'city', label: 'City' },
-  { key: 'spins', label: 'Spins' }, { key: 'mobile', label: 'Mobile Number' },
+  { key: 'spins', label: 'Spins' }, { key: 'mobile', label: 'Mobile Number' }, ...performanceColumns,
 ];
 
 export default function ZeroSpinDownload({ users, dates, snapshot }) {
@@ -27,21 +30,21 @@ export default function ZeroSpinDownload({ users, dates, snapshot }) {
     try {
       if (never) {
         const checkedAt = new Date().toISOString();
-        const [profiles, spins, people, states] = await Promise.all([
+        const [profiles, spins, people, states, metrics] = await Promise.all([
           selectAll('promoters', 'user_id,home_state_id'),
           selectAll('spins', 'promoter_id', (q) => q.lte('created_at', checkedAt).order('id')),
           selectAll('org_people', 'auth_user_id,designation,state_raw,market_raw,market_override,mobile', (q) => q.not('auth_user_id', 'is', null)),
-          selectAll('states', 'id,name'),
+          selectAll('states', 'id,name'), rpc('get_field_user_metrics'),
         ]);
-        setResult({ period, never, checkedAt, rows: neverSpunUsers(users, profiles, spins, people, states) });
+        setResult({ period, never, checkedAt, rows: attachMetrics(neverSpunUsers(users, profiles, spins, people, states), metrics, null, null, istToday()) });
         return;
       }
-      const [profiles, activity, people] = await Promise.all([
+      const [profiles, activity, people, metrics] = await Promise.all([
         snapshot ? snapshot.promoters : selectAll('promoters', '*'),
         snapshot ? snapshot.activity : rpc('report_summary', { p_group: 'promoter', p_filters: period }),
-        selectAll('org_people', 'auth_user_id,market_raw,market_override', (q) => q.not('auth_user_id', 'is', null)),
+        selectAll('org_people', 'auth_user_id,market_raw,market_override', (q) => q.not('auth_user_id', 'is', null)), rpc('get_field_user_metrics'),
       ]);
-      setResult({ period, rows: zeroSpinUsers(users, profiles, activity, period, people) });
+      setResult({ period, rows: attachMetrics(zeroSpinUsers(users, profiles, activity, period, people), metrics, period.date_from, period.date_to, istToday()) });
     } catch (e) { setResult({ period, never, error: friendly(e) }); }
     finally { setBusy(false); }
   }
@@ -55,7 +58,7 @@ export default function ZeroSpinDownload({ users, dates, snapshot }) {
       <p className="muted">{result.never
         ? 'Users in your access with no recorded spins at any time, including disabled users. Selected report dates and other filters do not apply.'
         : 'All field users in your access, including disabled users. Uses these dates only; other report filters do not apply.'}</p>
-      <p className="muted">City comes from the user’s organizational Market details. A blank means no Market is recorded.</p>
+      <p className="muted">City comes from organizational Market details. Activity is measured from account creation, within this period, excluding today. Snack used % is current received stock minus balance divided by received stock, including other reductions; blank means no usable baseline.</p>
       {busy ? <p>Checking spin activity…</p> : result.error ? <p className="s-error">{result.error}</p> :
         <DataTable rows={result.rows} columns={result.never ? neverColumns : columns}
           empty={result.never ? 'All users have recorded at least one spin.' : 'No users with zero spins in this period.'}

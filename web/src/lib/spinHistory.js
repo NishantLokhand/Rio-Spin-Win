@@ -13,9 +13,10 @@ export function historyRange(mode, end) {
   return { from: '', to: end };
 }
 
-export function spinHistory(rows, { from = '', to, today }, people = []) {
+export function spinHistory(rows, { from = '', to, today }, people = [], accounts = []) {
   if (!to || to > today || (from && from > to)) throw new Error('Choose a valid date range ending today or earlier.');
   const org = new Map(people.map((p) => [p.auth_user_id, p]));
+  const accountDates = new Map(accounts.map((a) => [a.key, a.account_date]));
   const groups = new Map();
   for (const r of rows) {
     if (!groups.has(r.key)) groups.set(r.key, []);
@@ -35,7 +36,8 @@ export function spinHistory(rows, { from = '', to, today }, people = []) {
       city: person.market_override ?? person.market_raw ?? latest.city ?? '',
       area: person.area_override ?? person.area_raw ?? latest.area ?? '' };
     const byDate = new Map(userRows.map((r) => [r.date, r]));
-    const start = from && from > first ? from : first;
+    const accountStart = accountDates.get(id) || first;
+    const start = from && from > accountStart ? from : accountStart;
     let active = 0, elapsed = 0, totalSpins = 0, streak = 0, longest = 0;
     for (let date = start; date <= to; date = shiftDate(date, 1)) {
       const r = byDate.get(date);
