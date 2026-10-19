@@ -43,7 +43,7 @@ export default function Users({ data, reloadData }) {
           area: u.org_profile?.area_override ?? u.org_profile?.area_raw ?? '',
         }))} exportName={`${role}s`} columns={[
           { key: 'full_name', label: 'Name' }, { key: 'login_id', label: 'Login (mobile / username)' }, { key: 'mobile', label: 'Mobile' },
-          ...(role === 'promoter' ? [{ key: 'designation', label: 'Field role', render: (u) => u.org_profile?.designation || 'Not linked' }, { key: 'org_link', label: 'Organization', render: (u) => <Badge tone={u.org_profile?.active ? 'green' : 'red'}>{u.org_profile?.active ? 'Linked' : 'Needs linking'}</Badge> }, { key: 'promoter_code', label: 'Promoter ID' }, { key: 'promoter_type', label: 'Type' },
+          ...(role === 'promoter' ? [{ key: 'designation', label: 'Field role', render: (u) => u.org_profile?.designation || 'Not linked' }, { key: 'org_link', label: 'Organization', render: (u) => <Badge tone={u.org_profile?.active ? 'green' : 'red'}>{u.org_profile?.active ? 'Linked' : 'Needs linking'}</Badge> }, { key: 'promoter_code', label: 'Promoter ID' },
             { key: 'city', label: 'City' }, { key: 'area', label: 'Area' },
             { key: 'agency_name', label: 'Agency' }, { key: 'supervisor', label: 'Supervisor' }] : []),
           ...(role === 'supervisor' ? [{ key: 'can_approve_outlets', label: 'Approves outlets', fmt: (v) => (v ? 'Yes' : 'No') }] : []),
