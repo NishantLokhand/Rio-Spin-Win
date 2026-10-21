@@ -2,14 +2,13 @@ import React, { useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase.js';
 import { rpc, selectAll, friendly } from '../lib/api.js';
 import { istToday } from '../lib/store.js';
-import { reportingExclusions } from '../lib/reportingScope.js';
 import ZeroSpinDownload from './ZeroSpinDownload.jsx';
 import { useAsync, Panel, Loading, DataTable, Modal, Field, Badge, fmt } from './ui.jsx';
 
 export default function Promoters({ data }) {
   const today = istToday();
   const st = useAsync(async () => {
-    const [promoters, users, inv, sessions, pending, activity, configItems, excluded] = await Promise.all([
+    const [promoters, users, inv, sessions, pending, activity, configItems] = await Promise.all([
       selectAll('promoters', '*'),
       selectAll('app_users', 'id,full_name,login_id,is_active,role', (q) => q.eq('role', 'promoter').order('full_name')),
       selectAll('promoter_inventory', '*'),
@@ -17,9 +16,8 @@ export default function Promoters({ data }) {
       selectAll('spins', 'id,spin_code,promoter_id,prize_name,created_at,sale_id', (q) => q.eq('redemption_status', 'pending')),
       rpc('report_summary', { p_group: 'promoter', p_filters: { date_from: today, date_to: today } }),
       selectAll('prize_config_items', 'config_id,prize_id,quantity,prize_configs!inner(is_active,state_id)', (q) => q.eq('prize_configs.is_active', true)),
-      reportingExclusions(),
     ]);
-    return { promoters: promoters.filter((p) => !excluded.has(p.user_id)), users, inv, sessions, pending, activity, configItems };
+    return { promoters, users, inv, sessions, pending, activity, configItems };
   }, []);
   const [modal, setModal] = useState(null);
   const prizes = data.masters.prizes;
