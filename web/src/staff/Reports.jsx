@@ -41,7 +41,7 @@ const TABS = [
   { key: 'user', label: 'User Performance' },
   { key: 'outlet', label: 'Outlet Performance' }, { key: 'prize', label: 'Prize Usage' },
   { key: 'product', label: 'SKU' }, { key: 'state', label: 'State' }, { key: 'territory', label: 'Territory' }, { key: 'city', label: 'City' },
-  { key: 'area', label: 'Area' }, { key: 'distributor', label: 'Distributor' }, { key: 'date', label: 'Daily' },
+  { key: 'area', label: 'Area' }, { key: 'distributor', label: 'Distributor' }, { key: 'date', label: 'Daily User Performance' },
 ];
 
 export default function Reports({ data, filters, setFilters }) {
