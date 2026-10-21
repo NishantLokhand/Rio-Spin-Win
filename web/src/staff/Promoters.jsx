@@ -27,17 +27,19 @@ export default function Promoters({ data }) {
   const rows = useMemo(() => {
     if (!st.data) return [];
     const { promoters, inv, sessions, pending, activity } = st.data;
-    return promoters.filter((p) => users[p.user_id]).map((p) => {
-      const u = users[p.user_id];
-      const a = activity.find((x) => x.key === p.user_id) || {};
-      const s = sessions.find((x) => x.promoter_id === p.user_id);
+    const promoterProfiles = Object.fromEntries(promoters.map((p) => [p.user_id, p]));
+    return Object.values(users).filter((u) => u.role === 'promoter').map((u) => {
+      const p = promoterProfiles[u.id] || {};
+      const s = sessions.find((x) => x.promoter_id === u.id);
       const stock = Object.fromEntries(prizes.map((pr) => {
-        const i = inv.find((x) => x.promoter_id === p.user_id && x.prize_id === pr.id);
+        const i = inv.find((x) => x.promoter_id === u.id && x.prize_id === pr.id);
         return [pr.id, i ? i.on_hand : 0];
       }));
-      return { id: p.user_id, name: u.full_name, code: p.promoter_code, type: p.promoter_type, active: u.is_active,
-        outlet: s ? outlets[s.outlet_id]?.name : null, spins: a.spins || 0, cost: a.giveaway_cost || 0, avg: a.avg_cost,
-        pending: pending.filter((x) => x.promoter_id === p.user_id), stock };
+      const activityUserId = p.user_id || u.id;
+      const userActivity = activity.find((x) => x.key === activityUserId) || {};
+      return { id: u.id, name: u.full_name, code: p.promoter_code || `PROMOTER-${u.id.slice(0, 8)}`, type: p.promoter_type || 'temporary', active: u.is_active,
+        outlet: s ? outlets[s.outlet_id]?.name : null, spins: userActivity.spins || 0, cost: userActivity.giveaway_cost || 0, avg: userActivity.avg_cost,
+        pending: pending.filter((x) => x.promoter_id === u.id), stock };
     });
   }, [st.data, prizes, users, outlets]);
 
