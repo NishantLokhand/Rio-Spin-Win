@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { zeroActivityRows, zeroCohortRows, zeroPeriod, summarizeActivity } from '../web/src/lib/userActivity.js';
-import { userPerformanceColumns, userReportColumns } from '../web/src/lib/userReportColumns.js';
+import { userPerformanceColumns, userReportColumns, dailyUserColumns } from '../web/src/lib/userReportColumns.js';
 const source = {
   users: [{ id: 'a', full_name: 'Started then stopped', is_active: true }, { id: 'b', full_name: 'Never', is_active: false }],
   profiles: [], states: [],
@@ -33,4 +33,7 @@ assert.equal(summary.active_outlets, 1); assert.equal(summary.spins, 5); assert.
 const columns = userReportColumns([{ key: 'date', label: 'Duplicate' }, { key: 'mobile', label: 'Mobile' }]);
 assert.deepEqual(columns.slice(0, -1), userPerformanceColumns);
 assert.equal(columns.at(-1).key, 'mobile');
+assert.deepEqual(dailyUserColumns.map(c=>c.key),['date','label','user_type','state','city','area','outlets','active_outlets','spins','units','first_spin_time','last_spin_time','activity_span','giveaway_cost','avg_cost','snack5_used_pct','snack10_used_pct']);
+assert.ok(userPerformanceColumns.some(c=>c.key==='activity_pct')); // Daily exclusions never remove the main report's fields.
+assert.ok(userReportColumns().some(c=>c.key==='user_code'));
 console.log('User activity cohorts, missing dates, calendar periods, outlet totals and shared columns passed.');

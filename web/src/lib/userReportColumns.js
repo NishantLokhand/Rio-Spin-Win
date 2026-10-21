@@ -15,6 +15,10 @@ export const userPerformanceColumns = [
   { key: 'user_code', label: 'User Code' }, ...performanceColumns,
 ];
 
+// The Daily tab intentionally omits account/period metrics. Other reports keep them.
+const dailyExcluded = new Set(['user_code', 'active_days', 'no_spin_days', 'activity_pct']);
+export const dailyUserColumns = userPerformanceColumns.filter((c) => !dailyExcluded.has(c.key));
+
 export function userReportColumns(extras = []) {
   const keys = new Set(userPerformanceColumns.map((c) => c.key));
   return [...userPerformanceColumns, ...extras.filter((c) => {

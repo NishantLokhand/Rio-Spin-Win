@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { rpc, selectAll } from '../lib/api.js';
-import { userPerformanceColumns } from '../lib/userReportColumns.js';
+import { userPerformanceColumns, dailyUserColumns } from '../lib/userReportColumns.js';
 import { loadUserActivityData } from '../lib/userActivityData.js';
 import { completeUserPerformance } from '../lib/userPerformance.js';
 import { istToday } from '../lib/store.js';
@@ -13,6 +13,7 @@ import { useAsync, Panel, Loading, DataTable, Tabs, BarList, fmt } from './ui.js
 const money = { align: 'r', fmt: fmt.inr };
 const COLS = {
   user: [...userPerformanceColumns, { key: 'account_status', label: 'Account Status' }, { key: 'activity', label: 'Activity' }],
+  date: dailyUserColumns,
   outlet: [
     { key: 'label', label: 'Outlet' }, { key: 'outlet_code', label: 'Outlet Code' }, { key: 'area', label: 'Area' },
     { key: 'tse', label: 'TSE' }, { key: 'territory', label: 'Territory' },
@@ -46,10 +47,11 @@ const TABS = [
 export default function Reports({ data, filters, setFilters }) {
   const [tab, setTab] = useState('user');
   const [userType, setUserType] = useState('');
+  const userDaily = tab === 'user' || tab === 'date';
   const people = useAsync(() => selectAll('org_people', 'auth_user_id,designation', (q) => q.not('auth_user_id', 'is', null)), []);
   const rep = useAsync(() => tab === 'prize'
     ? rpc('prize_distribution_report', { p_filters: filters })
-    : tab === 'user' ? Promise.all([loadUserActivityData(), rpc('report_user_daily', { p_filters: filters, p_user_type: userType || null })])
+    : userDaily ? Promise.all([loadUserActivityData(), rpc('report_user_daily', { p_filters: filters, p_user_type: userType || null })])
       .then(([source, rows]) => completeUserPerformance(source, rows, filters, userType, istToday()))
     : rpc('report_summary', { p_group: tab, p_filters: filters }), [tab, userType, JSON.stringify(filters)]);
   const cols = COLS[tab] || generic(TABS.find((t) => t.key === tab).label);
@@ -65,27 +67,28 @@ export default function Reports({ data, filters, setFilters }) {
     spins: Number(rep.data[0].total_spins || 0), cost: Number(rep.data[0].giveaway_cost || 0),
     avg: Number(rep.data[0].avg_giveaway_cost || 0),
   } : null;
-  const reportRows = tab === 'date' ? [...(rep.data || [])].sort((a, b) => String(b.key).localeCompare(String(a.key))) : rep.data || [];
+  const reportRows = rep.data || [];
   const totalRow = reportTotal(reportRows, tab === 'prize');
   const promoterCount = new Set(reportRows.map((row) => row.key)).size;
-  if (tab === 'user') totalRow.label = `TOTAL (${promoterCount} users)`;
+  if (userDaily) totalRow.label = `TOTAL (${promoterCount} users)`;
   const exportRows = [...reportRows, totalRow].map((row) => ({ ...row,
     date_from: filters.date_from || 'Beginning', date_to: filters.date_to || 'No end date' }));
-  const exportColumns = [{ key: 'date_from', label: 'Date From' }, { key: 'date_to', label: 'Date To' }, ...cols];
+  const exportColumns = tab === 'date' ? cols : [{ key: 'date_from', label: 'Date From' }, { key: 'date_to', label: 'Date To' }, ...cols];
 
   return (
     <div className="s-page">
       <FilterBar data={data} filters={filters} setFilters={setFilters}
-        userPerformance={tab === 'user'} userType={userType} setUserType={setUserType} userPeople={people.data || []} />
+        userPerformance={userDaily} userType={userType} setUserType={setUserType} userPeople={people.data || []} />
       <div className="pad row-actions"><ZeroSpinDownload users={data.promoters} dates={filters} userType={userType} userId={filters.promoter_id} /><SpinHistory filters={filters} userType={userType} /></div>
       <Tabs tabs={TABS} value={tab} onChange={setTab} />
       <Panel title={TABS.find((t) => t.key === tab).label}
              actions={totals
-               ? <span className="muted">Total: {tab === 'user' && `${fmt.num(promoterCount)} users · `}{fmt.num(totals.spins)} spins · {fmt.num(totals.units)} units · {fmt.inr(totals.cost)} · avg {fmt.inr2(totals.spins ? totals.cost / totals.spins : 0)}</span>
+               ? <span className="muted">Total: {userDaily && `${fmt.num(promoterCount)} users · `}{fmt.num(totals.spins)} spins · {fmt.num(totals.units)} units · {fmt.inr(totals.cost)} · avg {fmt.inr2(totals.spins ? totals.cost / totals.spins : 0)}</span>
                : prizeTotals && <span className="muted">Total: {fmt.num(prizeTotals.spins)} spins · {fmt.inr(prizeTotals.cost)} giveaway cost · avg {fmt.inr2(prizeTotals.avg)} / spin</span>}>
         {!rep.data ? <Loading state={rep} /> : (
           <>
             <p className="muted pad">Report period: <strong>{reportPeriod(filters)}</strong></p>
+            {tab === 'date' && <p className="muted pad">One row per user per date, including zero-spin users. No-activity locations come from the user profile; no visits are invented. Campaign, Territory, TSE, Outlet, Distributor and SKU filters show recorded activity only. Spin times are in India time for the entire business day; activity span includes gaps and is shown to whole minutes. Snack used percentages are current stock usage, not historical daily usage.</p>}
             {tab === 'user' && <p className="muted pad">Activity % uses calendar days from account creation within the selected period, through yesterday. Stock used % is current stock received minus current balance, divided by stock received; it includes other stock reductions. Blank percentages mean no usable stock baseline.</p>}
             {tab === 'user' && <p className="muted pad">Includes disabled accounts and zero-spin dates from account creation. Today is in progress. Dates without recorded activity use profile State/City/Area and have no visited outlets. Campaign, Territory, TSE, Outlet, Distributor or SKU filters show recorded activity only.</p>}
             {tab === 'user' && <p className="muted pad">First/last spin times are in India time and cover the user’s entire business day, even when outlet or SKU filters are selected. Activity span is last minus first, shown to whole minutes including gaps; it is not verified working time.</p>}
