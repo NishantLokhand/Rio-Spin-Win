@@ -29,7 +29,8 @@ export async function exportXLSX(rows, columns, name) {
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, name.slice(0, 31));
   const out = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-  download(new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `${name}.xlsx`);
+  const { freezeExcelHeaders } = await import('./freezeExcelHeaders.js');
+  download(new Blob([freezeExcelHeaders(out)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `${name}.xlsx`);
 }
 
 export async function exportWorkbook(sheets, name) {
@@ -43,7 +44,8 @@ export async function exportWorkbook(sheets, name) {
     XLSX.utils.book_append_sheet(wb, ws, sheet.name);
   }
   const out = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-  download(new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `${name}.xlsx`);
+  const { freezeExcelHeaders } = await import('./freezeExcelHeaders.js');
+  download(new Blob([freezeExcelHeaders(out)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `${name}.xlsx`);
 }
 
 /** Parse an uploaded .xlsx/.xls/.csv into array of objects with normalised keys */

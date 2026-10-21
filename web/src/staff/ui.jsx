@@ -71,11 +71,11 @@ export function DataTable({ rows, columns, exportName, exportRows, exportColumns
           <button className="s-btn ghost sm" onClick={() => exportXLSX(exportRows || rows, exp, exportName)}>Excel</button>
         </div>
       )}
-      <div className="dt-scroll" style={maxHeight ? { maxHeight } : null}>
+      <div className="dt-scroll" style={maxHeight ? { maxHeight } : null} tabIndex={0} role="region" aria-label="Scrollable report table">
         <table>
           <thead>
             <tr>{columns.map((c) => (
-              <th key={c.key} className={c.align === 'r' ? 'r' : ''}
+              <th key={c.key} scope="col" className={c.align === 'r' ? 'r' : ''}
                   onClick={() => !c.render && setSort((s) => ({ key: c.key, dir: s?.key === c.key && s.dir === 'desc' ? 'asc' : 'desc' }))}>
                 {c.label}{sort?.key === c.key ? (sort.dir === 'desc' ? ' ▾' : ' ▴') : ''}
               </th>))}</tr>
