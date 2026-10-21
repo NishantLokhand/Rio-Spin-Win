@@ -9,8 +9,9 @@ import { useAsync, Panel, Loading, DataTable, Modal, Field, Badge, fmt } from '.
 export default function Promoters({ data }) {
   const today = istToday();
   const st = useAsync(async () => {
-    const [promoters, inv, sessions, pending, activity, configItems, excluded] = await Promise.all([
+    const [promoters, users, inv, sessions, pending, activity, configItems, excluded] = await Promise.all([
       selectAll('promoters', '*'),
+      selectAll('app_users', 'id,full_name,login_id,is_active,role', (q) => q.eq('role', 'promoter').order('full_name')),
       selectAll('promoter_inventory', '*'),
       selectAll('promoter_sessions', '*', (q) => q.eq('work_date', today)),
       selectAll('spins', 'id,spin_code,promoter_id,prize_name,created_at,sale_id', (q) => q.eq('redemption_status', 'pending')),
@@ -18,11 +19,11 @@ export default function Promoters({ data }) {
       selectAll('prize_config_items', 'config_id,prize_id,quantity,prize_configs!inner(is_active,state_id)', (q) => q.eq('prize_configs.is_active', true)),
       reportingExclusions(),
     ]);
-    return { promoters: promoters.filter((p) => !excluded.has(p.user_id)), inv, sessions, pending, activity, configItems };
+    return { promoters: promoters.filter((p) => !excluded.has(p.user_id)), users, inv, sessions, pending, activity, configItems };
   }, []);
   const [modal, setModal] = useState(null);
   const prizes = data.masters.prizes;
-  const users = Object.fromEntries(data.promoters.map((u) => [u.id, u]));
+  const users = Object.fromEntries((st.data?.users || data.promoters).map((u) => [u.id, u]));
   const outlets = Object.fromEntries(data.outletsFull.map((o) => [o.id, o]));
 
   const rows = useMemo(() => {
@@ -48,7 +49,7 @@ export default function Promoters({ data }) {
   return (
     <div className="s-page">
       <Panel title={`Promoters — today ${fmt.date(today)}`} actions={<div className="row-actions">
-        <ZeroSpinDownload users={data.promoters} dates={{ date_from: today, date_to: today }} snapshot={st.data} />
+        <ZeroSpinDownload users={st.data.users} dates={{ date_from: today, date_to: today }} snapshot={st.data} />
         <button className="s-btn ghost sm" onClick={st.reload}>↻ Refresh</button></div>}>
         <DataTable rows={rows} exportName="promoter_stock" columns={[
           { key: 'name', label: 'Promoter', render: (r) => <><b>{r.name}</b><br /><small className="muted">{r.code} · {r.type}</small>{!r.active && <> <Badge tone="red">disabled</Badge></>}</> },
