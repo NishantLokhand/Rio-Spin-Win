@@ -5,6 +5,7 @@ import { historyRange, spinHistory } from '../lib/spinHistory.js';
 import { loadUserActivityData } from '../lib/userActivityData.js';
 import { userReportColumns } from '../lib/userReportColumns.js';
 import { attachMetrics } from '../lib/performanceMetrics.js';
+import { attachSpinTimes } from '../lib/spinTimes.js';
 import { exportWorkbook } from '../lib/exporter.js';
 import { Modal, DataTable, Tabs } from './ui.jsx';
 
@@ -47,7 +48,7 @@ export default function SpinHistory({ filters, userType }) {
       const users = new Map(source.users.map((u) => [u.id, u]));
       const profiles = new Map(source.profiles.map((p) => [p.user_id, p]));
       return Object.fromEntries(Object.entries(report).map(([key, rows]) => [key,
-        attachMetrics(rows, source.metrics, range.from, range.to, source.today).map((r) => ({ ...r,
+        attachSpinTimes(attachMetrics(rows, source.metrics, range.from, range.to, source.today), source.spinTimes, key === 'summary').map((r) => ({ ...r,
           user_code: r.user_code || profiles.get(r.key)?.promoter_code || '',
           mobile: users.get(r.key)?.mobile || users.get(r.key)?.login_id || '',
           account_status: users.get(r.key)?.is_active ? 'Active' : 'Disabled',
@@ -71,6 +72,7 @@ export default function SpinHistory({ filters, userType }) {
       <button key={mode} className="s-btn ghost sm" disabled={busy} onClick={() => load(mode)}>{label}</button>)}</span>
     {open && <Modal wide title="User spin history" onClose={() => setOpen(false)}>
       <p>Weekly starts Monday; Monthly starts on the first. Both initially end at the report’s selected end date, capped at today.</p>
+      <p className="muted">First/last spin times use India time in Daily Detail. Activity span is the interval between them, shown to whole minutes including gaps. These three daily fields are N/A in multi-day summaries.</p>
       <p className="muted">Uses the selected Type and User across all campaigns and outlets. Other report filters do not apply. Summary Date is the period end date; daily Date is the actual activity date. First/latest spin dates use all-time history. Daily detail and Activity % start at account creation; no-spin days are calendar days, not confirmed absences. Today is excluded from completed-day counts, consistency and streaks. Stock used % is current received stock minus balance divided by received stock (including other reductions); blank means no usable baseline.</p>
       <div className="row-actions">
         <label>From <input aria-label="History From" type="date" value={range.from} max={range.to} onChange={(e) => setRange({ ...range, from: e.target.value })} /></label>

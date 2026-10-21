@@ -1,5 +1,6 @@
 import { zeroActivityRows } from './userActivity.js';
 import { attachMetrics } from './performanceMetrics.js';
+import { attachSpinTimes } from './spinTimes.js';
 
 // Add roster gaps only when no recorded activity exists for that user/date.
 // Transaction filters cannot be assigned to a date without a transaction.
@@ -21,5 +22,5 @@ export function completeUserPerformance(source, recorded, filters, userType, tod
         && (!filters.area || r.area === filters.area));
     rows.push(...gaps);
   }
-  return rows.sort((a, b) => b.date.localeCompare(a.date) || a.label.localeCompare(b.label));
+  return attachSpinTimes(rows, source.spinTimes).sort((a, b) => b.date.localeCompare(a.date) || a.label.localeCompare(b.label));
 }

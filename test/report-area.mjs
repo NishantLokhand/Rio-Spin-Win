@@ -124,5 +124,17 @@ assert.deepEqual(await userDaily(),[]); // Newly named demo/test accounts are al
 assert.equal((await db.query('select count(*) n from sales')).rows[0].n,3);
 await db.exec(`set test.actor='${promoter}'`);
 await assert.rejects(()=>db.query('select get_reporting_excluded_users()'),/STAFF_ONLY/);
+await db.exec(`set test.actor='${admin}'; update app_users set full_name='Real field user' where id='${promoter}';
+  alter table spins add column promoter_id uuid;
+  alter table spins add column biz_date date;
+  alter table spins add column created_at timestamptz;
+  update spins sp set promoter_id=s.promoter_id,biz_date=s.biz_date,created_at='2026-10-16T18:40:00Z' from sales s where sp.sale_id=s.id;
+  insert into spins(sale_id,promoter_id,biz_date,created_at) values('${supervisor}','${promoter}','2026-10-17','2026-10-17T18:20:00Z');`);
+await db.exec(await readFile(new URL('../supabase/migrations/20261021000100_daily_spin_times.sql',import.meta.url),'utf8'));
+const timing=async()=>(await db.query('select get_user_daily_spin_times() r')).rows[0].r;
+assert.equal((await timing()).length,1); // Demo history stays excluded.
+assert.equal((await timing())[0].activity_span_seconds,85200);
+await db.exec(`set test.actor='${supervisor}'`);assert.equal((await timing()).length,1);
+await db.exec(`set test.actor='${promoter}'`);await assert.rejects(()=>timing(),/STAFF_ONLY/);
 await db.close();
 console.log('PASS: Area grouping/filtering, prize totals, product intersection, no-sales master options and supervisor isolation');

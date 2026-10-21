@@ -88,6 +88,7 @@ export default function Reports({ data, filters, setFilters }) {
             <p className="muted pad">Report period: <strong>{reportPeriod(filters)}</strong></p>
             {tab === 'user' && <p className="muted pad">Activity % uses calendar days from account creation within the selected period, through yesterday. Stock used % is current stock received minus current balance, divided by stock received; it includes other stock reductions. Blank percentages mean no usable stock baseline.</p>}
             {tab === 'user' && <p className="muted pad">Includes disabled accounts and zero-spin dates from account creation. Today is in progress. Dates without recorded activity use profile State/City/Area and have no visited outlets. Campaign, Territory, TSE, Outlet, Distributor or SKU filters show recorded activity only.</p>}
+            {tab === 'user' && <p className="muted pad">First/last spin times are in India time and cover the user’s entire business day, even when outlet or SKU filters are selected. Activity span is last minus first, shown to whole minutes including gaps; it is not verified working time.</p>}
             {tab === 'prize' && rep.data.length > 0 && (
               <div className="pad"><BarList rows={rep.data} labelKey="label" valueKey="pct" format={fmt.pct} sub={(r) => `${fmt.num(r.quantity)} won`} /></div>
             )}

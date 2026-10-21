@@ -1,5 +1,6 @@
 import { shiftDate } from './reportDates.js';
 import { performanceMetrics } from './performanceMetrics.js';
+import { attachSpinTimes } from './spinTimes.js';
 
 export function accountDate(user, metric) {
   return metric?.account_date || (user.created_at
@@ -73,7 +74,7 @@ export function zeroActivityRows(source, { from, to, today, userType = '', userI
         date_from: start, date_to: to, activity: date === today ? 'Today in progress' : 'No spins recorded' });
     }
   }
-  return result.sort((a, b) => b.date.localeCompare(a.date) || a.label.localeCompare(b.label));
+  return attachSpinTimes(result, source.spinTimes).sort((a, b) => b.date.localeCompare(a.date) || a.label.localeCompare(b.label));
 }
 
 export function zeroCohortRows(source, { from = '', to, today, never = false }) {
@@ -91,7 +92,7 @@ export function zeroCohortRows(source, { from = '', to, today, never = false }) 
       city: aggregate.city || identity.city, area: aggregate.area || identity.area,
       id: user.id, key: user.id, date: to, date_from: start, date_to: to, activity: never ? 'Never spun' : 'Zero spins throughout period' });
   }
-  return result.sort((a, b) => a.label.localeCompare(b.label));
+  return attachSpinTimes(result, []).sort((a, b) => a.label.localeCompare(b.label));
 }
 
 export function isoWeek(date) {
