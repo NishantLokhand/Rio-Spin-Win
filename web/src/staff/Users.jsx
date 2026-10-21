@@ -7,7 +7,16 @@ async function adminCall(body) {
   const { data, error } = await supabase.functions.invoke('admin-users', { body });
   if (error) {
     let msg = error.message;
-    try { const j = await error.context?.json?.(); if (j?.error) msg = j.error; } catch { /* ignore */ }
+    try {
+      const response = error.context;
+      if (response) {
+        const text = await (response.clone ? response.clone().text() : Promise.resolve(''));
+        if (text) {
+          try { const j = JSON.parse(text); if (j?.error) msg = j.error; else if (j?.message) msg = j.message; }
+          catch { if (text.trim()) msg = text.trim(); }
+        }
+      }
+    } catch { /* keep the SDK message when the response body is unavailable */ }
     throw new Error(msg);
   }
   if (data?.error) throw new Error(data.error);
