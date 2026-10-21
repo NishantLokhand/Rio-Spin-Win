@@ -8,7 +8,10 @@ const PD = (n) => `40000000-0000-0000-0000-00000000000${n}`;
 export const CAMPAIGN = '60000000-0000-0000-0000-000000000001';
 export const U = { admin: 'a0000000-0000-0000-0000-000000000001', sup: 'a0000000-0000-0000-0000-000000000002',
   p1: 'a0000000-0000-0000-0000-000000000003', p2: 'a0000000-0000-0000-0000-000000000004', supm: 'a0000000-0000-0000-0000-000000000005',
-  p3: 'a0000000-0000-0000-0000-000000000006' };
+  p3: 'a0000000-0000-0000-0000-000000000006',
+  shade1: 'a0000000-0000-0000-0000-000000000011', shade2: 'a0000000-0000-0000-0000-000000000012',
+  shade3: 'a0000000-0000-0000-0000-000000000013', shade4: 'a0000000-0000-0000-0000-000000000014',
+  shade5: 'a0000000-0000-0000-0000-000000000015' };
 
 export function seedDb() {
   const ts = now();
@@ -41,6 +44,11 @@ export function seedDb() {
     [U.p1, 'promoter', '9876500001', 'Ravi Kumar', '9876500001', '111111', false, false],
     [U.p2, 'promoter', '9876500002', 'Sneha Yadav', '9876500002', '111111', false, false],
     [U.p3, 'promoter', '9876500003', 'Arjun Patil', '9876500003', '111111', false, false],
+    [U.shade1, 'promoter', 'demo-rio-shade-01', 'Demo Rio Shade 01', '9000000101', 'RioPilot01!', false, false],
+    [U.shade2, 'promoter', 'demo-rio-shade-02', 'Demo Rio Shade 02', '9000000102', 'RioPilot02!', false, false],
+    [U.shade3, 'promoter', 'demo-rio-shade-03', 'Demo Rio Shade 03', '9000000103', 'RioPilot03!', false, false],
+    [U.shade4, 'promoter', 'demo-rio-shade-04', 'Demo Rio Shade 04', '9000000104', 'RioPilot04!', false, false],
+    [U.shade5, 'promoter', 'demo-rio-shade-05', 'Demo Rio Shade 05', '9000000105', 'RioPilot05!', false, false],
   ];
 
   const kit = [[1, 152], [2, 34], [3, 10], [4, 3], [5, 1]];
@@ -49,6 +57,14 @@ export function seedDb() {
     inv.push({ promoter_id: p, prize_id: PR(n), on_hand: q, reserved: 0, updated_at: ts });
     moves.push({ id: crypto.randomUUID(), promoter_id: p, prize_id: PR(n), movement_type: 'issue', qty: q, on_hand_after: q, spin_id: null, performed_by: U.admin, reference: 'Opening kit', note: 'Demo opening stock', created_at: ts });
   }
+  // Isolated Rio Shade eligibility fixture: every pilot has the snack kit;
+  // only pilot 01 receives 20 shades, so the other four remain snack-only.
+  for (const p of [U.shade1, U.shade2, U.shade3, U.shade4, U.shade5]) for (const [n, q] of [[1, 152], [2, 34]]) {
+    inv.push({ promoter_id: p, prize_id: PR(n), on_hand: q, reserved: 0, updated_at: ts });
+    moves.push({ id: crypto.randomUUID(), promoter_id: p, prize_id: PR(n), movement_type: 'issue', qty: q, on_hand_after: q, spin_id: null, performed_by: U.admin, reference: 'Rio Shade eligibility fixture', note: 'Snack-only baseline', created_at: ts });
+  }
+  inv.push({ promoter_id: U.shade1, prize_id: PR(4), on_hand: 20, reserved: 0, updated_at: ts });
+  moves.push({ id: crypto.randomUUID(), promoter_id: U.shade1, prize_id: PR(4), movement_type: 'issue', qty: 20, on_hand_after: 20, spin_id: null, performed_by: U.admin, reference: 'Rio Shade eligibility fixture', note: 'Only Rio Pilot 01 receives Rio Shades', created_at: ts });
 
   return {
     _auth: users.map(([id, , login, , , pin]) => ({ id, email: login, password: pin })),
@@ -67,6 +83,7 @@ export function seedDb() {
       { user_id: U.p1, promoter_code: 'PRM-001', promoter_type: 'permanent', agency_name: null, supervisor_id: U.sup, home_state_id: ST_UP, joined_on: null, notes: null, created_at: ts, updated_at: ts },
       { user_id: U.p2, promoter_code: 'PRM-002', promoter_type: 'agency', agency_name: 'BrandBuzz Activations', supervisor_id: U.sup, home_state_id: ST_UP, joined_on: null, notes: null, created_at: ts, updated_at: ts },
       { user_id: U.p3, promoter_code: 'PRM-003', promoter_type: 'spot_selling', agency_name: null, supervisor_id: U.supm, home_state_id: ST_MH, joined_on: null, notes: null, created_at: ts, updated_at: ts },
+      ...[U.shade1, U.shade2, U.shade3, U.shade4, U.shade5].map((user_id, i) => ({ user_id, promoter_code: `RIO-PILOT-0${i + 1}`, promoter_type: 'temporary', agency_name: null, supervisor_id: U.sup, home_state_id: ST_UP, joined_on: null, notes: 'Rio Shade eligibility fixture', created_at: ts, updated_at: ts })),
     ],
     products: [
       [1, 'RIO-GT-330C', 'Rio Gold Tropical 330 ml Can', ST_UP, 330], [2, 'RIO-GT-500C', 'Rio Gold Tropical 500 ml Can', ST_UP, 500],
