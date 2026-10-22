@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-export function useAppUpdate(intervalMs = 60000) {
+export function useAppUpdate(intervalMs = 5 * 60 * 60 * 1000) {
   const [available, setAvailable] = useState(false);
   useEffect(() => {
     let stopped = false;
