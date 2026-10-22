@@ -259,6 +259,8 @@
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: 120px; z-index: 50; max-width: 92vw; padding: 14px 18px; border-radius: 14px; font-weight: 800; box-shadow: 0 8px 20px rgba(0,0,0,.35); animation: fade .2s; }
 .toast.ok { background: var(--green); color: var(--ink); } .toast.warn { background: var(--yellow); color: var(--ink); }
 .toast.err { background: #d0103a; color: #fff; } .toast.info { background: #fff; color: var(--ink); }
+.app-update-notice { position: fixed; left: 50%; transform: translateX(-50%); bottom: 18px; z-index: 80; display: flex; align-items: center; gap: 12px; padding: 10px 12px 10px 15px; border: 1px solid var(--yellow); border-radius: 10px; background: var(--ink); color: #fff; box-shadow: 0 8px 24px rgba(0,0,0,.35); font-weight: 800; }
+.app-update-notice button { border: 0; border-radius: 7px; padding: 7px 12px; background: var(--yellow); color: var(--ink); font-weight: 900; cursor: pointer; }
 
 @media (prefers-reduced-motion: reduce) {
   .btn-start, .btn-spin, .win-rays, .win-prize, .bulb { animation: none !important; }

@@ -1,11 +1,23 @@
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
+const buildVersion = process.env.VITE_APP_VERSION || process.env.GITHUB_SHA || new Date().toISOString();
+
+function appVersionPlugin() {
+  return {
+    name: 'app-version',
+    generateBundle() {
+      this.emitFile({ type: 'asset', fileName: 'version.json', source: JSON.stringify({ version: buildVersion }) });
+    },
+  };
+}
+
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const target = env.VITE_SUPABASE_URL;
   return {
-    plugins: [react()],
+    plugins: [react(), appVersionPlugin()],
+    define: { __APP_VERSION__: JSON.stringify(buildVersion) },
     server: {
       host: true,
       port: 5173,

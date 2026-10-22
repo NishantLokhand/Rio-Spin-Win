@@ -11,6 +11,7 @@ import OutletRequest from './OutletRequest.jsx';
 import SaleFlow from './SaleFlow.jsx';
 import SpinScreen from './SpinScreen.jsx';
 import WinScreen from './WinScreen.jsx';
+import { UpdateNotice } from '../lib/useAppUpdate.jsx';
 import '../styles/promoter.css';
 
 function useOnline() {
@@ -273,6 +274,7 @@ export default function PromoterApp({ profile, onLogout }) {
       )}
 
       {toast && <div className={`toast ${toast.kind}`}>{toast.msg}</div>}
+      <UpdateNotice className="promoter-update-notice" />
     </div>
   );
 }

@@ -17,6 +17,7 @@ import Users from './Users.jsx';
 import Audit from './Audit.jsx';
 import Exports from './Exports.jsx';
 import OrgData from './OrgData.jsx';
+import { UpdateNotice } from '../lib/useAppUpdate.jsx';
 import '../styles/staff.css';
 
 const NAV = [
@@ -136,6 +137,7 @@ export default function StaffApp({ profile, onLogout }) {
         {!data && !err && <div className="s-loading">Loading…</div>}
         {data && <Page data={data} reloadData={loadData} filters={filters} setFilters={setFilters} go={setPage} />}
       </main>
+      <UpdateNotice className="staff-update-notice" />
     </div>
   );
 }
