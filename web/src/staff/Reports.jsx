@@ -8,7 +8,7 @@ import FilterBar from './FilterBar.jsx';
 import SpinHistory from './SpinHistory.jsx';
 import ZeroSpinDownload from './ZeroSpinDownload.jsx';
 import { reportTotal, reportPeriod } from '../lib/reportTotals.js';
-import { useAsync, Panel, Loading, DataTable, Tabs, BarList, fmt } from './ui.jsx';
+import { useAsync, Panel, Loading, DataTable, Tabs, BarList, Kpi, fmt } from './ui.jsx';
 
 const money = { align: 'r', fmt: fmt.inr };
 const COLS = {
@@ -36,6 +36,30 @@ const generic = (label) => [
   { key: 'active_outlets', label: 'Outlets', align: 'r' }, { key: 'promoters', label: 'Promoters', align: 'r' },
   { key: 'giveaway_cost', label: 'Giveaway Cost', ...money }, { key: 'avg_cost', label: 'Avg Cost', align: 'r', fmt: fmt.inr2 },
 ];
+
+function ReportOverview({ rows, tab, userDaily }) {
+  const prize = tab === 'prize';
+  const spins = prize ? rows.reduce((n, r) => n + Number(r.quantity || 0), 0) : rows.reduce((n, r) => n + Number(r.spins || 0), 0);
+  const units = prize ? 0 : rows.reduce((n, r) => n + Number(r.units || 0), 0);
+  const cost = prize ? rows.reduce((n, r) => n + Number(r.total_cost || 0), 0) : rows.reduce((n, r) => n + Number(r.giveaway_cost || 0), 0);
+  const activeRows = rows.filter((r) => Number(r.spins || 0) > 0).length;
+  const inactiveRows = userDaily ? rows.filter((r) => Number(r.spins || 0) === 0).length : 0;
+  const people = new Set(rows.map((r) => r.key).filter(Boolean)).size;
+  const outlets = new Set(rows.map((r) => r.outlet_code || r.key).filter(Boolean)).size;
+  const avg = spins ? cost / spins : 0;
+  return (
+    <div className="kpis report-overview" aria-label="Report summary">
+      <Kpi label={prize ? 'Prize types' : userDaily ? 'Users' : 'Rows'} value={fmt.num(prize ? rows.length : userDaily ? people : rows.length)} />
+      <Kpi label="Spins" value={fmt.num(spins)} />
+      {!prize && <Kpi label="Units sold" value={fmt.num(units)} />}
+      <Kpi label="Giveaway cost" value={fmt.inr(cost)} />
+      <Kpi label="Average cost / spin" value={fmt.inr2(avg)} />
+      {userDaily && <Kpi label="Active user-days" value={fmt.num(activeRows)} tone="good" />}
+      {userDaily && <Kpi label="Inactive user-days" value={fmt.num(inactiveRows)} tone={inactiveRows ? 'warn' : 'good'} />}
+      {!userDaily && tab === 'outlet' && <Kpi label="Outlets" value={fmt.num(outlets)} />}
+    </div>
+  );
+}
 
 const TABS = [
   { key: 'user', label: 'User Performance' },
@@ -95,6 +119,7 @@ export default function Reports({ data, filters, setFilters }) {
             {tab === 'prize' && rep.data.length > 0 && (
               <div className="pad"><BarList rows={rep.data} labelKey="label" valueKey="pct" format={fmt.pct} sub={(r) => `${fmt.num(r.quantity)} won`} /></div>
             )}
+            <ReportOverview rows={reportRows} tab={tab} userDaily={userDaily} />
             <DataTable rows={reportRows} columns={cols} exportRows={exportRows} exportColumns={exportColumns}
                        exportName={`${tab}_report_${filters.date_from || 'beginning'}_${filters.date_to || 'all'}`} onRowClick={drill}
                        footer={<tfoot><tr>{cols.map((c) => <th key={c.key} className={c.align === 'r' ? 'r' : ''}>
