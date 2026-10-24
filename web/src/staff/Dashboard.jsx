@@ -138,8 +138,10 @@ function BulkReplenishModal({ lowStock, prizes, onClose }) {
     people.set(row.promoter_id, person);
   });
   const targets = [...people.values()];
-  const prizeIds = [...new Set(lowStock.map((row) => row.prize_id).filter(Boolean))];
-  const targetPrizes = prizeIds.map((id) => prizes.find((prize) => prize.id === id)).filter(Boolean);
+  // Show one shared quantity field for each active prize. The server applies
+  // each quantity only to people who are currently low on that prize.
+  const targetPrizes = [...prizes].filter((prize) => prize.is_active !== false)
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
   const [quantities, setQuantities] = useState({});
   const [note, setNote] = useState('');
   const [busy, setBusy] = useState(false);
@@ -168,20 +170,25 @@ function BulkReplenishModal({ lowStock, prizes, onClose }) {
   return (
     <Modal title="Bulk Replenish Low Stock" onClose={() => { if (!busy) onClose(false); }} wide>
       <div className="s-form">
-        <p className="muted" style={{ margin: 0 }}>
-          Enter each quantity once. It will be added to every promoter currently low on that prize. The server rechecks stock before issuing and records each movement in the inventory log.
-        </p>
+        <div className="bulk-stock-intro">
+          <b>Enter the quantity to add per person for each prize.</b>
+          <span>For example, entering 10 for ₹5 Snack adds 10 to every person currently low on ₹5 Snack. Other prize quantities go only to people low on those prizes.</span>
+        </div>
         <div className="bulk-stock-prizes">
-          {targetPrizes.map((prize) => <Field key={prize.id} label={`${prize.short_name} — add to each low-stock promoter`}>
+          {targetPrizes.map((prize) => <Field key={prize.id} label={`${prize.short_name} — quantity per person`}>
             <input type="number" min="1" step="1" value={quantities[prize.id] ?? ''}
               onChange={(event) => setQuantities({ ...quantities, [prize.id]: event.target.value })} />
           </Field>)}
         </div>
         <div className="bulk-stock-targets">
-          <b>Low-stock promoters in scope: {targets.length}</b>
-          {targets.map((person) => <div key={person.id}>
-            {person.name}: {person.alerts.map((alert) => `${alert.prize} (${alert.on_hand} left)`).join(', ')}
-          </div>)}
+          <b>People currently low on stock ({targets.length})</b>
+          <span className="muted">The matching prize top-up will be sent to these people:</span>
+          <div className="bulk-stock-people">
+            {targets.map((person) => <div className="bulk-stock-person" key={person.id}>
+              <b>{person.name}</b>
+              <span>{person.alerts.map((alert) => `${alert.prize} (${alert.on_hand} left)`).join(' · ')}</span>
+            </div>)}
+          </div>
         </div>
         <Field label="Note / reference"><input value={note} onChange={(event) => setNote(event.target.value)} placeholder="e.g. Field stock top-up, 24 Oct" /></Field>
         {error && <div className="s-err">{error}</div>}
