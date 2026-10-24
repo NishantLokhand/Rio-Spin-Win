@@ -484,6 +484,25 @@ export class Engine {
     return { ok: true, on_hand: after };
   }
   issue_stock_kit({ p_promoter, p_items, p_note }) { return p_items.filter((i) => i.qty > 0).map((i) => ({ ...this.adjust_stock({ p_promoter, p_prize: i.prize_id, p_type: 'issue', p_qty: i.qty, p_note }), prize_id: i.prize_id })); }
+  bulk_replenish_low_stock({ p_items, p_note }) {
+    const user = this.requireStaff(); if (user.role !== 'admin') fail('ADMIN_ONLY');
+    const quantities = new Map((p_items || []).map((item) => [item.prize_id, Number(item.qty)]));
+    if (!quantities.size || [...quantities.values()].some((qty) => !Number.isInteger(qty) || qty <= 0)) fail('INVALID_REPLENISHMENT_ITEM');
+    const prizes = this.t('prizes'); const users = Object.fromEntries(this.t('app_users').map((u) => [u.id, u]));
+    const targets = this.t('promoter_inventory').filter((inv) => this.canSee(inv.promoter_id) && users[inv.promoter_id]?.is_active
+      && inv.on_hand <= (prizes.find((p) => p.id === inv.prize_id)?.low_stock_threshold ?? -1) && quantities.has(inv.prize_id));
+    const batch = uuid(); const promoters = new Set(); const items = [];
+    for (const target of targets) {
+      const qty = quantities.get(target.prize_id); const previous = target.on_hand;
+      const result = this.adjust_stock({ p_promoter: target.promoter_id, p_prize: target.prize_id, p_type: 'issue', p_qty: qty,
+        p_note: p_note || 'Bulk low-stock replenishment', p_reference: `bulk-low-stock:${batch}` });
+      promoters.add(target.promoter_id);
+      items.push({ promoter_id: target.promoter_id, promoter: users[target.promoter_id].full_name, prize_id: target.prize_id,
+        prize: this.prizeName(target.prize_id), quantity_added: qty, previous_on_hand: previous, on_hand_after: result.on_hand });
+    }
+    this.audit('STOCK_BULK_REPLENISH', 'promoter_inventory', batch, { promoters_updated: promoters.size, movements: items.length, note: p_note, items });
+    return { ok: true, batch_id: batch, promoters_updated: promoters.size, movements: items.length, items };
+  }
   resolve_spin({ p_spin_id, p_action, p_note }) {
     const u = this.requireStaff(); const sp = this.t('spins').find((x) => x.id === p_spin_id);
     if (!sp || !this.canSee(sp.promoter_id)) fail('SPIN_NOT_FOUND'); if (sp.redemption_status !== 'pending') fail('SPIN_ALREADY_RESOLVED');
@@ -624,7 +643,7 @@ export class Engine {
       prizes: prizes.map((p) => { const l = counted.filter((x) => x.prize_id === p.id); return { prize_id: p.id, name: p.name, short_name: p.short_name, tier: p.tier, count: l.length, cost: l.reduce((a, x) => a + x.prize_cost, 0) }; }),
       stock: prizes.map((p) => ({ prize_id: p.id, short_name: p.short_name, on_hand: inv.filter((i) => i.prize_id === p.id).reduce((a, i) => a + i.on_hand, 0), reserved: inv.filter((i) => i.prize_id === p.id).reduce((a, i) => a + i.reserved, 0) })),
       low_stock: this.t('promoter_inventory').filter((i) => this.canSee(i.promoter_id) && users[i.promoter_id]?.is_active && i.on_hand <= (prizes.find((p) => p.id === i.prize_id)?.low_stock_threshold ?? -1))
-        .map((i) => ({ promoter_id: i.promoter_id, promoter: users[i.promoter_id].full_name, prize: this.prizeName(i.prize_id), on_hand: i.on_hand, threshold: prizes.find((p) => p.id === i.prize_id).low_stock_threshold })),
+        .map((i) => ({ promoter_id: i.promoter_id, promoter: users[i.promoter_id].full_name, prize_id: i.prize_id, prize: this.prizeName(i.prize_id), on_hand: i.on_hand, threshold: prizes.find((p) => p.id === i.prize_id).low_stock_threshold })),
       open_flags: this.t('activity_flags').filter((x) => x.status === 'open' && (x.promoter_id ? this.canSee(x.promoter_id) : u.role === 'admin')).length,
       pending_handovers: this.t('spins').filter((x) => x.redemption_status === 'pending' && this.canSee(x.promoter_id)).length,
       promoters_on_duty: this.t('promoter_sessions').filter((x) => x.work_date === today && this.canSee(x.promoter_id)).length,

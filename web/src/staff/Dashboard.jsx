@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { rpc } from '../lib/api.js';
+import { rpc, friendly } from '../lib/api.js';
 import FilterBar from './FilterBar.jsx';
-import { useAsync, Kpi, Panel, Loading, DataTable, BarList, ColumnChart, fmt } from './ui.jsx';
+import { useAsync, Kpi, Panel, Loading, DataTable, BarList, ColumnChart, Modal, Field, fmt } from './ui.jsx';
 
 const LEVELS = [
   { group: 'state', label: 'State', filter: 'state_id' },
@@ -17,6 +17,7 @@ export default function Dashboard({ data, filters, setFilters, go }) {
   const trendFilters = filters.date_from === filters.date_to ? { ...filters, date_from: undefined } : filters;
   const trend = useAsync(() => rpc('report_summary', { p_group: 'date', p_filters: trendFilters }), [JSON.stringify(trendFilters)]);
   const [path, setPath] = useState([]);   // drill-down breadcrumb [{level, key, label}]
+  const [bulkReplenishOpen, setBulkReplenishOpen] = useState(false);
   const level = LEVELS[Math.min(path.length, LEVELS.length - 1)];
   const drillFilters = { ...filters, ...Object.fromEntries(path.map((p) => [LEVELS[p.level].filter, p.key])) };
   const drill = useAsync(() => rpc('report_summary', { p_group: level.group, p_filters: drillFilters }), [JSON.stringify(drillFilters), level.group]);
@@ -86,11 +87,20 @@ export default function Dashboard({ data, filters, setFilters, go }) {
                 <div className="lowstock">
                   <b>LOW STOCK ALERTS</b>
                   {K.low_stock.slice(0, 8).map((l, i) => <div key={i}>{l.promoter}: <b>{l.prize}</b> — only {l.on_hand} remaining</div>)}
-                  <button className="s-btn sm" onClick={() => go('promoters')}>Replenish stock →</button>
+                  <div className="row-actions">
+                    {data.role === 'admin' && <button className="s-btn sm" onClick={() => setBulkReplenishOpen(true)}>Bulk Replenish</button>}
+                    <button className="s-btn ghost sm" onClick={() => go('promoters')}>Replenish stock →</button>
+                  </div>
                 </div>
               )}
             </Panel>
           </div>
+
+          {bulkReplenishOpen && <BulkReplenishModal
+            lowStock={K.low_stock}
+            prizes={data.masters.prizes}
+            onClose={(changed) => { setBulkReplenishOpen(false); if (changed) k.reload(); }}
+          />}
 
           <Panel title="Drill-down" actions={
             <div className="crumbs-s">
@@ -117,5 +127,71 @@ export default function Dashboard({ data, filters, setFilters, go }) {
         </>
       )}
     </div>
+  );
+}
+
+function BulkReplenishModal({ lowStock, prizes, onClose }) {
+  const people = new Map();
+  lowStock.forEach((row) => {
+    const person = people.get(row.promoter_id) || { id: row.promoter_id, name: row.promoter, alerts: [] };
+    person.alerts.push(row);
+    people.set(row.promoter_id, person);
+  });
+  const targets = [...people.values()];
+  const prizeIds = [...new Set(lowStock.map((row) => row.prize_id).filter(Boolean))];
+  const targetPrizes = prizeIds.map((id) => prizes.find((prize) => prize.id === id)).filter(Boolean);
+  const [quantities, setQuantities] = useState({});
+  const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const recipientCount = targets.filter((person) => person.alerts.some((alert) => Number(quantities[alert.prize_id]) > 0)).length;
+
+  async function save() {
+    const entered = Object.entries(quantities).filter(([, value]) => Number(value) > 0);
+    if (!entered.length || entered.some(([, value]) => !Number.isInteger(Number(value)))) {
+      setError('Enter a whole-number quantity for at least one prize.');
+      return;
+    }
+    const items = entered.map(([prize_id, value]) => ({ prize_id, qty: Number(value) }));
+    setBusy(true); setError('');
+    try {
+      const result = await rpc('bulk_replenish_low_stock', { p_items: items, p_note: note || null });
+      if (!result?.promoters_updated) {
+        setError('No one is currently below the low-stock threshold. Refresh the dashboard and try again.');
+        setBusy(false);
+        return;
+      }
+      onClose(true);
+    } catch (e) { setError(friendly(e)); setBusy(false); }
+  }
+
+  return (
+    <Modal title="Bulk Replenish Low Stock" onClose={() => { if (!busy) onClose(false); }} wide>
+      <div className="s-form">
+        <p className="muted" style={{ margin: 0 }}>
+          Enter each quantity once. It will be added to every promoter currently low on that prize. The server rechecks stock before issuing and records each movement in the inventory log.
+        </p>
+        <div className="bulk-stock-prizes">
+          {targetPrizes.map((prize) => <Field key={prize.id} label={`${prize.short_name} — add to each low-stock promoter`}>
+            <input type="number" min="1" step="1" value={quantities[prize.id] ?? ''}
+              onChange={(event) => setQuantities({ ...quantities, [prize.id]: event.target.value })} />
+          </Field>)}
+        </div>
+        <div className="bulk-stock-targets">
+          <b>Low-stock promoters in scope: {targets.length}</b>
+          {targets.map((person) => <div key={person.id}>
+            {person.name}: {person.alerts.map((alert) => `${alert.prize} (${alert.on_hand} left)`).join(', ')}
+          </div>)}
+        </div>
+        <Field label="Note / reference"><input value={note} onChange={(event) => setNote(event.target.value)} placeholder="e.g. Field stock top-up, 24 Oct" /></Field>
+        {error && <div className="s-err">{error}</div>}
+        <div className="s-actions">
+          <button className="s-btn ghost" disabled={busy} onClick={() => onClose(false)}>Cancel</button>
+          <button className="s-btn" disabled={busy || targetPrizes.length === 0 || recipientCount === 0 || Object.values(quantities).some((value) => Number(value) > 0 && !Number.isInteger(Number(value)))} onClick={save}>
+            {busy ? 'Replenishing…' : `Replenish ${recipientCount} promoters`}
+          </button>
+        </div>
+      </div>
+    </Modal>
   );
 }
