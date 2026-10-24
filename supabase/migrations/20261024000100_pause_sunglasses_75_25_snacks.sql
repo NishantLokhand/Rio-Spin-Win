@@ -18,6 +18,15 @@ begin
   select id into strict v_snack5 from public.prizes where code = 'SNACK5';
   select id into strict v_snack10 from public.prizes where code = 'SNACK10';
 
+  -- Safe if this SQL is run manually before the migration runner sees it.
+  if exists (
+    select 1 from public.prize_configs
+     where campaign_id = v_campaign.id
+       and notes = 'Temporary snack-only distribution: 75% ₹5 snacks, 25% ₹10 snacks; sunglasses paused pending senior approval.'
+  ) then
+    return;
+  end if;
+
   select coalesce(max(version), 0) + 1 into v_version
     from public.prize_configs
    where campaign_id = v_campaign.id;
