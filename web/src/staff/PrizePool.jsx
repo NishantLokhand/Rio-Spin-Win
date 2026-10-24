@@ -45,7 +45,9 @@ export default function PrizePool({ data, go }) {
           >
             <div style={{ marginBottom: 12 }}>
               <span className="muted">
-                Prizes are allocated using continuous cumulative deficit correction. Target counts dynamically scale with total spins.
+                {c?.code === 'RSW-2026'
+                  ? 'The 70/24/6 target is shared across campaign spins where sunglasses are in stock; spins without sunglasses stock use a 75/25 snack mix. The table blends both groups.'
+                  : 'Prizes are allocated using continuous cumulative deficit correction. Target counts dynamically scale with total spins.'}
               </span>
             </div>
             <DataTable

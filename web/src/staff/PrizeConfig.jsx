@@ -103,7 +103,10 @@ export default function PrizeConfig({ data }) {
         p_override: override,
         p_notes: notes || null,
       });
-      setMsg({ ok: true, text: `Saved as version ${res.version}. Continuous cumulative allocation will maintain this distribution across all campaign spins.` });
+      const allocationNote = c?.code === 'RSW-2026'
+        ? ' The 70/24/6 mix applies across campaign spins where the promoter has sunglasses in stock; no-stock spins use 75/25 snacks.'
+        : ' Continuous cumulative allocation will maintain this distribution across campaign spins.';
+      setMsg({ ok: true, text: `Saved as version ${res.version}.${allocationNote}` });
       setNotes(''); hist.reload();
     } catch (e) { setMsg({ ok: false, text: friendly(e) }); } finally { setBusy(false); }
   }
@@ -128,6 +131,10 @@ export default function PrizeConfig({ data }) {
             The system continuously allocates prizes using <b>Controlled Cumulative Random Allocation</b> across any spin volume (200, 500, 1000+ spins).
             Percentages must sum to exactly 100%. Reference quantities correspond to the 200-spin benchmark.
           </p>
+          {c?.code === 'RSW-2026' && <p className="s-note" style={{ margin: '0 0 12px' }}>
+            For this campaign, the 70% ₹5 snack, 24% ₹10 snack, and 6% sunglasses mix is measured across all promoters’ spins where sunglasses are in stock.
+            If sunglasses are out of stock for a promoter, that spin uses 75% ₹5 snacks and 25% ₹10 snacks. The expected cost shown here is for the sunglasses-eligible group.
+          </p>}
           <table className="mini cfg">
             <thead>
               <tr>
