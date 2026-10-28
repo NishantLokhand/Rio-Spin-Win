@@ -10,7 +10,9 @@ export default function Promoters({ data }) {
   const st = useAsync(async () => {
     const [promoters, users, inv, sessions, pending, activity, configItems] = await Promise.all([
       selectAll('promoters', '*'),
-      selectAll('app_users', 'id,full_name,login_id,is_active,role', (q) => q.eq('role', 'promoter').order('full_name')),
+      // Historical data stays queryable elsewhere, but inactive/deleted users
+      // must not appear in the live stock management roster.
+      selectAll('app_users', 'id,full_name,login_id,is_active,role', (q) => q.eq('role', 'promoter').eq('is_active', true).order('full_name')),
       selectAll('promoter_inventory', '*'),
       selectAll('promoter_sessions', '*', (q) => q.eq('work_date', today)),
       selectAll('spins', 'id,spin_code,promoter_id,prize_name,created_at,sale_id', (q) => q.eq('redemption_status', 'pending')),

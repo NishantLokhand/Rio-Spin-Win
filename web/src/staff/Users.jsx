@@ -30,7 +30,9 @@ export default function Users({ data, reloadData }) {
   const [err, setErr] = useState('');
   const us = useAsync(async () => {
     const [users, promoters, people, deleted] = await Promise.all([selectAll('app_users', '*', (q) => q.order('full_name')), selectAll('promoters', '*'), selectAll('org_people', '*'), rpc('get_deleted_field_users')]);
-    return users.filter((u) => !deleted.includes(u.id)).map((u) => ({ ...u, ...(promoters.find((p) => p.user_id === u.id) || {}), org_profile: people.find((p) => p.auth_user_id === u.id) }));
+    // Disabled/deleted users remain in the database for history, but do not
+    // appear in the active Users administration lists.
+    return users.filter((u) => u.is_active && !deleted.includes(u.id)).map((u) => ({ ...u, ...(promoters.find((p) => p.user_id === u.id) || {}), org_profile: people.find((p) => p.auth_user_id === u.id) }));
   }, []);
   if (!us.data) return <div className="s-page"><Loading state={us} /></div>;
   const sups = us.data.filter((u) => u.role === 'supervisor');
