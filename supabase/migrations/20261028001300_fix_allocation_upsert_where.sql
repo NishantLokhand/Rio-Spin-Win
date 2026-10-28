@@ -1,5 +1,5 @@
 -- Fix the allocation upsert rejected by Supabase safe-update protection.
-+create or replace function public._get_or_create_allocation(
+create or replace function public._get_or_create_allocation(
     p_campaign uuid, p_scope public.pool_scope, p_key text)
 returns public.campaign_allocations language plpgsql security definer set search_path = public as $$
 declare
