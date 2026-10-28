@@ -56,6 +56,10 @@ function validateRange(from, to, today) {
   if (!to || to > today || (from && from > to)) throw new Error('Choose a valid date range ending today or earlier.');
 }
 
+function indiaDate(value) {
+  return value ? new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date(value)) : null;
+}
+
 export function zeroActivityRows(source, { from, to, today, userType = '', userId = '' }) {
   validateRange(from, to, today);
   const p = prepare(source), result = [];
@@ -63,15 +67,18 @@ export function zeroActivityRows(source, { from, to, today, userType = '', userI
     if ((userId && user.id !== userId) || (userType && p.people.get(user.id)?.designation !== userType)) continue;
     const identity = p.identity(user);
     if (!identity.account_date) throw new Error(`Account creation date is missing for ${user.full_name}.`);
+    const disabledOn = indiaDate(source.cutoffs?.get(user.id));
+    const userTo = disabledOn && disabledOn <= to ? shiftDate(disabledOn, -1) : to;
     const start = from && from > identity.account_date ? from : identity.account_date;
-    const metrics = performanceMetrics(p.metrics.get(user.id) || { key: user.id, account_date: identity.account_date, spin_dates: [...(p.spins.get(user.id) || [])] }, from, to, today);
-    for (let date = start; date <= to; date = shiftDate(date, 1)) {
+    if (start > userTo) continue;
+    const metrics = performanceMetrics(p.metrics.get(user.id) || { key: user.id, account_date: identity.account_date, spin_dates: [...(p.spins.get(user.id) || [])] }, from, userTo, today);
+    for (let date = start; date <= userTo; date = shiftDate(date, 1)) {
       if (p.spins.get(user.id)?.has(date)) continue;
       const activity = p.rows.get(user.id)?.get(date);
       result.push({ ...identity, ...metrics, ...activity, id: `${user.id}:${date}`, key: user.id, date,
         spins: 0, units: Number(activity?.units || 0), giveaway_cost: Number(activity?.giveaway_cost || 0),
         avg_cost: activity?.avg_cost ?? 0, active_outlets: Number(activity?.active_outlets || 0), outlets: activity?.outlets || '',
-        date_from: start, date_to: to, activity: date === today ? 'Today in progress' : 'No spins recorded' });
+        date_from: start, date_to: userTo, activity: date === today ? 'Today in progress' : 'No spins recorded' });
     }
   }
   return attachSpinTimes(result, source.spinTimes).sort((a, b) => b.date.localeCompare(a.date) || a.label.localeCompare(b.label));
@@ -83,14 +90,17 @@ export function zeroCohortRows(source, { from = '', to, today, never = false }) 
   for (const user of source.users) {
     const identity = p.identity(user), dates = [...(p.spins.get(user.id) || [])];
     if (!identity.account_date) throw new Error(`Account creation date is missing for ${user.full_name}.`);
-    if (identity.account_date > to || (never ? dates.length > 0 : dates.some((d) => (!from || d >= from) && d <= to))) continue;
+    const disabledOn = indiaDate(source.cutoffs?.get(user.id));
+    const userTo = disabledOn && disabledOn <= to ? shiftDate(disabledOn, -1) : to;
+    if (identity.account_date > userTo || (never ? dates.some((d) => d <= userTo) : dates.some((d) => (!from || d >= from) && d <= userTo))) continue;
     const start = from && from > identity.account_date ? from : identity.account_date;
-    const rows = [...(p.rows.get(user.id)?.values() || [])].filter((r) => r.date >= start && r.date <= to);
+    if (start > userTo) continue;
+    const rows = [...(p.rows.get(user.id)?.values() || [])].filter((r) => r.date >= start && r.date <= userTo);
     const aggregate = summarizeActivity(rows);
-    const metrics = performanceMetrics(p.metrics.get(user.id) || { key: user.id, account_date: identity.account_date, spin_dates: dates }, start, to, today);
+    const metrics = performanceMetrics(p.metrics.get(user.id) || { key: user.id, account_date: identity.account_date, spin_dates: dates }, start, userTo, today);
     result.push({ ...identity, ...metrics, ...aggregate, state: aggregate.state || identity.state,
       city: aggregate.city || identity.city, area: aggregate.area || identity.area,
-      id: user.id, key: user.id, date: to, date_from: start, date_to: to, activity: never ? 'Never spun' : 'Zero spins throughout period' });
+      id: user.id, key: user.id, date: userTo, date_from: start, date_to: userTo, activity: never ? 'Never spun' : 'Zero spins throughout period' });
   }
   return attachSpinTimes(result, []).sort((a, b) => a.label.localeCompare(b.label));
 }
