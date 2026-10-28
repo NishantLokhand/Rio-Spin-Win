@@ -95,8 +95,8 @@ do $$
 declare d text;
 begin
   select pg_get_functiondef(p.oid) into d from pg_proc p join pg_namespace n on n.oid=p.pronamespace
-   where n.nspname='public' and p.proname='_draw_cumulative_prize'
-     and pg_get_function_identity_arguments(p.oid)='public.campaigns, public.prize_configs, uuid, text';
+   where n.nspname='public' and p.proname='_draw_cumulative_prize' and p.pronargs=4
+   order by p.oid desc limit 1;
   if d is null then raise exception 'Current cumulative prize allocator is missing'; end if;
   d := replace(d,
     'if p_campaign.snack_launch_active and p_campaign.track_inventory and exists (',
