@@ -1,6 +1,6 @@
 -- Restore the exact Version 6 allocator. This intentionally does not inspect
 -- or rewrite the deployed function text.
-+create or replace function public._draw_cumulative_prize(
+create or replace function public._draw_cumulative_prize(
     p_campaign public.campaigns,
     p_config public.prize_configs,
     p_promoter uuid,
@@ -201,4 +201,4 @@ revoke execute on function public._draw_cumulative_prize(public.campaigns, publi
 -- Record the exact eligibility decision on each spin for accurate reporting.
 
 
-+notify pgrst, 'reload schema';
+notify pgrst, 'reload schema';
