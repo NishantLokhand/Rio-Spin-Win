@@ -12,6 +12,7 @@ export const userPerformanceColumns = [
   { key: 'activity_span', label: 'Activity span' },
   { key: 'giveaway_cost', label: 'Giveaway Cost', align: 'r', fmt: money },
   { key: 'avg_cost', label: 'Average Cost', align: 'r', fmt: money },
+  { key: 'prizes_given', label: 'Prizes Given' },
   { key: 'user_code', label: 'User Code' }, ...performanceColumns,
 ];
 

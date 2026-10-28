@@ -75,8 +75,17 @@ export default function Reports({ data, filters, setFilters }) {
   const people = useAsync(() => selectAll('org_people', 'auth_user_id,designation', (q) => q.not('auth_user_id', 'is', null)), []);
   const rep = useAsync(() => tab === 'prize'
     ? rpc('prize_distribution_report', { p_filters: filters })
-    : userDaily ? Promise.all([loadUserActivityData(), rpc('report_user_daily', { p_filters: filters, p_user_type: userType || null })])
-      .then(([source, rows]) => completeUserPerformance(source, rows, filters, userType, istToday()))
+    : userDaily ? Promise.all([
+      loadUserActivityData(),
+      rpc('report_user_daily', { p_filters: filters, p_user_type: userType || null }),
+      tab === 'user' ? rpc('report_user_prize_breakdown', { p_date_from: filters.date_from || null, p_date_to: filters.date_to || null }) : Promise.resolve([]),
+    ]).then(([source, rows, breakdown]) => completeUserPerformance(source, rows, filters, userType, istToday(),
+      new Map((breakdown || []).map((r) => [r.user_id, [
+        Number(r.snack5 || 0) ? '₹5 Snack: ' + r.snack5 : '',
+        Number(r.snack10 || 0) ? '₹10 Snack: ' + r.snack10 : '',
+        Number(r.shades || 0) ? 'Rio Shades: ' + r.shades : '',
+        Number(r.other || 0) ? 'Other: ' + r.other : '',
+      ].filter(Boolean).join(' · ')]))))
     : rpc('report_summary', { p_group: tab, p_filters: filters }), [tab, userType, JSON.stringify(filters)]);
   const cols = COLS[tab] || generic(TABS.find((t) => t.key === tab).label);
   const drill = tab === 'area' ? (r) => { setFilters({ ...filters, area: r.key }); setTab('outlet'); }

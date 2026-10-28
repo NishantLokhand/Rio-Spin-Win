@@ -6,11 +6,12 @@ import { attachSpinTimes } from './spinTimes.js';
 // Transaction filters cannot be assigned to a date without a transaction.
 export const activityFilters = ['campaign_id', 'territory_id', 'tse_id', 'outlet_id', 'distributor', 'product_id'];
 
-export function completeUserPerformance(source, recorded, filters, userType, today) {
+export function completeUserPerformance(source, recorded, filters, userType, today, prizeBreakdown = null) {
   const to = filters.date_to && filters.date_to < today ? filters.date_to : today;
   const users = new Map(source.users.map((u) => [u.id, u]));
   const rows = attachMetrics(recorded, source.metrics, filters.date_from, filters.date_to, today)
-    .map((r) => ({ ...r, account_status: users.get(r.key)?.is_active === false ? 'Disabled' : 'Active',
+    .map((r) => ({ ...r, prizes_given: prizeBreakdown?.get(r.key) || '',
+      account_status: users.get(r.key)?.is_active === false ? 'Disabled' : 'Active',
       activity: Number(r.spins) > 0 ? 'Spins recorded' : r.date === today ? 'Today in progress' : 'No spins recorded' }));
   if ((!filters.date_from || filters.date_from <= to) && !activityFilters.some((key) => filters[key])) {
     const recordedDates = new Set(source.rows.map((r) => `${r.key}:${r.date}`));
