@@ -52,10 +52,11 @@ export default function Users({ data, reloadData }) {
         <DataTable rows={us.data.filter((u) => u.role === role).map((u) => ({ ...u, supervisor: supName(u.supervisor_id),
           city: u.org_profile?.market_override ?? u.org_profile?.market_raw ?? '',
           area: u.org_profile?.area_override ?? u.org_profile?.area_raw ?? '',
+          state: u.org_profile?.state_raw ?? '',
         }))} exportName={`${role}s`} columns={[
           { key: 'full_name', label: 'Name' }, { key: 'edit_user', label: 'Edit', noExport: true, render: (u) => <button className="s-btn ghost sm" onClick={() => setEdit(u)}>Edit</button> }, { key: 'login_id', label: 'Login (mobile / username)' }, { key: 'mobile', label: 'Mobile' },
           ...(role === 'promoter' ? [{ key: 'designation', label: 'Field role', render: (u) => u.org_profile?.designation || 'Not linked' }, { key: 'org_link', label: 'Organization', render: (u) => <Badge tone={u.org_profile?.active ? 'green' : 'red'}>{u.org_profile?.active ? 'Linked' : 'Needs linking'}</Badge> }, { key: 'promoter_code', label: 'Promoter ID' },
-            { key: 'city', label: 'City' }, { key: 'area', label: 'Area' },
+            { key: 'state', label: 'State' }, { key: 'city', label: 'City' }, { key: 'area', label: 'Area' },
             { key: 'agency_name', label: 'Agency' }, { key: 'supervisor', label: 'Supervisor' }] : []),
           ...(role === 'supervisor' ? [{ key: 'can_approve_outlets', label: 'Approves outlets', fmt: (v) => (v ? 'Yes' : 'No') }] : []),
           ...(role === 'admin' ? [{ key: 'can_override_cost_target', label: 'Can override cost target', fmt: (v) => (v ? 'Yes' : 'No') }] : []),
