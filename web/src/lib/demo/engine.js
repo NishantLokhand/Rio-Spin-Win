@@ -9,6 +9,7 @@ const fail = (code, hint, detail) => { throw new DemoError(code, hint, detail); 
 export function istDate(d = new Date()) { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(d); }
 function istHM(d = new Date()) { return new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: false }).format(d); }
 const uuid = () => crypto.randomUUID();
+const PRIZE_IDS = { SHADES: '50000000-0000-0000-0000-000000000004' };
 const rnd = () => crypto.getRandomValues(new Uint32Array(1))[0] / 2 ** 32;
 const r2 = (n) => Math.round(n * 100) / 100;
 function hash(s) { let h1 = 0x811c9dc5, h2 = 0x1000193; for (let i = 0; i < s.length; i++) { h1 = Math.imul(h1 ^ s.charCodeAt(i), 16777619); h2 = Math.imul(h2 + s.charCodeAt(i), 2246822519); } return (h1 >>> 0).toString(16).padStart(8, '0') + (h2 >>> 0).toString(16).padStart(8, '0'); }
@@ -143,13 +144,31 @@ export class Engine {
     return i.on_hand;
   }
   prizeName(id) { return this.t('prizes').find((p) => p.id === id)?.short_name; }
+  // Local Version 7 test fixture: only these three demo logins use the temporary
+  // expiry-stock allocation. All other demo users remain on Version 6 behavior.
+  v7Mode(pid) {
+    const login = this.t('app_users').find((u) => u.id === pid)?.login_id;
+    if (!['demo007', 'demo008', 'demo009'].includes(String(login || '').toLowerCase())) return null;
+    const hasShades = this.avail(pid, PRIZE_IDS.SHADES) > 0;
+    const hasSnack5 = this.avail(pid, '50000000-0000-0000-0000-000000000001') > 0;
+    if (hasShades && !hasSnack5) return 'no_snack5';
+    return hasShades ? 'shades' : 'snacks';
+  }
+  v7Items(items, pid) {
+    const mode = this.v7Mode(pid);
+    if (!mode) return items;
+    return items.filter((i) => ['SNACK10', ...(mode !== 'no_snack5' ? ['SNACK5'] : []), ...(mode !== 'snacks' ? ['SHADES'] : [])]
+      .includes(this.t('prizes').find((p) => p.id === i.prize_id)?.code));
+  }
   stockProblem(c, cfg, pid, key) {
     if (!c.track_inventory) return null;
     let pool = c.draw_strategy === 'controlled_pool' ? this.openPool(c, key) : null;
     if (pool && pool.config_id !== cfg.id && c.config_change_mode !== 'next_pool') pool = null;
     let ids = pool ? [...new Set(this.t('prize_pool_slots').filter((s) => s.pool_id === pool.id && !s.used_at).map((s) => s.prize_id))]
       : this.t('prize_config_items').filter((i) => i.config_id === cfg.id && i.quantity > 0).map((i) => i.prize_id);
-    if (c.snack_launch_active) ids = ids.filter((id) => ['SNACK5', 'SNACK10'].includes(this.t('prizes').find((p) => p.id === id)?.code));
+    const v7 = this.v7Mode(pid);
+    if (v7) ids = ids.filter((id) => ['SNACK10', ...(v7 !== 'no_snack5' ? ['SNACK5'] : []), ...(v7 !== 'snacks' ? ['SHADES'] : [])].includes(this.t('prizes').find((p) => p.id === id)?.code));
+    else if (c.snack_launch_active) ids = ids.filter((id) => ['SNACK5', 'SNACK10'].includes(this.t('prizes').find((p) => p.id === id)?.code));
     const missing = ids.filter((id) => this.avail(pid, id) <= 0).map((id) => this.prizeName(id));
     if (c.snack_launch_active && missing.length) return missing.join(', ');
     if (c.oos_mode === 'block') return missing.length ? missing.join(', ') : null;
@@ -292,10 +311,11 @@ export class Engine {
 
   drawCumulativePrize(c, cfg, promoterId, key) {
     const launch = !!c.snack_launch_active;
+    const v7 = this.v7Mode(promoterId);
     const alloc = this.getAllocation(c, launch ? `${key}:snack-launch` : key);
     const n = alloc.total_spins + 1;
     const allItems = this.t('prize_config_items').filter((i) => i.config_id === cfg.id);
-    const items = launch ? allItems.filter((i) => ['SNACK5', 'SNACK10'].includes(this.t('prizes').find((p) => p.id === i.prize_id)?.code)) : allItems;
+    const items = this.v7Items(launch ? allItems.filter((i) => ['SNACK5', 'SNACK10'].includes(this.t('prizes').find((p) => p.id === i.prize_id)?.code)) : allItems, promoterId);
     if (launch && c.track_inventory && items.some((i) => this.avail(promoterId, i.prize_id) <= 0)) fail('OUT_OF_STOCK', 'Both snack prizes must be in stock during the temporary 85/15 launch phase.');
     const refSize = cfg.pool_size || 200;
 
@@ -314,7 +334,9 @@ export class Engine {
 
     for (const it of items) {
       const code = this.t('prizes').find((p) => p.id === it.prize_id)?.code;
-      const pct = launch ? (code === 'SNACK5' ? 85 : 15) : (it.percentage != null && it.percentage > 0 ? Number(it.percentage) : (Number(it.quantity) / refSize) * 100);
+      const pct = v7
+        ? (code === 'SNACK10' ? (v7 === 'no_snack5' ? 96 : v7 === 'shades' ? 90 : 95) : code === 'SNACK5' ? (v7 === 'shades' ? 6 : 5) : 4)
+        : launch ? (code === 'SNACK5' ? 85 : 15) : (it.percentage != null && it.percentage > 0 ? Number(it.percentage) : (Number(it.quantity) / refSize) * 100);
       if (pct <= 0) continue;
       const stock = c.track_inventory ? this.avail(promoterId, it.prize_id) : 99999;
       const actual = Number(alloc.awarded[it.prize_id] || 0);
@@ -335,27 +357,48 @@ export class Engine {
 
     if (eligibleCount === 0) fail('OUT_OF_STOCK', 'All configured prizes are currently out of stock with promoter.');
 
-    // Randomise among the near-largest deficits. Restricting the pool to a
-    // 1.5-prize window keeps cumulative rounding error bounded.
-    const maxDeficit = Math.max(...candidates.map((candidate) => candidate.deficit));
-    for (const candidate of candidates) {
-      candidate.isConstrained = candidate.deficit < maxDeficit - 1.5;
-      candidate.weight = (candidate.pct / 100) * Math.exp(Math.max(-4, Math.min(0, (candidate.deficit - maxDeficit) / 0.75)));
-      if (!candidate.isConstrained) totalWeight += candidate.weight;
-    }
-
-    if (totalWeight <= 0) {
-      candidates.forEach((cd) => { cd.isConstrained = false; });
-      totalWeight = candidates.reduce((sum, cd) => sum + cd.weight, 0);
-    }
-
     let wonPrize = null;
     let wonCost = null;
 
-    if (totalWeight <= 0) {
+    // Local Version 7: keep shades random, but enforce a cumulative upper cap.
+    // This prevents catch-up streaks while still allowing a shade on any spin.
+    if (v7) {
+      const shade = candidates.find((cd) => this.t('prizes').find((p) => p.id === cd.prize_id)?.code === 'SHADES');
+      const shadeAwarded = Number(alloc.awarded[shade?.prize_id] || 0);
+      const shadeCap = Math.ceil(n * 0.04);
+      if (shade && shadeAwarded < shadeCap && rnd() < 0.04) {
+        wonPrize = shade.prize_id;
+        wonCost = shade.unit_cost;
+      } else {
+        const nonShade = candidates.filter((cd) => cd !== shade);
+        const pool = nonShade.length ? nonShade : candidates;
+        const total = pool.reduce((sum, cd) => sum + cd.pct, 0);
+        let cursor = rnd() * total;
+        const chosen = pool.find((cd) => (cursor -= cd.pct) < 0) || pool[pool.length - 1];
+        wonPrize = chosen.prize_id;
+        wonCost = chosen.unit_cost;
+      }
+    }
+
+    // Version 6/demo baseline: randomise among the near-largest deficits. Restricting the pool to a
+    // 1.5-prize window keeps cumulative rounding error bounded.
+    if (!v7) {
+      const maxDeficit = Math.max(...candidates.map((candidate) => candidate.deficit));
+      for (const candidate of candidates) {
+      candidate.isConstrained = candidate.deficit < maxDeficit - 1.5;
+      candidate.weight = (candidate.pct / 100) * Math.exp(Math.max(-4, Math.min(0, (candidate.deficit - maxDeficit) / 0.75)));
+      if (!candidate.isConstrained) totalWeight += candidate.weight;
+      }
+
+      if (totalWeight <= 0) {
+      candidates.forEach((cd) => { cd.isConstrained = false; });
+      totalWeight = candidates.reduce((sum, cd) => sum + cd.weight, 0);
+      }
+
+      if (totalWeight <= 0) {
       wonPrize = bestPrize;
       wonCost = bestCost;
-    } else {
+      } else {
       let r = rnd() * totalWeight;
       const active = candidates.filter((cd) => !cd.isConstrained);
       for (const cd of active) {
@@ -369,6 +412,7 @@ export class Engine {
       if (!wonPrize && active.length > 0) {
         wonPrize = active[active.length - 1].prize_id;
         wonCost = active[active.length - 1].unit_cost;
+      }
       }
     }
 
