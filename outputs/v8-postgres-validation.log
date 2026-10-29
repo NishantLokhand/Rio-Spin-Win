@@ -1,0 +1,1383 @@
+V8 PostgreSQL validation: 2026-10-29T12:45:47.967Z
+New LOCAL database: rio_v8_validation_1793277947967
+Local V7 fixture source: rio_v7_validation_1793273055339
+
+=== Isolated database bootstrap ===
+CREATE SCHEMA
+CREATE EXTENSION
+CREATE EXTENSION
+CREATE EXTENSION
+
+
+=== Copy validated local V7 schema and fixtures ===
+SET
+SET
+SET
+SET
+SET
+SET
+ set_config
+------------
+
+(1 row)
+
+SET
+SET
+SET
+SET
+CREATE SCHEMA
+CREATE SCHEMA
+COMMENT
+CREATE TYPE
+CREATE TYPE
+CREATE TYPE
+CREATE TYPE
+CREATE TYPE
+CREATE TYPE
+CREATE TYPE
+CREATE TYPE
+CREATE TYPE
+CREATE TYPE
+CREATE TYPE
+CREATE TYPE
+CREATE TYPE
+CREATE TYPE
+CREATE TYPE
+CREATE TYPE
+CREATE TYPE
+CREATE TYPE
+CREATE TYPE
+CREATE TYPE
+CREATE TYPE
+CREATE FUNCTION
+COMMENT
+CREATE FUNCTION
+CREATE FUNCTION
+COMMENT
+CREATE FUNCTION
+COMMENT
+SET
+SET
+CREATE TABLE
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE TABLE
+CREATE TABLE
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE TABLE
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE TABLE
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE TABLE
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+COMMENT
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+COMMENT
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+COMMENT
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE TABLE
+COMMENT
+CREATE TABLE
+CREATE TABLE
+COMMENT
+CREATE TABLE
+COMMENT
+COMMENT
+CREATE TABLE
+COMMENT
+CREATE TABLE
+COMMENT
+CREATE TABLE
+COMMENT
+CREATE TABLE
+COMMENT
+COMMENT
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+COMMENT
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+COMMENT
+CREATE SEQUENCE
+ALTER SEQUENCE
+CREATE TABLE
+COMMENT
+CREATE TABLE
+COMMENT
+CREATE TABLE
+COMMENT
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+COMMENT
+COMMENT
+COMMENT
+COMMENT
+CREATE TABLE
+COMMENT
+CREATE TABLE
+COMMENT
+COMMENT
+CREATE TABLE
+COMMENT
+COMMENT
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE SEQUENCE
+ALTER SEQUENCE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE VIEW
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE SEQUENCE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE VIEW
+ALTER TABLE
+ALTER TABLE
+COPY 0
+COPY 0
+COPY 0
+COPY 0
+COPY 0
+COPY 0
+COPY 0
+COPY 0
+COPY 0
+COPY 0
+COPY 0
+COPY 0
+COPY 0
+COPY 0
+COPY 0
+COPY 0
+COPY 0
+COPY 0
+COPY 82
+COPY 0
+COPY 0
+COPY 0
+COPY 0
+COPY 0
+COPY 43
+COPY 0
+COPY 0
+COPY 0
+COPY 43
+COPY 192
+COPY 1
+COPY 24
+COPY 0
+COPY 4
+COPY 0
+COPY 2
+COPY 0
+COPY 0
+COPY 0
+COPY 0
+COPY 10
+COPY 0
+COPY 0
+COPY 0
+COPY 42
+COPY 0
+COPY 0
+COPY 0
+COPY 0
+COPY 0
+COPY 0
+COPY 16
+COPY 19
+COPY 6
+COPY 0
+COPY 0
+COPY 41
+COPY 4
+COPY 1
+COPY 5
+COPY 13
+COPY 126
+COPY 0
+COPY 0
+COPY 0
+COPY 0
+COPY 42
+COPY 0
+COPY 0
+COPY 0
+COPY 1
+COPY 10
+COPY 3
+COPY 5
+COPY 6
+COPY 43
+ setval
+--------
+      1
+(1 row)
+
+ setval
+--------
+    192
+(1 row)
+
+ setval
+--------
+     10
+(1 row)
+
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+COMMENT
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+COMMENT
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+CREATE TRIGGER
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE POLICY
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+ALTER TABLE
+CREATE POLICY
+ALTER TABLE
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+ALTER TABLE
+CREATE POLICY
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+ALTER TABLE
+ALTER TABLE
+CREATE POLICY
+ALTER TABLE
+CREATE POLICY
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE POLICY
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+ALTER TABLE
+CREATE POLICY
+ALTER TABLE
+CREATE POLICY
+ALTER TABLE
+ALTER TABLE
+CREATE POLICY
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+ALTER TABLE
+CREATE POLICY
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+ALTER TABLE
+ALTER TABLE
+CREATE POLICY
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+ALTER TABLE
+ALTER TABLE
+CREATE POLICY
+ALTER TABLE
+CREATE POLICY
+ALTER TABLE
+CREATE POLICY
+ALTER TABLE
+CREATE POLICY
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+ALTER TABLE
+CREATE POLICY
+CREATE POLICY
+CREATE POLICY
+
+
+=== 12 exact users, controlled IST clock, immutable-function snapshots ===
+CREATE TABLE
+INSERT 0 12
+INSERT 0 2
+INSERT 0 12
+INSERT 0 2
+INSERT 0 2
+UPDATE 1
+CREATE TABLE
+INSERT 0 1
+GRANT
+CREATE FUNCTION
+SELECT 5
+SELECT 126
+
+
+=== V8 migration execution ===
+BEGIN
+SET
+SET
+DO
+CREATE FUNCTION
+REVOKE
+CREATE FUNCTION
+REVOKE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+REVOKE
+CREATE TABLE
+INSERT 0 12
+DO
+INSERT 0 12
+INSERT 0 1
+CREATE FUNCTION
+CREATE FUNCTION
+REVOKE
+CREATE FUNCTION
+REVOKE
+CREATE FUNCTION
+REVOKE
+CREATE FUNCTION
+REVOKE
+CREATE FUNCTION
+REVOKE
+CREATE FUNCTION
+REVOKE
+DROP TRIGGER
+CREATE TRIGGER
+CREATE FUNCTION
+CREATE FUNCTION
+REVOKE
+GRANT
+CREATE FUNCTION
+REVOKE
+GRANT
+DO
+NOTIFY
+COMMIT
+NOTICE:  trigger "link_v8_speaker_award" for relation "public.spins" does not exist, skipping
+NOTICE:  V8 installed; 12 exact users, reported stock 86, inventory untouched. V8 remains disabled until admin activation.
+
+
+=== V8 migration rerun ===
+BEGIN
+SET
+SET
+DO
+CREATE FUNCTION
+REVOKE
+CREATE FUNCTION
+REVOKE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+REVOKE
+CREATE TABLE
+INSERT 0 12
+DO
+INSERT 0 12
+INSERT 0 0
+CREATE FUNCTION
+CREATE FUNCTION
+REVOKE
+CREATE FUNCTION
+REVOKE
+CREATE FUNCTION
+REVOKE
+CREATE FUNCTION
+REVOKE
+CREATE FUNCTION
+REVOKE
+CREATE FUNCTION
+REVOKE
+DROP TRIGGER
+CREATE TRIGGER
+CREATE FUNCTION
+CREATE FUNCTION
+REVOKE
+GRANT
+CREATE FUNCTION
+REVOKE
+GRANT
+DO
+NOTIFY
+COMMIT
+NOTICE:  relation "prize_v8_settings" already exists, skipping
+NOTICE:  relation "prize_v8_users" already exists, skipping
+NOTICE:  relation "prize_v8_daily_awards" already exists, skipping
+NOTICE:  V8 installed; 12 exact users, reported stock 86, inventory untouched. V8 remains disabled until admin activation.
+
+
+=== V8 daily schedule, stock, retry, metadata, V6/V7 isolation and permissions ===
+CREATE FUNCTION
+ v8_test_assert
+----------------
+
+(1 row)
+
+ v8_test_assert
+----------------
+
+(1 row)
+
+ v8_test_assert
+----------------
+
+(1 row)
+
+ v8_test_assert
+----------------
+
+(1 row)
+
+SELECT 126
+INSERT 0 48
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+DO
+UPDATE 1
+CREATE TABLE
+DO
+           name            | speaker_at_spin | speakers | total_spins
+---------------------------+-----------------+----------+-------------
+ AJAY PANDURANG DOLEKAR    | 3               |        1 |           6
+ CHETAN MADHUKAR PAUNIKAR  | 3               |        1 |           6
+ HARISHACHANDRA PATEL      | 3               |        1 |           6
+ KARAN KALE                | 3               |        1 |           6
+ NIKHIL KAROTE             | 3               |        1 |           6
+ PAVAN PANBIHADE           | 3               |        1 |           6
+ ROHAN RATHOD              | 3               |        1 |           6
+ SARANG R BORKAR           | 3               |        1 |           6
+ SAURABH PATIL             | 3               |        1 |           6
+ SUNIL KUMAR YADAV         | 3               |        1 |           6
+ VIKAS SHRIKRUSHANA TAYADE | 3               |        1 |           6
+ VIVEK DHARMADHIKARI       | 3               |        1 |           6
+(12 rows)
+
+DO
+UPDATE 1
+DO
+DO
+DO
+UPDATE 1
+ v8_test_assert
+----------------
+
+(1 row)
+
+UPDATE 1
+ v8_test_assert
+----------------
+
+(1 row)
+
+DO
+UPDATE 1
+DO
+BEGIN
+              set_config
+--------------------------------------
+ 7c96721b-b639-4ea7-9d2a-d41004ba5f29
+(1 row)
+
+              set_config
+--------------------------------------
+ 60000000-0000-0000-0000-000000000001
+(1 row)
+
+SET
+DO
+ROLLBACK
+CREATE FUNCTION
+CREATE FUNCTION
+ v8_test_assert
+----------------
+
+(1 row)
+
+ v8_test_assert
+----------------
+
+(1 row)
+
+NOTICE:  PASS: 12 exact users and 86 reported speakers; Pradeep excluded
+NOTICE:  PASS: V8 installs disabled
+NOTICE:  PASS: Installation and rerun do not add, deduct, or reserve inventory
+NOTICE:  PASS: PostgreSQL compilation and alias checking
+NOTICE:  PASS: Enabling after spin 3 has no catch-up award
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Unselected user with speaker stock stays on V6
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: All 12 users: exactly daily spin 3 is a speaker, across bills/outlets; correct V6/V7 ordinary rules
+NOTICE:  PASS: Speaker handover/replay deducts one unit; base V6/V7 counters exclude speaker draws
+NOTICE:  PASS: 100+ spins and off/on toggle do not grant a second daily speaker
+NOTICE:  PASS: Empty speaker stock at spin 3 gives normal prize; later restock never creates catch-up
+NOTICE:  PASS: Cancellation does not count; third-spin readiness permits in-stock speaker with empty snack stocks
+NOTICE:  PASS: Ordinary stock gate remains enforced after scheduled speaker
+NOTICE:  PASS: Failed spin transaction rolls back its daily claim
+NOTICE:  PASS: Retry after failed transaction can award the correct third-spin speaker
+NOTICE:  PASS: Undelivered resolution releases stock but cannot award a second speaker
+NOTICE:  PASS: 23:59:59 IST belongs to previous day
+NOTICE:  PASS: 00:00:00 IST starts the next day
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: New IST activity day restores eligibility at its third spin
+NOTICE:  PASS: V8 speaker independent of V7 expiry; normal spin follows V6
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: V8 speaker independent of V7 expiry; normal spin follows V6
+NOTICE:  PASS: V8 speaker independent of V7 expiry; normal spin follows V6
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: V8 speaker independent of V7 expiry; normal spin follows V6
+NOTICE:  PASS: V8 tracking report returns 12 users
+NOTICE:  PASS: promoter permissions restricted
+NOTICE:  PASS: Original V6/V7 allocator, play_spin and handover bodies unchanged
+NOTICE:  PASS: Inventory balances remain valid
+
+
+=== Different sales concurrent draw ===
+BEGIN
+              set_config
+--------------------------------------
+ 7c96721b-b639-4ea7-9d2a-d41004ba5f29
+(1 row)
+
+                                                                                                                                                                                                                                                                                        play_spin
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"prize": {"id": "50000000-0000-0000-0000-000000000005", "code": "SPEAKER", "name": "Rio Mini Bluetooth Speaker", "tier": "jackpot", "image_url": null, "win_title": "YOU WON RIO MINI BLUETOOTH SPEAKER!", "short_name": "Speaker", "wheel_label": "RIO MINI BLUETOOTH SPEAKER", "win_subtitle": "ENJOY YOUR NEW SPEAKER!"}, "sale_id": "059fb21f-6400-4470-bd3b-a62878884e0c", "spin_id": "1812de21-e816-498f-a39b-d287774cb8d8", "spin_no": 1, "replayed": false, "spin_code": "SPN261029-000212", "created_at": "2026-10-29T12:46:05.451635+00:00", "redemption_status": "pending"}
+(1 row)
+
+ pg_sleep
+----------
+
+(1 row)
+
+COMMIT
+
+BEGIN
+              set_config
+--------------------------------------
+ 7c96721b-b639-4ea7-9d2a-d41004ba5f29
+(1 row)
+
+                                                                                                                                                                                                                                                          play_spin
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"prize": {"id": "50000000-0000-0000-0000-000000000002", "code": "SNACK10", "name": "₹10 Snack", "tier": "standard", "image_url": null, "win_title": "YOU WON ₹10 SNACK!", "short_name": "₹10 Snack", "wheel_label": "₹10 SNACK", "win_subtitle": "SNACK TIME!"}, "sale_id": "27c835f6-4eb3-4d90-bf48-ea2c7a993011", "spin_id": "9d4db67f-fb33-488f-9915-fc5c889a86ed", "spin_no": 1, "replayed": false, "spin_code": "SPN261029-000213", "created_at": "2026-10-29T12:46:05.580679+00:00", "redemption_status": "pending"}
+(1 row)
+
+ pg_sleep
+----------
+
+(1 row)
+
+COMMIT
+
+
+=== Concurrent bills yield only one daily speaker ===
+ v8_test_check_race
+--------------------
+
+(1 row)
+
+NOTICE:  PASS: Concurrent requests have one unique daily claim
+NOTICE:  PASS: Concurrent requests have one speaker spin
+NOTICE:  PASS: Concurrent replay/draw creates correct spin count
+NOTICE:  PASS: Only one speaker reserved
+
+
+=== Same sale concurrent replay ===
+BEGIN
+              set_config
+--------------------------------------
+ 7c96721b-b639-4ea7-9d2a-d41004ba5f29
+(1 row)
+
+                                                                                                                                                                                                                                                                                        play_spin
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"prize": {"id": "50000000-0000-0000-0000-000000000005", "code": "SPEAKER", "name": "Rio Mini Bluetooth Speaker", "tier": "jackpot", "image_url": null, "win_title": "YOU WON RIO MINI BLUETOOTH SPEAKER!", "short_name": "Speaker", "wheel_label": "RIO MINI BLUETOOTH SPEAKER", "win_subtitle": "ENJOY YOUR NEW SPEAKER!"}, "sale_id": "60374ae5-d638-4586-88bf-f29783e1367c", "spin_id": "3e16f3af-f203-4de1-8315-9f1ac90b2388", "spin_no": 1, "replayed": false, "spin_code": "SPN261029-000216", "created_at": "2026-10-29T12:46:06.771342+00:00", "redemption_status": "pending"}
+(1 row)
+
+ pg_sleep
+----------
+
+(1 row)
+
+COMMIT
+
+BEGIN
+              set_config
+--------------------------------------
+ 7c96721b-b639-4ea7-9d2a-d41004ba5f29
+(1 row)
+
+                                                                                                                                                                                                                                                                                       play_spin
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ {"prize": {"id": "50000000-0000-0000-0000-000000000005", "code": "SPEAKER", "name": "Rio Mini Bluetooth Speaker", "tier": "jackpot", "image_url": null, "win_title": "YOU WON RIO MINI BLUETOOTH SPEAKER!", "short_name": "Speaker", "wheel_label": "RIO MINI BLUETOOTH SPEAKER", "win_subtitle": "ENJOY YOUR NEW SPEAKER!"}, "sale_id": "60374ae5-d638-4586-88bf-f29783e1367c", "spin_id": "3e16f3af-f203-4de1-8315-9f1ac90b2388", "spin_no": 1, "replayed": true, "spin_code": "SPN261029-000216", "created_at": "2026-10-29T12:46:06.771342+00:00", "redemption_status": "pending"}
+(1 row)
+
+ pg_sleep
+----------
+
+(1 row)
+
+COMMIT
+
+
+=== Concurrent retry reserves one speaker once ===
+ v8_test_check_race
+--------------------
+
+(1 row)
+
+NOTICE:  PASS: Concurrent requests have one unique daily claim
+NOTICE:  PASS: Concurrent requests have one speaker spin
+NOTICE:  PASS: Concurrent replay/draw creates correct spin count
+NOTICE:  PASS: Only one speaker reserved
+
+
+=== Normal SQL rollback ===
+BEGIN
+SET
+UPDATE 1
+NOTIFY
+COMMIT
+
+
+=== Normal rollback verification ===
+ v8_test_assert
+----------------
+
+(1 row)
+
+NOTICE:  PASS: Normal rollback disabled V8
+
+
+=== Reapply after rollback ===
+BEGIN
+SET
+SET
+DO
+CREATE FUNCTION
+REVOKE
+CREATE FUNCTION
+REVOKE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+REVOKE
+CREATE TABLE
+INSERT 0 12
+DO
+INSERT 0 12
+INSERT 0 0
+CREATE FUNCTION
+CREATE FUNCTION
+REVOKE
+CREATE FUNCTION
+REVOKE
+CREATE FUNCTION
+REVOKE
+CREATE FUNCTION
+REVOKE
+CREATE FUNCTION
+REVOKE
+CREATE FUNCTION
+REVOKE
+DROP TRIGGER
+CREATE TRIGGER
+CREATE FUNCTION
+CREATE FUNCTION
+REVOKE
+GRANT
+CREATE FUNCTION
+REVOKE
+GRANT
+DO
+NOTIFY
+COMMIT
+NOTICE:  relation "prize_v8_settings" already exists, skipping
+NOTICE:  relation "prize_v8_users" already exists, skipping
+NOTICE:  relation "prize_v8_daily_awards" already exists, skipping
+NOTICE:  V8 installed; 12 exact users, reported stock 86, inventory untouched. V8 remains disabled until admin activation.
+
+
+=== Rerun does not reactivate V8 ===
+ v8_test_assert
+----------------
+
+(1 row)
+
+NOTICE:  PASS: Rerun preserves disabled toggle
+
+
+=== Emergency restoration of working entry routes ===
+BEGIN
+SET
+UPDATE 1
+CREATE FUNCTION
+REVOKE
+CREATE FUNCTION
+REVOKE
+NOTIFY
+COMMIT
+
+
+=== Emergency recovery fingerprints ===
+ v8_test_assert
+----------------
+
+(1 row)
+
+ v8_test_assert
+----------------
+
+(1 row)
+
+NOTICE:  PASS: Exact original dispatcher restored
+NOTICE:  PASS: Exact original stock gate restored
+
+
+=== Negative user-match fixture ===
+UPDATE 1
+
+
+PASS: missing/inactive selected user aborts migration atomically.
+
+ALL V8 CHECKS PASSED. Production was not contacted.
