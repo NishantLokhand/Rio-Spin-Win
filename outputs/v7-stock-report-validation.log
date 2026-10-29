@@ -1,0 +1,29 @@
+Local reporting test: 2026-10-29T11:46:35.156Z
+Database: rio_v7_validation_1793273055339
+SELECT 5
+SELECT 4
+BEGIN
+CREATE FUNCTION
+REVOKE
+GRANT
+NOTIFY
+COMMIT
+BEGIN
+              set_config
+--------------------------------------
+ a0000000-0000-0000-0000-000000000001
+(1 row)
+
+DO
+ROLLBACK
+DO
+
+NOTICE:  PASS: SNACK5 remaining = 100 (reserved quantities excluded)
+NOTICE:  PASS: SNACK10 remaining = 200 (reserved quantities excluded)
+NOTICE:  PASS: SHADES remaining = 300 (reserved quantities excluded)
+NOTICE:  PASS: SPEAKER remaining = 444 (reserved quantities excluded)
+NOTICE:  PASS: all 41 report users retained
+NOTICE:  PASS: V6/V7 allocator, dispatch, eligibility and toggle function bodies unchanged
+NOTICE:  PASS: allocation counters unchanged
+
+ALL REPORT CHECKS PASSED
