@@ -1,6 +1,6 @@
 # Version 8 — daily third-spin speakers
 
-Version 8 is an additional scheduled-prize rule for the following 12 accounts. Pradeep Bharadwaj is excluded. The quantities below are reference information supplied by the administrator; **the migration never issues stock**.
+Version 8 is an additional scheduled-prize rule for the following 13 accounts. On 30 October, the previously ambiguous Pradeep Bharadwaj entry was confirmed to be the existing **PRADEEP RAJBHAR** account and added by a separate data migration. The quantities below are reference information supplied by the administrator; **the migrations never issue stock**.
 
 | Exact account name | Reported speakers |
 | --- | ---: |
@@ -16,7 +16,8 @@ Version 8 is an additional scheduled-prize rule for the following 12 accounts. P
 | PAVAN PANBIHADE | 6 |
 | SARANG R BORKAR | 7 |
 | SAURABH PATIL | 7 |
-| **Total** | **86** |
+| PRADEEP RAJBHAR | 10 |
+| **Total** | **96** |
 
 For each selected user, the third recorded RSW-2026 campaign spin of the India-time day awards one in-stock speaker instead of the normal prize. The daily count includes all their bills/outlets and retained spin records, including pending or subsequently undelivered results. Replays do not add spins. Cancelled bills with no spin do not count.
 
@@ -32,8 +33,9 @@ The stock-readiness wrapper permits an available scheduled speaker on spin three
 
 1. Deploy the frontend and apply the complete file `supabase/migrations/20261029000300_scheduled_v8_speakers.sql` in Supabase SQL Editor. The migration checks the current entry-function fingerprints and requires exactly one active field account for each name. A mismatch aborts the entire migration. It contains its own schema reload notification.
 2. Installation leaves Version 8 **disabled**. Inventory, existing V6/V7 settings, and their allocator functions remain unchanged. Rerunning preserves the toggle's current state and all award records.
-3. Open **Prize Structure → Version 8** and confirm the 12 users and their existing stock in **Reports → Version 8 speakers**.
-4. Turn **Version 8 Active** on. Users who have already passed their third spin wait until their next activity day.
+3. Apply `supabase/migrations/20261030000100_add_pradeep_rajbhar_to_v8.sql` to add PRADEEP RAJBHAR. This matches exactly one existing active field account, records the reported quantity of 10, and preserves existing inventory, daily awards, and toggles. Rerunning updates the reference quantity without issuing stock or re-enabling an individually disabled membership.
+4. Open **Prize Structure → Version 8** and confirm the 13 users and their existing stock in **Reports → Version 8 speakers**.
+5. Turn **Version 8 Active** on. Users who have already passed their third spin wait until their next activity day.
 
 Version 8 has no automatic end date by default. Version 7 still expires on 4 November 2026; thereafter ordinary prizes use V6 while the independent V8 third-spin speaker rule continues. Disable V8 whenever it is no longer required.
 
