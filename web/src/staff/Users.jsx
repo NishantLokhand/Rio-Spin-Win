@@ -27,6 +27,7 @@ export default function Users({ data, reloadData }) {
   const [role, setRole] = useState('promoter');
   const [edit, setEdit] = useState(null);
   const [pin, setPin] = useState(null);
+  const [deleteUser, setDeleteUser] = useState(null);
   const [err, setErr] = useState('');
   const us = useAsync(async () => {
     const [users, promoters, people, deleted] = await Promise.all([selectAll('app_users', '*', (q) => q.order('full_name')), selectAll('promoters', '*'), selectAll('org_people', '*'), rpc('get_deleted_field_users')]);
@@ -54,7 +55,10 @@ export default function Users({ data, reloadData }) {
           area: u.org_profile?.area_override ?? u.org_profile?.area_raw ?? '',
           state: u.org_profile?.state_raw ?? '',
         }))} exportName={`${role}s`} columns={[
-          { key: 'full_name', label: 'Name' }, { key: 'edit_user', label: 'Edit', noExport: true, render: (u) => <button className="s-btn ghost sm" onClick={() => setEdit(u)}>Edit</button> }, { key: 'login_id', label: 'Login (mobile / username)' }, { key: 'mobile', label: 'Mobile' },
+          { key: 'full_name', label: 'Name' }, { key: 'edit_user', label: 'Actions', noExport: true, render: (u) => <div className="row-actions">
+            <button className="s-btn ghost sm" onClick={() => setEdit(u)}>Edit</button>
+            {u.role === 'promoter' && <button className="s-btn danger sm" aria-label={`Delete ${u.full_name}`} onClick={() => setDeleteUser(u)}>Delete</button>}
+          </div> }, { key: 'login_id', label: 'Login (mobile / username)' }, { key: 'mobile', label: 'Mobile' },
           ...(role === 'promoter' ? [{ key: 'designation', label: 'Field role', render: (u) => u.org_profile?.designation || 'Not linked' }, { key: 'org_link', label: 'Organization', render: (u) => <Badge tone={u.org_profile?.active ? 'green' : 'red'}>{u.org_profile?.active ? 'Linked' : 'Needs linking'}</Badge> }, { key: 'promoter_code', label: 'Promoter ID' },
             { key: 'state', label: 'State' }, { key: 'city', label: 'City' }, { key: 'area', label: 'Area' },
             { key: 'agency_name', label: 'Agency' }, { key: 'supervisor', label: 'Supervisor' }] : []),
@@ -70,8 +74,34 @@ export default function Users({ data, reloadData }) {
       </Panel>
       {edit && <UserModal u={edit} data={data} sups={sups} onClose={(c) => { setEdit(null); if (c) { us.reload(); reloadData(); } }} />}
       {pin && <PinModal u={pin} onClose={() => setPin(null)} />}
+      {deleteUser && <DeleteUserModal u={deleteUser} onClose={(deleted) => { setDeleteUser(null); if (deleted) { us.reload(); reloadData(); } }} />}
     </div>
   );
+}
+
+function DeleteUserModal({ u, onClose }) {
+  const [confirmLogin, setConfirmLogin] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  async function remove() {
+    if (busy || confirmLogin !== u.login_id) return;
+    setBusy(true); setErr('');
+    try {
+      await rpc('delete_field_user', { p_user_id: u.id, p_confirm_login: confirmLogin });
+      onClose(true);
+    } catch (e) { setErr(friendly(e)); setBusy(false); }
+  }
+  return <Modal title={`Delete ${u.full_name}?`} onClose={() => { if (!busy) onClose(false); }}>
+    <div className="s-form">
+      <p>This removes {u.full_name} ({u.login_id}) from the active Users list and blocks app access. Sales, spins and stock history are retained. The login ID stays reserved.</p>
+      <Field label={`Type ${u.login_id} to confirm deletion`}><input aria-label="Confirm delete login ID" value={confirmLogin} onChange={(e) => setConfirmLogin(e.target.value)} disabled={busy} autoComplete="off" autoFocus /></Field>
+      {err && <div className="s-err" role="alert">{err}</div>}
+      <div className="s-actions">
+        <button className="s-btn ghost" disabled={busy} onClick={() => onClose(false)}>Keep user</button>
+        <button className="s-btn danger" disabled={busy || confirmLogin !== u.login_id} onClick={remove}>{busy ? 'Deleting…' : 'Confirm delete user'}</button>
+      </div>
+    </div>
+  </Modal>;
 }
 
 function UserModal({ u, data, sups, onClose }) {
