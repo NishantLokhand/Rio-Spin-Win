@@ -1,0 +1,436 @@
+New LOCAL database: rio_four_atomic_1793434303112
+Source LOCAL database: rio_v8_harshraj_1793361101976
+supabase/migrations/20261031000300_enroll_four_users_v7_v8_atomic.sql SHA256 (LF): 788e1764d023d8ab983d854cfbbac80eaf5d926990ea87aa58e4faaf0fd70dfc
+supabase/rollbacks/20261031000300_restore_four_users_v7_v8_atomic.sql SHA256 (LF): 0e5ad62932ac5a8c161d84e72fb3eda8f75f9ad38872612b12279c026ebe09b3
+
+Exact combined transaction; prior wrong Tushar category corrected
+BEGIN
+SET
+SET
+
+
+
+
+DO
+CREATE TABLE
+ALTER TABLE
+REVOKE
+DO
+TUSHAR SURESH AMRUTKAR|a3110000-0000-0000-0000-000000000001|four-atomic-0|t|t|f|snacks|2026-11-04|t|t|3|25|82|0|3|0
+ASHISH RAMU KALWAL|a3110000-0000-0000-0000-000000000002|four-atomic-1|t|f|t|||t|t|10|100|100|0|10|0
+SUJAL KALIDAS WANKHEDE|a3110000-0000-0000-0000-000000000003|four-atomic-2|t|f|t|||t|t|10|100|100|0|10|0
+HARSHRAJ SHELAR|a3110000-0000-0000-0000-000000000004|four-atomic-3|t|f|f|||t|t|20|100|100|0|20|0
+COMMIT
+
+Idempotent combined rerun
+BEGIN
+SET
+SET
+
+
+
+
+DO
+CREATE TABLE
+ALTER TABLE
+REVOKE
+DO
+TUSHAR SURESH AMRUTKAR|a3110000-0000-0000-0000-000000000001|four-atomic-0|t|t|f|snacks|2026-11-04|t|t|3|25|82|0|3|0
+ASHISH RAMU KALWAL|a3110000-0000-0000-0000-000000000002|four-atomic-1|t|f|t|||t|t|10|100|100|0|10|0
+SUJAL KALIDAS WANKHEDE|a3110000-0000-0000-0000-000000000003|four-atomic-2|t|f|t|||t|t|10|100|100|0|10|0
+HARSHRAJ SHELAR|a3110000-0000-0000-0000-000000000004|four-atomic-3|t|f|f|||t|t|20|100|100|0|20|0
+COMMIT
+NOTICE:  relation "prize_four_users_20261031_backup" already exists, skipping
+NOTICE:  This combined enrollment was already applied. Later administrator membership edits are preserved; review the four status rows below.
+
+Effective memberships, enabled-Harshraj preservation, privacy
+CREATE TABLE
+NOTICE:  PASS: Tushar standard V7 effective
+NOTICE:  PASS: Tushar V8 preserved exactly
+NOTICE:  PASS: Already-enabled Harshraj unchanged exactly
+NOTICE:  PASS: Disabled prior Sujal row enabled
+NOTICE:  PASS: Private snapshot
+
+TUSHAR SURESH AMRUTKAR actual spin/handover and replay
+DO
+
+
+
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Speaker retry retains exact spin
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Tushar ordinary draws use standard V7
+NOTICE:  PASS: One speaker deduction
+NOTICE:  PASS: Exact INR10 deductions
+NOTICE:  PASS: Exact INR5 deductions
+
+ASHISH RAMU KALWAL actual spin/handover and replay
+DO
+
+
+
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Speaker retry retains exact spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: One speaker deduction
+NOTICE:  PASS: Exact INR10 deductions
+NOTICE:  PASS: Exact INR5 deductions
+
+SUJAL KALIDAS WANKHEDE actual spin/handover and replay
+DO
+
+
+
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Speaker retry retains exact spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: One speaker deduction
+NOTICE:  PASS: Exact INR10 deductions
+NOTICE:  PASS: Exact INR5 deductions
+
+HARSHRAJ SHELAR actual spin/handover and replay
+DO
+
+
+
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: Speaker retry retains exact spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  relation "_spin_candidates" already exists, skipping
+NOTICE:  PASS: Speaker only on third spin
+NOTICE:  PASS: One speaker deduction
+NOTICE:  PASS: Exact INR10 deductions
+NOTICE:  PASS: Exact INR5 deductions
+
+Atomic rollback after real activity and rerun
+BEGIN
+SET
+SET
+
+
+
+
+DO
+COMMIT
+BEGIN
+SET
+SET
+
+
+
+
+DO
+COMMIT
+PASS: Missing LAST account rolls back earlier three updates
+PASS: Duplicate identity rejected
+PASS: Inactive identity rejected
+PASS: Wrong role rejected
+PASS: Unlinked LAST account rejects all updates
+PASS: Reserved LAST speaker stock rejects all updates
+PASS: Missing Tushar snack stock rejected
+PASS: Disabled V8 is never switched on
+PASS: Expired V7 never extended
+
+Concurrent combined enrollment
+BEGIN
+SET
+SET
+
+
+
+
+DO
+NOTICE:  relation "prize_four_users_20261031_backup" already exists, skipping
+CREATE TABLE
+ALTER TABLE
+REVOKE
+NOTICE:  Tushar reported 25 INR5 / 82 INR10 / 3 speakers; current available 23 / 35 / 2. Current inventory retained.
+NOTICE:  ASHISH RAMU KALWAL reported 10 speakers, currently available 9. Current inventory retained.
+NOTICE:  SUJAL KALIDAS WANKHEDE reported 10 speakers, currently available 9. Current inventory retained.
+NOTICE:  HARSHRAJ SHELAR reported 20 speakers, currently available 19. Current inventory retained.
+DO
+TUSHAR SURESH AMRUTKAR|a3110000-0000-0000-0000-000000000001|four-atomic-0|t|t|f|snacks|2026-11-04|t|t|3|23|35|0|2|50
+ASHISH RAMU KALWAL|a3110000-0000-0000-0000-000000000002|four-atomic-1|t|f|t|||t|t|10|86|95|0|9|20
+SUJAL KALIDAS WANKHEDE|a3110000-0000-0000-0000-000000000003|four-atomic-2|t|f|t|||t|t|10|86|95|0|9|20
+HARSHRAJ SHELAR|a3110000-0000-0000-0000-000000000004|four-atomic-3|t|f|t|||t|t|20|86|95|0|19|20
+COMMIT
+
+BEGIN
+SET
+SET
+
+
+
+
+DO
+CREATE TABLE
+ALTER TABLE
+NOTICE:  relation "prize_four_users_20261031_backup" already exists, skipping
+REVOKE
+NOTICE:  This combined enrollment was already applied. Later administrator membership edits are preserved; review the four status rows below.
+DO
+TUSHAR SURESH AMRUTKAR|a3110000-0000-0000-0000-000000000001|four-atomic-0|t|t|f|snacks|2026-11-04|t|t|3|23|35|0|2|50
+ASHISH RAMU KALWAL|a3110000-0000-0000-0000-000000000002|four-atomic-1|t|f|t|||t|t|10|86|95|0|9|20
+SUJAL KALIDAS WANKHEDE|a3110000-0000-0000-0000-000000000003|four-atomic-2|t|f|t|||t|t|10|86|95|0|9|20
+HARSHRAJ SHELAR|a3110000-0000-0000-0000-000000000004|four-atomic-3|t|f|t|||t|t|20|86|95|0|19|20
+COMMIT
+
+
+Concurrent runs and missing-Harshraj enrollment
+NOTICE:  PASS: Exactly four concurrent snapshots
+NOTICE:  PASS: Previously missing Harshraj enrolled
+
+No duplicate daily award after re-enrollment
+DO
+NOTICE:  PASS: No catch-up after reenrollment
+
+No duplicate daily award after re-enrollment
+DO
+NOTICE:  PASS: No catch-up after reenrollment
+
+No duplicate daily award after re-enrollment
+DO
+NOTICE:  PASS: No catch-up after reenrollment
+
+No duplicate daily award after re-enrollment
+DO
+NOTICE:  PASS: No catch-up after reenrollment
+PASS: Later LAST membership edit aborts whole rollback
+
+Rerun preserves later administrator disable
+BEGIN
+SET
+SET
+
+
+
+
+DO
+CREATE TABLE
+ALTER TABLE
+REVOKE
+DO
+TUSHAR SURESH AMRUTKAR|a3110000-0000-0000-0000-000000000001|four-atomic-0|t|t|f|snacks|2026-11-04|t|t|3|23|34|0|2|51
+ASHISH RAMU KALWAL|a3110000-0000-0000-0000-000000000002|four-atomic-1|t|f|t|||t|t|10|85|95|0|9|21
+SUJAL KALIDAS WANKHEDE|a3110000-0000-0000-0000-000000000003|four-atomic-2|t|f|t|||t|t|10|85|95|0|9|21
+HARSHRAJ SHELAR|a3110000-0000-0000-0000-000000000004|four-atomic-3|t|f|t|||f|f|20|85|95|0|19|21
+COMMIT
+NOTICE:  relation "prize_four_users_20261031_backup" already exists, skipping
+NOTICE:  This combined enrollment was already applied. Later administrator membership edits are preserved; review the four status rows below.
+
+Restore exact memberships after concurrency/activity
+BEGIN
+SET
+SET
+
+
+
+
+DO
+COMMIT
+
+Existing function bodies unchanged
+NOTICE:  PASS: Every existing function body unchanged
+ALL FOUR-USER ATOMIC CHECKS PASSED. Production was not contacted.
