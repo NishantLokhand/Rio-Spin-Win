@@ -1,11 +1,11 @@
-New LOCAL database: rio_oct31_enroll_1793433792012
+New LOCAL database: rio_oct31_enroll_1793434002229
 Source LOCAL database: rio_v8_harshraj_1793361101976
-supabase/migrations/20261031000100_enroll_tushar_amrutkar_special_v7.sql SHA256: e04d8acb728c2f5ea71d4dc301f7393f60512b7de94da38d267f72bb08981d0a
+supabase/migrations/20261031000100_enroll_tushar_amrutkar_special_v7.sql SHA256: bebd98b4e9637e541fcd8ab9d424857bac6a05e2cb13ad79fea2108203602820
 supabase/migrations/20261031000200_enroll_ashish_sujal_v8.sql SHA256: 39056320d430a9646ff56b553b30a02901cb33248ba27340805c573d56b636db
 supabase/rollbacks/20261031000100_restore_tushar_amrutkar_v7.sql SHA256: 3a5e2992cf914ed03bcfe938309fc9f0b6bdaec816102818ce3565b664097d2a
 supabase/rollbacks/20261031000200_restore_ashish_sujal_v8.sql SHA256: 1395976122fc4e5a4a4c800af832402171532b973685f17ccd95e220f12230b5
 
-Tushar special V7 enrollment with 75 INR10, zero INR5
+Tushar standard V7 enrollment with 82 INR10, 25 INR5, 3 speakers
 BEGIN
 SET
 SET
@@ -15,7 +15,7 @@ CREATE TABLE
 ALTER TABLE
 REVOKE
 DO
-a3100000-0000-0000-0000-000000000001|oct31-0|TUSHAR SURESH AMRUTKAR|no_snack5|no_snack5|2026-10-31|2026-11-04|0|75|0|100% INR10
+a3100000-0000-0000-0000-000000000001|oct31-0|TUSHAR SURESH AMRUTKAR|snacks|snacks|2026-10-31|2026-11-04|25|82|0|95% INR10 / 5% INR5
 COMMIT
 
 Ashish and Sujal V8 membership with 10 speakers each
@@ -43,7 +43,7 @@ CREATE TABLE
 ALTER TABLE
 REVOKE
 DO
-a3100000-0000-0000-0000-000000000001|oct31-0|TUSHAR SURESH AMRUTKAR|no_snack5|no_snack5|2026-10-31|2026-11-04|0|75|0|100% INR10
+a3100000-0000-0000-0000-000000000001|oct31-0|TUSHAR SURESH AMRUTKAR|snacks|snacks|2026-10-31|2026-11-04|25|82|0|95% INR10 / 5% INR5
 COMMIT
 BEGIN
 SET
@@ -66,108 +66,112 @@ NOTICE:  Batch already applied. Later administrator edits preserved; no membersh
 CREATE TABLE
 DO
 
-NOTICE:  PASS: Special V7 effective
-NOTICE:  PASS: No INR5 or shades without stock
+
+
+NOTICE:  PASS: Standard V7 effective
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: No INR5 or shades without stock
+NOTICE:  PASS: Only stocked snacks; no speaker from stock alone
 NOTICE:  PASS: Uses V7
-NOTICE:  PASS: Exactly 50 handovers deducted from 75
+NOTICE:  PASS: Exact INR10 deductions from 82
+NOTICE:  PASS: Exact INR5 deductions from 25
+NOTICE:  PASS: All 3 speakers retained; no V8 membership invented
 
 ASHISH RAMU KALWAL actual third-spin speaker and replay
 DO
@@ -238,7 +242,7 @@ CREATE TABLE
 ALTER TABLE
 REVOKE
 DO
-a3100000-0000-0000-0000-000000000001|oct31-0|TUSHAR SURESH AMRUTKAR|no_snack5|no_snack5|2026-10-31|2026-11-04|0|25|0|100% INR10
+a3100000-0000-0000-0000-000000000001|oct31-0|TUSHAR SURESH AMRUTKAR|snacks|snacks|2026-10-31|2026-11-04|23|34|0|95% INR10 / 5% INR5
 COMMIT
 BEGIN
 SET
@@ -253,7 +257,7 @@ DO
 2|SUJAL KALIDAS WANKHEDE|a3100000-0000-0000-0000-000000000003|oct31-2|SUJAL KALIDAS WANKHEDE|10|t|t||9|0|9|5
 COMMIT
 NOTICE:  relation "prize_tushar_v7_20261031_backup" already exists, skipping
-NOTICE:  Reported INR10 stock 75; currently available 25. Current stock retained.
+NOTICE:  Reported INR5 25 / INR10 82; currently available INR5 23 / INR10 34. Current stock retained.
 NOTICE:  relation "prize_v8_ashish_sujal_20261031_backup" already exists, skipping
 NOTICE:  ASHISH RAMU KALWAL: reported 10, currently available 9. Existing balances retained (may reflect live activity).
 NOTICE:  SUJAL KALIDAS WANKHEDE: reported 10, currently available 9. Existing balances retained (may reflect live activity).
@@ -279,7 +283,7 @@ CREATE TABLE
 ALTER TABLE
 REVOKE
 DO
-a3100000-0000-0000-0000-000000000001|oct31-0|TUSHAR SURESH AMRUTKAR|no_snack5|no_snack5|2026-10-31|2026-11-04|0|25|0|100% INR10
+a3100000-0000-0000-0000-000000000001|oct31-0|TUSHAR SURESH AMRUTKAR|snacks|snacks|2026-10-31|2026-11-04|23|34|0|95% INR10 / 5% INR5
 COMMIT
 BEGIN
 SET
@@ -297,10 +301,11 @@ NOTICE:  relation "prize_tushar_v7_20261031_backup" already exists, skipping
 NOTICE:  Enrollment already applied; later administrator changes preserved.
 NOTICE:  relation "prize_v8_ashish_sujal_20261031_backup" already exists, skipping
 NOTICE:  Batch already applied. Later administrator edits preserved; no membership changes.
+PASS: Earlier incorrect enrollment stops with rollback instructions
 
 Read-only four-user status query
 ASHISH RAMU KALWAL|1|a3100000-0000-0000-0000-000000000002|ASHISH RAMU KALWAL|oct31-1|t||||t|10|t|10|9|0|9|99|0
 HARSHRAJ SHELAR|1|f0000000-0000-0000-0000-000000000002|HARSHRAJ SHELAR|harshraj-v8-local|t||||f|2|f|20|19|0|19|9|0
-SUJAL KALIDAS WANKHEDE|1|a3100000-0000-0000-0000-000000000003|SUJAL KALIDAS WANKHEDE|oct31-2|t||||f|10|f|10|9|0|9|97|0
-TUSHAR SURESH AMRUTKAR|1|a3100000-0000-0000-0000-000000000001|TUSHAR SURESH AMRUTKAR|oct31-0|t|no_snack5|2026-10-31|2026-11-04|||f||0|0|0|25|0
+SUJAL KALIDAS WANKHEDE|1|a3100000-0000-0000-0000-000000000003|SUJAL KALIDAS WANKHEDE|oct31-2|t||||f|10|f|10|9|0|9|98|0
+TUSHAR SURESH AMRUTKAR|1|a3100000-0000-0000-0000-000000000001|TUSHAR SURESH AMRUTKAR|oct31-0|t|snacks|2026-10-31|2026-11-04|||f||3|0|3|34|0
 ALL OCT31 ENROLLMENT CHECKS PASSED. Production was not contacted.

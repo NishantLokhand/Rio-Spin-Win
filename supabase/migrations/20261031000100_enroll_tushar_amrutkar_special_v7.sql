@@ -1,5 +1,6 @@
--- TUSHAR SURESH AMRUTKAR: existing V7 special no-INR5 category, 100% INR10
--- without shades, or 96% INR10 / 4% shades when shades are available. The administrator already issued 75 INR10.
+-- TUSHAR SURESH AMRUTKAR: standard V7, 95% INR10 / 5% INR5 without shades.
+-- With available shades the existing rule becomes 90% INR10 / 6% INR5 / 4% shades.
+-- Reported current stock: 25 INR5, 82 INR10, 3 speakers; never issue stock here.
 -- Membership only: no inventory, allocator, V8 membership, toggle or date changes.
 begin;
 set local lock_timeout='5s';
@@ -34,6 +35,9 @@ declare u record; v_id uuid; v_count integer:=0; c public.campaigns; cfg public.
   v_five integer; v_ten integer; v_shades integer;
 begin
   if exists(select 1 from public.prize_tushar_v7_20261031_backup where target_key='tushar_amrutkar' and rolled_back_at is null) then
+    if exists(select 1 from public.prize_tushar_v7_20261031_backup where target_key='tushar_amrutkar' and v7_after->>'mode'='no_snack5') then
+      raise exception 'Earlier no-INR5 script was applied: run 20261031000100_restore_tushar_amrutkar_v7.sql first, then run this corrected script';
+    end if;
     raise notice 'Enrollment already applied; later administrator changes preserved.';
     return;
   end if;
@@ -53,25 +57,25 @@ begin
     or public.ist_today() not between s.starts_on and s.expires_on then
     raise exception 'V7 must already be active within its existing window; no toggle or expiry extension will be made';
   end if;
-  -- Lock existing balances without changing stock. Never issue the 75 twice.
+  -- Lock existing balances without changing stock. Never reissue the reported stock.
   perform 1 from public.promoter_inventory i join public.prizes p on p.id=i.prize_id
     where i.promoter_id=v_id and p.code in ('SNACK5','SNACK10','SHADES') order by i.prize_id for update of i;
   select coalesce(max(public._available(v_id,p.id)) filter(where p.code='SNACK5'),0),
     coalesce(max(public._available(v_id,p.id)) filter(where p.code='SNACK10'),0),
     coalesce(max(public._available(v_id,p.id)) filter(where p.code='SHADES'),0)
     into v_five,v_ten,v_shades from public.prizes p where p.is_active and p.code in ('SNACK5','SNACK10','SHADES');
-  if v_ten<=0 then raise exception 'Tushar needs available INR10 stock; no stock issued'; end if;
-  if v_ten<>75 then raise notice 'Reported INR10 stock 75; currently available %. Current stock retained.',v_ten; end if;
+  if v_five<=0 or v_ten<=0 then raise exception 'Tushar needs available INR5 AND INR10 stock; no stock issued'; end if;
+  if v_five<>25 or v_ten<>82 then raise notice 'Reported INR5 25 / INR10 82; currently available INR5 % / INR10 %. Current stock retained.',v_five,v_ten; end if;
   select to_jsonb(o) into v_before from public.prize_user_distribution_overrides o where user_id=v_id for update;
   insert into public.prize_user_distribution_overrides as existing(user_id,mode,version,starts_on,expires_on,notes)
-    values(v_id,'no_snack5',7,greatest(public.ist_today(),s.starts_on),s.expires_on,
-      'TUSHAR SURESH AMRUTKAR: special V7 no-INR5: 100% INR10 without shades, 96% INR10 / 4% shades with stock; 75 INR10 already issued by administrator')
+    values(v_id,'snacks',7,greatest(public.ist_today(),s.starts_on),s.expires_on,
+      'TUSHAR SURESH AMRUTKAR: standard V7: 95% INR10 / 5% INR5 without shades; 90/6/4 with shades; reported 25 INR5, 82 INR10 and 3 speakers already stocked')
     on conflict(user_id) do update set mode=excluded.mode,version=excluded.version,starts_on=excluded.starts_on,
       expires_on=excluded.expires_on,notes=excluded.notes where existing.user_id=excluded.user_id;
   cfg:=public._active_config(c.id,null);
   v_problem:=public._stock_problem_pre_v8_20261029(c,cfg,v_id,c.id::text);
   if v_problem is not null then raise exception 'Existing ordinary stock readiness rejects Tushar: %; nothing changed',v_problem; end if;
-  if public._v7_distribution_mode(v_id) is distinct from 'no_snack5' then raise exception 'V7 membership is not effective; nothing changed'; end if;
+  if public._v7_distribution_mode(v_id) is distinct from 'snacks' then raise exception 'V7 membership is not effective; nothing changed'; end if;
   select to_jsonb(o) into v_after from public.prize_user_distribution_overrides o where user_id=v_id;
   insert into public.prize_tushar_v7_20261031_backup as existing(target_key,user_id,v7_before,v7_after)
     values('tushar_amrutkar',v_id,v_before,v_after)
@@ -84,8 +88,8 @@ select u.id as user_id,u.login_id,u.full_name,o.mode as v7_category,
   public._available(u.id,p5.id) as snack5_available,public._available(u.id,p10.id) as snack10_available,
   public._available(u.id,ps.id) as shades_available,
   case when public._v7_distribution_mode(u.id) is null then 'V7 not effective'
-    when public._available(u.id,ps.id)>0 then '96% INR10 / 4% shades'
-    else '100% INR10' end as effective_ordinary_rule
+    when public._available(u.id,ps.id)>0 then '90% INR10 / 6% INR5 / 4% shades'
+    else '95% INR10 / 5% INR5' end as effective_ordinary_rule
 from public.prize_tushar_v7_20261031_backup b join public.app_users u on u.id=b.user_id
 left join public.prize_user_distribution_overrides o on o.user_id=u.id
 join public.prizes p5 on p5.code='SNACK5' join public.prizes p10 on p10.code='SNACK10'

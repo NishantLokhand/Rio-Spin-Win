@@ -35,23 +35,25 @@ try {
     insert into public.promoters(user_id,promoter_code) values('${ids[j]}','OCT31-${j}');
     insert into public.org_people(designation,employee_name,auth_user_id,source_key,source_system,state_raw)
       values('PROMOTER','${names[j]}','${ids[j]}','oct31-${j}','test','Maharashtra');
-    insert into public.promoter_inventory(promoter_id,prize_id,on_hand,reserved) select '${ids[j]}',id,case when code='SHADES' then 0 when code='SPEAKER' then ${j?10:0} when code='SNACK10' then ${j?100:75} else ${j?100:0} end,0 from public.prizes where code in('SNACK5','SNACK10','SHADES','SPEAKER');`);
+    insert into public.promoter_inventory(promoter_id,prize_id,on_hand,reserved) select '${ids[j]}',id,case when code='SHADES' then 0 when code='SPEAKER' then ${j?10:3} when code='SNACK10' then ${j?100:82} else ${j?100:25} end,0 from public.prizes where code in('SNACK5','SNACK10','SHADES','SPEAKER');`);
   sql(`update public.v8_test_clock set at_value='2026-10-31T06:00:00Z' where at_value is not null;
     select public.v8_test_enable(true); update public.prize_v7_settings set enabled=true where campaign_id=(select id from public.campaigns where code='RSW-2026');`);
   const before=digest(),initial=members();
-  check(v7,'Tushar special V7 enrollment with 75 INR10, zero INR5');
+  check(v7,'Tushar standard V7 enrollment with 82 INR10, 25 INR5, 3 speakers');
   check(v8,'Ashish and Sujal V8 membership with 10 speakers each');
   if(before!==digest())throw Error('Enrollment altered runtime/functions/other memberships');
   const enrolled=members();check(v7+v8,'Idempotent enrollment');if(enrolled!==members()||before!==digest())throw Error('Rerun changed state');
-  check(`select public.v8_test_assert(public._v7_distribution_mode('${ids[0]}')='no_snack5','Special V7 effective');
+  check(`select public.v8_test_assert(public._v7_distribution_mode('${ids[0]}')='snacks','Standard V7 effective');
     create table public.oct31_results(user_id uuid,n int,code text);
     do $$declare j int;r jsonb;begin for j in 1..50 loop
       r:=public.v8_test_spin('${ids[0]}',public.v8_test_sale('${ids[0]}'));
       insert into public.oct31_results values('${ids[0]}',j,r->'prize'->>'code');
-      perform public.v8_test_assert(r->'prize'->>'code'='SNACK10','No INR5 or shades without stock');
+      perform public.v8_test_assert(r->'prize'->>'code' in ('SNACK10','SNACK5'),'Only stocked snacks; no speaker from stock alone');
       perform public.v8_test_assert((select distribution_version=7 from public.spins where id=(r->>'spin_id')::uuid),'Uses V7');
     end loop;end $$;
-    select public.v8_test_assert((select public._available('${ids[0]}',id)=25 from public.prizes where code='SNACK10'),'Exactly 50 handovers deducted from 75');`,'50 actual Tushar spin/handover calls');
+    select public.v8_test_assert((select public._available('${ids[0]}',id)=82-(select count(*) from public.oct31_results where user_id='${ids[0]}' and code='SNACK10') from public.prizes where code='SNACK10'),'Exact INR10 deductions from 82');
+    select public.v8_test_assert((select public._available('${ids[0]}',id)=25-(select count(*) from public.oct31_results where user_id='${ids[0]}' and code='SNACK5') from public.prizes where code='SNACK5'),'Exact INR5 deductions from 25');
+    select public.v8_test_assert((select public._available('${ids[0]}',id)=3 from public.prizes where code='SPEAKER'),'All 3 speakers retained; no V8 membership invented');`,'50 actual Tushar spin/handover calls');
   for(let j=1;j<3;j++)check(`do $$declare n int;r jsonb;s uuid;again jsonb;begin for n in 1..5 loop
     s:=public.v8_test_sale('${ids[j]}');r:=public.v8_test_spin('${ids[j]}',s);
     insert into public.oct31_results values('${ids[j]}',n,r->'prize'->>'code');
@@ -63,7 +65,7 @@ try {
   if(played!==digest()||initial!==members())throw Error('Rollback changed runtime or did not restore memberships');
   sql(`update public.app_users set full_name='Missing' where id='${ids[2]}';`);reject(v8,/found 0/,'Missing second V8 account aborts whole batch');
   sql(`update public.app_users set full_name='${names[2]}' where id='${ids[2]}'; update public.app_users set full_name='${names[0]}' where id='${ids[1]}';`);reject(v7,/found 2/,'Ambiguous Tushar identity rejected');
-  sql(`update public.app_users set full_name='${names[1]}' where id='${ids[1]}';update public.promoter_inventory i set reserved=on_hand from public.prizes p where p.id=i.prize_id and i.promoter_id='${ids[0]}' and p.code='SNACK10';`);reject(v7,/available INR10/,'Fully reserved INR10 rejected');
+  sql(`update public.app_users set full_name='${names[1]}' where id='${ids[1]}';update public.promoter_inventory i set reserved=on_hand from public.prizes p where p.id=i.prize_id and i.promoter_id='${ids[0]}' and p.code='SNACK10';`);reject(v7,/available INR5 AND INR10/,'Fully reserved INR10 rejected');
   sql(`update public.promoter_inventory i set reserved=0 from public.prizes p where p.id=i.prize_id and i.promoter_id='${ids[0]}' and p.code='SNACK10';update public.promoter_inventory i set reserved=on_hand from public.prizes p where p.id=i.prize_id and i.promoter_id='${ids[2]}' and p.code='SPEAKER';`);reject(v8,/no available speaker stock/,'Fully reserved second speaker account aborts whole batch');
   sql(`update public.promoter_inventory i set reserved=0 from public.prizes p where p.id=i.prize_id and i.promoter_id='${ids[2]}' and p.code='SPEAKER';`);
   check(v7+v8,'Re-enroll without resetting daily awards');
@@ -71,6 +73,8 @@ try {
   sql(`update public.prize_user_distribution_overrides set notes='Later edit' where user_id='${ids[0]}';`);reject(r7,/changed after enrollment/,'Rollback protects later V7 edit');
   sql(`update public.prize_v8_users set enabled=false where user_id='${ids[2]}';`);reject(r8,/changed after enrollment/,'Rollback protects later V8 edit atomically');
   const edited=members();check(v7+v8,'Reruns preserve later admin edits');if(edited!==members())throw Error('Later edits overwritten');
+  sql(`update public.prize_tushar_v7_20261031_backup set v7_after=jsonb_set(v7_after,'{mode}','"no_snack5"'::jsonb) where target_key='tushar_amrutkar';`);
+  reject(v7,/Earlier no-INR5 script was applied/,'Earlier incorrect enrollment stops with rollback instructions');
   check(readFileSync('supabase/repairs/20261031_verify_requested_v7_v8_users.sql','utf8'),'Read-only four-user status query');
   log.push('ALL OCT31 ENROLLMENT CHECKS PASSED. Production was not contacted.');console.log(log.at(-1));
 }catch(e){log.push(`FAILED: ${e.stack}`);console.error(e);process.exitCode=1;}
