@@ -32,11 +32,16 @@ Deno.serve(async (req) => {
   const db = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
   const { data: users, error: usersError } = await db.from('app_users')
-    .select('id, full_name, mobile')
+    .select('id, login_id, full_name, mobile')
     .eq('role', 'promoter').eq('is_active', true).eq('whatsapp_alerts_enabled', true)
     .not('mobile', 'is', null).is('whatsapp_opted_out_at', null);
   if (usersError) return response({ error: usersError.message }, 500);
-  const userIds = (users ?? []).map((u) => u.id);
+  const { data: excludedRows } = await db.from('reporting_excluded_users').select('user_id');
+  const excludedIds = new Set((excludedRows ?? []).map((row) => row.user_id));
+  const excludedName = /(^|[^a-z0-9])(test|demo)([^a-z0-9]|$)/i;
+  const excludedLogin = /^(test|demo)([^a-z]|$)/i;
+  const eligibleUsers = (users ?? []).filter((u) => !excludedIds.has(u.id) && !excludedName.test(String(u.full_name ?? '')) && !excludedLogin.test(String(u.login_id ?? '')));
+  const userIds = eligibleUsers.map((u) => u.id);
   const { data: spins, error: spinsError } = userIds.length
     ? await db.from('spins').select('promoter_id').eq('biz_date', today).in('promoter_id', userIds)
     : { data: [], error: null };
@@ -46,8 +51,8 @@ Deno.serve(async (req) => {
   const { data: sent, error: sentError } = await db.from('whatsapp_reminder_log').select('user_id').eq('reminder_date', today).eq('reminder_stage', stage);
   if (sentError) return response({ error: sentError.message }, 500);
   const alreadySent = new Set((sent ?? []).map((row) => row.user_id));
-  const result = { stage, date: today, considered: users?.length ?? 0, sent: 0, skipped: 0, failed: 0 };
-  for (const user of users ?? []) {
+  const result = { stage, date: today, considered: eligibleUsers.length, sent: 0, skipped: 0, failed: 0 };
+  for (const user of eligibleUsers) {
     const spinCount = counts.get(user.id) ?? 0;
     if (spinCount >= thresholds[stage].threshold || alreadySent.has(user.id)) { result.skipped++; continue; }
     const form = new URLSearchParams({
