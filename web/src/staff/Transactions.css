@@ -1,0 +1,13 @@
+.transactions-report .txn-note { color: var(--text2); font-size: 13px; line-height: 1.5; margin: 8px 0 12px; }
+.transactions-report .txn-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 10px; margin-bottom: 18px; }
+.transactions-report .txn-downloads { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+.transactions-report .txn-review { padding: 10px 12px; border-left: 4px solid var(--accent); background: var(--surface); font-size: 13px; }
+.transactions-report .txn-asof { margin-top: 14px; }
+.transactions-report .txn-table th { white-space: nowrap; }
+.transactions-report .txn-table td { min-width: 90px; }
+.transactions-report .txn-table-bills td:nth-child(4), .transactions-report .txn-table-spins td:nth-child(4),
+.transactions-report .txn-table-skus td:nth-child(2) { min-width: 160px; }
+.transactions-report .txn-table-bills td:nth-child(8), .transactions-report .txn-table-spins td:nth-child(8),
+.transactions-report .txn-table-skus td:nth-child(6) { min-width: 200px; }
+.transactions-report .txn-table-bills td:nth-child(9) { min-width: 330px; }
+.transactions-report .txn-table-skus td:nth-child(8) { min-width: 210px; }
