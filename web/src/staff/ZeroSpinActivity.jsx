@@ -5,6 +5,7 @@ import { shiftDate } from '../lib/reportDates.js';
 import { isoWeek, zeroPeriod, zeroActivityRows } from '../lib/userActivity.js';
 import { loadUserActivityData } from '../lib/userActivityData.js';
 import { userReportColumns } from '../lib/userReportColumns.js';
+import { zeroSpinAudience, zeroSpinReportSource } from '../lib/zeroSpinAudience.js';
 import { Modal, DataTable } from './ui.jsx';
 
 const columns = userReportColumns([
@@ -23,7 +24,12 @@ export default function ZeroSpinActivity({ dates, userType, userId }) {
     setSelection({ day: anchor, week: isoWeek(anchor), month: anchor.slice(0, 7), from: dates.date_from && dates.date_from <= anchor ? dates.date_from : anchor, to: anchor });
     setMode('day'); setType(userType || ''); setUser(userId || ''); setIncludeToday(false);
     setOpen(true); setBusy(true); setError(''); setSource(null);
-    try { setSource({ ...await loadUserActivityData(), today }); }
+    try {
+      const loaded = zeroSpinReportSource(await loadUserActivityData());
+      const allowedUsers = zeroSpinAudience(loaded.users, loaded.people, userType || '');
+      setUser(allowedUsers.some(u => u.id === userId) ? userId : '');
+      setSource({ ...loaded, today });
+    }
     catch (e) { setError(friendly(e)); }
     finally { setBusy(false); }
   }
@@ -35,7 +41,7 @@ export default function ZeroSpinActivity({ dates, userType, userId }) {
     } catch (e) { return { error: e.message }; }
   }, [source, mode, selection, includeToday, type, user]);
   const set = (key) => (e) => setSelection((s) => ({ ...s, [key]: e.target.value }));
-  const allowed = source?.users.filter((u) => !type || source.people.some((p) => p.auth_user_id === u.id && p.designation === type)) || [];
+  const allowed = source ? zeroSpinAudience(source.users, source.people, type) : [];
   return <>
     <button className="s-btn ghost sm" disabled={busy} onClick={load}>Zero-spin activity</button>
     {open && <Modal wide title="Zero-spin activity — users and missing dates" onClose={() => setOpen(false)}>

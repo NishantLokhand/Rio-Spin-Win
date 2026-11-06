@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { friendly } from '../lib/api.js';
 import { loadUserActivityData } from '../lib/userActivityData.js';
 import { zeroCohortRows } from '../lib/userActivity.js';
+import { zeroSpinReportSource } from '../lib/zeroSpinAudience.js';
 import { userReportColumns } from '../lib/userReportColumns.js';
 import { istToday } from '../lib/store.js';
 import { reportPeriod } from '../lib/reportTotals.js';
@@ -24,7 +25,7 @@ export default function ZeroSpinDownload({ dates, userType = '', userId = '' }) 
     setBusy(true); setResult({ period, never });
     try {
       const source = await loadUserActivityData();
-      const rows = zeroCohortRows(source, { from: period.date_from, to: period.date_to, today, never });
+      const rows = zeroCohortRows(never ? source : zeroSpinReportSource(source), { from: period.date_from, to: period.date_to, today, never });
       setResult({ period, never, rows });
     } catch (e) { setResult({ period, never, error: friendly(e) }); }
     finally { setBusy(false); }
