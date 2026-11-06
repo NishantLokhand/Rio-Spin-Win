@@ -7,9 +7,16 @@ export function isZeroSpinDemoAccount(user) {
     || /(^|[^a-z0-9])(demo|test)([^a-z]|$)/i.test(name);
 }
 
+export function isZeroSpinExcludedAccount(user) {
+  const login = String(user.login_id ?? '').trim();
+  const name = String(user.full_name ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
+  // Explicit account exclusion requested for zero-spin reporting only.
+  return isZeroSpinDemoAccount(user) || login === '9876500002' || name === 'sneha yadav';
+}
+
 export function zeroSpinAudience(users, people, userType = '') {
   const matching = userType ? new Set(people.filter(p => p.designation === userType).map(p => p.auth_user_id)) : null;
-  return users.filter(user => !isZeroSpinDemoAccount(user) && (!matching || matching.has(user.id)));
+  return users.filter(user => !isZeroSpinExcludedAccount(user) && (!matching || matching.has(user.id)));
 }
 
 export function zeroSpinReportSource(source) {
