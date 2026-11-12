@@ -6,6 +6,9 @@ import { attachSpinTimes } from './spinTimes.js';
 // Transaction filters cannot be assigned to a date without a transaction.
 export const activityFilters = ['campaign_id', 'territory_id', 'tse_id', 'outlet_id', 'distributor', 'product_id'];
 
+// Match imported profile states without changing their original display values.
+const stateKey = (value) => String(value ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
+
 export function completeUserPerformance(source, recorded, filters, userType, today, prizeBreakdown = null) {
   const to = filters.date_to && filters.date_to < today ? filters.date_to : today;
   const users = new Map(source.users.map((u) => [u.id, u]));
@@ -18,7 +21,7 @@ export function completeUserPerformance(source, recorded, filters, userType, tod
     const stateName = source.states.find((s) => s.id === filters.state_id)?.name;
     const gaps = zeroActivityRows(source, { from: filters.date_from, to, today, userType, userId: filters.promoter_id })
       .filter((r) => !recordedDates.has(`${r.key}:${r.date}`)
-        && (!filters.state_id || r.state === stateName)
+        && (!filters.state_id || (stateName && stateKey(r.state) === stateKey(stateName)))
         && (!filters.city || r.city === filters.city)
         && (!filters.area || r.area === filters.area));
     rows.push(...gaps);
