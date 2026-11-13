@@ -24,7 +24,7 @@ export default function V8SpeakerReport() {
   return <>
     <button className="s-btn ghost sm" onClick={() => load()}>Version 8 speakers</button>
     {open && <Modal wide title="Version 8 daily speakers" onClose={() => setOpen(false)}>
-      <p className="muted">One speaker per selected user on their third daily spin. Remaining stock is current available stock; activity uses the date below in India time.</p>
+      <p className="muted">{rows.length > 0 ? `Current speaker schedule: daily spin ${rows[0].speaker_spin_number ?? 3}, maximum one speaker per selected user per day. ` : 'Maximum one speaker per selected user per day. '}Remaining stock is current available stock; activity uses the date below in India time.</p>
       <div className="row-actions"><input aria-label="Speaker report date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         <button className="s-btn sm" disabled={busy || !date} onClick={() => load()}>Load date</button></div>
       {error && <div className="s-err">{error}</div>}
