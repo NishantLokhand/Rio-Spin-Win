@@ -25,24 +25,28 @@ async function adminCall(body) {
 
 export default function Users({ data, reloadData }) {
   const [role, setRole] = useState('promoter');
+  const [status, setStatus] = useState('active');
+  const [pendingUserId, setPendingUserId] = useState(null);
   const [edit, setEdit] = useState(null);
   const [pin, setPin] = useState(null);
   const [deleteUser, setDeleteUser] = useState(null);
   const [err, setErr] = useState('');
   const us = useAsync(async () => {
     const [users, promoters, people, deleted] = await Promise.all([selectAll('app_users', '*', (q) => q.order('full_name')), selectAll('promoters', '*'), selectAll('org_people', '*'), rpc('get_deleted_field_users')]);
-    // Disabled/deleted users remain in the database for history, but do not
-    // appear in the active Users administration lists.
-    return users.filter((u) => u.is_active && !deleted.includes(u.id)).map((u) => ({ ...u, ...(promoters.find((p) => p.user_id === u.id) || {}), org_profile: people.find((p) => p.auth_user_id === u.id) }));
+    // Keep disabled users available for reactivation; deleted users stay hidden.
+    return users.filter((u) => !deleted.includes(u.id)).map((u) => ({ ...u, ...(promoters.find((p) => p.user_id === u.id) || {}), org_profile: people.find((p) => p.auth_user_id === u.id) }));
   }, []);
   if (!us.data) return <div className="s-page"><Loading state={us} /></div>;
-  const sups = us.data.filter((u) => u.role === 'supervisor');
-  const supName = (id) => sups.find((s) => s.id === id)?.full_name;
+  const sups = us.data.filter((u) => u.role === 'supervisor' && u.is_active);
+  const supName = (id) => us.data.find((s) => s.role === 'supervisor' && s.id === id)?.full_name;
 
   async function toggle(u) {
+    if (pendingUserId) return;
     if (!confirm(`${u.is_active ? 'Disable' : 'Enable'} ${u.full_name}?${u.is_active ? ' They will be signed out and cannot log in.' : ''}`)) return;
+    setPendingUserId(u.id); setErr('');
     try { await adminCall({ action: 'set_active', user_id: u.id, active: !u.is_active }); us.reload(); reloadData(); }
     catch (e) { setErr(friendly(e)); }
+    finally { setPendingUserId(null); }
   }
 
   return (
@@ -50,7 +54,12 @@ export default function Users({ data, reloadData }) {
       <Tabs value={role} onChange={setRole} tabs={[{ key: 'promoter', label: 'Field team' }, { key: 'supervisor', label: 'Supervisors' }, { key: 'admin', label: 'Admins' }]} />
       {err && <div className="s-err">{err}</div>}
       <Panel title={role === 'promoter' ? 'Field team — Promoters, TSEs & MERs' : `${role[0].toUpperCase() + role.slice(1)}s`} actions={<button className="s-btn sm" onClick={() => setEdit({ role, is_active: true, promoter_type: 'permanent', designation: 'PROMOTER' })}>+ Create {role === 'promoter' ? 'field user' : role}</button>}>
-        <DataTable rows={us.data.filter((u) => u.role === role).map((u) => ({ ...u, supervisor: supName(u.supervisor_id),
+        <div className="row-actions" style={{ marginBottom: 12 }}>
+          <label>Status <select aria-label="User account status" value={status} onChange={(e) => setStatus(e.target.value)}>
+            <option value="active">Active</option><option value="disabled">Disabled</option><option value="all">All</option>
+          </select></label>
+        </div>
+        <DataTable rows={us.data.filter((u) => u.role === role && (status === 'all' || u.is_active === (status === 'active'))).map((u) => ({ ...u, supervisor: supName(u.supervisor_id),
           city: u.org_profile?.market_override ?? u.org_profile?.market_raw ?? '',
           area: u.org_profile?.area_override ?? u.org_profile?.area_raw ?? '',
           state: u.org_profile?.state_raw ?? '',
@@ -68,7 +77,7 @@ export default function Users({ data, reloadData }) {
           { key: 'a', label: '', noExport: true, render: (u) => (
             <div className="row-actions">
               <button className="s-btn ghost sm" onClick={() => setPin(u)}>Reset PIN</button>
-              <button className={`s-btn sm ${u.is_active ? 'danger' : ''}`} onClick={() => toggle(u)}>{u.is_active ? 'Disable' : 'Enable'}</button>
+              <button className={`s-btn sm ${u.is_active ? 'danger' : ''}`} aria-label={`${u.is_active ? 'Disable' : 'Enable'} ${u.full_name}`} disabled={!!pendingUserId} onClick={() => toggle(u)}>{pendingUserId === u.id ? 'Working…' : u.is_active ? 'Disable' : 'Enable'}</button>
             </div>) },
         ]} />
       </Panel>
