@@ -3,6 +3,7 @@
 // Deploy:  supabase functions deploy admin-users
 // Secrets: SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY (provided automatically), LOGIN_DOMAIN (optional)
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { requireFieldUserMarket } from '../_shared/fieldUserMarket.mjs';
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -40,6 +41,10 @@ Deno.serve(async (req) => {
       if (!pin || String(pin).length < 6) return json({ error: 'PIN must be at least 6 characters' }, 400);
       const designation = body.organization?.designation ?? 'PROMOTER';
       if (role === 'promoter' && !['PROMOTER', 'TSE', 'MER'].includes(designation)) return json({ error: 'Invalid field role' }, 400);
+      try {
+        const market = requireFieldUserMarket(role, body.organization?.market);
+        if (role === 'promoter') body.organization = { ...body.organization, market };
+      } catch (error) { return json({ error: (error as Error).message }, 400); }
 
       const { data: created, error } = await admin.auth.admin.createUser({
         email: loginEmail(login_id), password: String(pin), email_confirm: true,

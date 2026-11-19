@@ -3,12 +3,13 @@ import { supabase } from '../lib/supabase.js';
 import { rpc, selectAll, friendly } from '../lib/api.js';
 import { istToday } from '../lib/store.js';
 import ZeroSpinDownload from './ZeroSpinDownload.jsx';
+import { loadReportMarketLookup } from '../lib/reportMarketData.js';
 import { useAsync, Panel, Loading, DataTable, Modal, Field, Badge, fmt } from './ui.jsx';
 
 export default function Promoters({ data }) {
   const today = istToday();
   const st = useAsync(async () => {
-    const [promoters, users, inv, sessions, pending, activity, configItems] = await Promise.all([
+    const [promoters, users, inv, sessions, pending, activity, configItems, market] = await Promise.all([
       selectAll('promoters', '*'),
       // Historical data stays queryable elsewhere, but inactive/deleted users
       // must not appear in the live stock management roster.
@@ -18,8 +19,9 @@ export default function Promoters({ data }) {
       selectAll('spins', 'id,spin_code,promoter_id,prize_name,created_at,sale_id', (q) => q.eq('redemption_status', 'pending')),
       rpc('report_summary', { p_group: 'promoter', p_filters: { date_from: today, date_to: today } }),
       selectAll('prize_config_items', 'config_id,prize_id,quantity,prize_configs!inner(is_active,state_id)', (q) => q.eq('prize_configs.is_active', true)),
+      loadReportMarketLookup(),
     ]);
-    return { promoters, users, inv, sessions, pending, activity, configItems };
+    return { promoters, users, inv, sessions, pending, activity, configItems, market };
   }, []);
   const [modal, setModal] = useState(null);
   const prizes = data.masters.prizes;
@@ -40,7 +42,7 @@ export default function Promoters({ data }) {
       const activityUserId = p.user_id || u.id;
       const userActivity = activity.find((x) => x.key === activityUserId) || {};
       return { id: u.id, name: u.full_name, code: p.promoter_code || `PROMOTER-${u.id.slice(0, 8)}`, type: p.promoter_type || 'temporary', active: u.is_active,
-        outlet: s ? outlets[s.outlet_id]?.name : null, spins: userActivity.spins || 0, cost: userActivity.giveaway_cost || 0, avg: userActivity.avg_cost,
+        market: st.data.market(u.id, { ...u, ...p }), outlet: s ? outlets[s.outlet_id]?.name : null, spins: userActivity.spins || 0, cost: userActivity.giveaway_cost || 0, avg: userActivity.avg_cost,
         pending: pending.filter((x) => x.promoter_id === u.id), stock };
     });
   }, [st.data, prizes, users, outlets]);
@@ -55,6 +57,7 @@ export default function Promoters({ data }) {
         <button className="s-btn ghost sm" onClick={st.reload}>↻ Refresh</button></div>}>
         <DataTable rows={rows} exportName="promoter_stock" columns={[
           { key: 'name', label: 'Promoter', render: (r) => <><b>{r.name}</b><br /><small className="muted">{r.code} · {r.type}</small>{!r.active && <> <Badge tone="red">disabled</Badge></>}</> },
+          { key: 'market', label: 'Market' },
           { key: 'outlet', label: 'Current outlet', fmt: (v) => v || <span className="muted">not started</span> },
           { key: 'spins', label: 'Spins today', align: 'r' },
           { key: 'cost', label: 'Cost', align: 'r', fmt: fmt.inr },
@@ -139,7 +142,8 @@ function LogModal({ row, prizes, onClose }) {
   return (
     <Modal title={`Inventory movements — ${row.name}`} onClose={onClose} wide>
       {!log.data ? <Loading state={log} /> : (
-        <DataTable rows={log.data.map((m) => ({ ...m, prize: pz[m.prize_id] }))} exportName={`inventory_${row.code}`} maxHeight="60vh" columns={[
+        <DataTable rows={log.data.map((m) => ({ ...m, market: row.market, prize: pz[m.prize_id] }))} exportName={`inventory_${row.code}`} maxHeight="60vh" columns={[
+          { key: 'market', label: 'Market' },
           { key: 'created_at', label: 'Date/time', fmt: fmt.dt }, { key: 'prize', label: 'Prize' },
           { key: 'movement_type', label: 'Type' }, { key: 'qty', label: 'Qty', align: 'r' },
           { key: 'on_hand_after', label: 'Stock after', align: 'r' }, { key: 'reference', label: 'Ref' }, { key: 'note', label: 'Note' },

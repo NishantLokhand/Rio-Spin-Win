@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { rpc, friendly } from '../lib/api.js';
 import { istToday } from '../lib/store.js';
 import { DataTable, Modal } from './ui.jsx';
+import { loadReportMarketLookup } from '../lib/reportMarketData.js';
+import { attachReportMarkets } from '../lib/reportMarkets.js';
 
 const columns = [
   { key: 'date', label: 'Date' }, { key: 'full_name', label: 'User' },
-  { key: 'state', label: 'State' }, { key: 'city', label: 'City' }, { key: 'area', label: 'Area' },
+  { key: 'market', label: 'Market' }, { key: 'state', label: 'State' }, { key: 'city', label: 'City' }, { key: 'area', label: 'Area' },
   { key: 'reported_speakers', label: 'Reported Initial Speakers', align: 'r' },
   { key: 'speakers_remaining', label: 'Speakers Remaining', align: 'r' },
   { key: 'spins_today', label: 'Spins on Date', align: 'r' }, { key: 'status', label: 'Daily Speaker Status' },
@@ -17,7 +19,10 @@ export default function V8SpeakerReport() {
   const [rows, setRows] = useState([]), [error, setError] = useState(''), [busy, setBusy] = useState(false);
   async function load(value = date) {
     setOpen(true); setBusy(true); setError(''); setRows([]);
-    try { setRows(await rpc('report_v8_speaker_users', { p_date: value })); }
+    try {
+      const [loaded, market] = await Promise.all([rpc('report_v8_speaker_users', { p_date: value }), loadReportMarketLookup()]);
+      setRows(attachReportMarkets(loaded || [], market, 'user_id'));
+    }
     catch (err) { setError(friendly(err)); }
     finally { setBusy(false); }
   }

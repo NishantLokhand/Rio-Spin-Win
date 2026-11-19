@@ -1,9 +1,10 @@
 import { rpc, selectAll } from './api.js';
 import { reportingExclusions, withoutExcluded } from './reportingScope.js';
+import { DEMO } from './supabase.js';
 
 // Every source keeps its existing server-side staff scope. No name-based joins.
 export async function loadUserActivityData() {
-  const [users, profiles, people, states, rows, metrics, excluded, spinTimes, cutoffs] = await Promise.all([
+  const [users, profiles, people, states, rows, metrics, excluded, spinTimes, cutoffs, markets] = await Promise.all([
     selectAll('app_users', 'id,full_name,login_id,mobile,is_active,created_at', (q) => q.eq('role', 'promoter').order('full_name')),
     selectAll('promoters', 'user_id,promoter_code,home_state_id'),
     selectAll('org_people', 'auth_user_id,designation,state_raw,market_raw,market_override,area_raw,area_override,mobile', (q) => q.not('auth_user_id', 'is', null)),
@@ -11,8 +12,9 @@ export async function loadUserActivityData() {
     reportingExclusions(),
     rpc('get_user_daily_spin_times'),
     rpc('get_deleted_field_user_cutoffs'),
+    DEMO ? Promise.resolve([]) : rpc('get_report_user_markets'),
   ]);
-  return { users: withoutExcluded(users, excluded, 'id'), profiles, people, states,
+  return { users: withoutExcluded(users, excluded, 'id'), profiles, people, states, markets,
     rows: withoutExcluded(rows, excluded, 'key'), metrics: withoutExcluded(metrics, excluded, 'key'), spinTimes,
     cutoffs: new Map((cutoffs || []).map((r) => [r.user_id, r.deleted_at])),
   };

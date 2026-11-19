@@ -2,15 +2,18 @@ import React, { useState } from 'react';
 import { supabase } from '../lib/supabase.js';
 import { rpc, friendly } from '../lib/api.js';
 import { useAsync, Panel, Loading, DataTable, Tabs, Modal, Field, fmt } from './ui.jsx';
+import { loadReportMarketLookup } from '../lib/reportMarketData.js';
+import { attachReportMarkets } from '../lib/reportMarkets.js';
 
 export default function OutletRequests({ data, reloadData }) {
   const [status, setStatus] = useState('pending');
   const [open, setOpen] = useState(null);
   const reqs = useAsync(async () => {
+    const market = await loadReportMarketLookup();
     const { data: rows, error } = await supabase.from('outlet_requests')
       .select('id,promoter_id,status,created_at,outlet_name,area,city,ref_code,note,review_note')
       .eq('status', status).order('created_at', { ascending: false });
-    if (error) throw error; return rows;
+    if (error) throw error; return attachReportMarkets(rows, market, 'promoter_id');
   }, [status]);
   const users = Object.fromEntries(data.promoters.map((u) => [u.id, u.full_name]));
   const canApprove = data.role === 'admin' || data.profile.can_approve_outlets;
@@ -24,6 +27,7 @@ export default function OutletRequests({ data, reloadData }) {
           <DataTable rows={reqs.data.map((r) => ({ ...r, promoter: users[r.promoter_id] }))}
             exportName={`outlet_requests_${status}`} columns={[
               { key: 'created_at', label: 'Requested', fmt: fmt.dt }, { key: 'promoter', label: 'Promoter' },
+              { key: 'market', label: 'Market' },
               { key: 'outlet_name', label: 'Outlet name' }, { key: 'area', label: 'Area' }, { key: 'city', label: 'City' },
               { key: 'ref_code', label: 'Ref code' }, { key: 'note', label: 'Note' },
               { key: 'review_note', label: 'Review note' },

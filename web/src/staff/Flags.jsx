@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { supabase } from '../lib/supabase.js';
 import { rpc, friendly } from '../lib/api.js';
 import { useAsync, Panel, Loading, DataTable, Tabs, Badge, fmt } from './ui.jsx';
+import { loadReportMarketLookup } from '../lib/reportMarketData.js';
+import { attachReportMarkets } from '../lib/reportMarkets.js';
 
 const LABEL = {
   rapid_spins: 'Spins too close together', high_spin_count: 'Unusually high spin count',
@@ -15,8 +17,9 @@ export default function Flags({ data }) {
   const [status, setStatus] = useState('open');
   const [err, setErr] = useState('');
   const flags = useAsync(async () => {
+    const market = await loadReportMarketLookup();
     const { data: rows, error } = await supabase.from('activity_flags').select('*').eq('status', status).order('updated_at', { ascending: false }).limit(500);
-    if (error) throw error; return rows;
+    if (error) throw error; return attachReportMarkets(rows, market, 'promoter_id');
   }, [status]);
   const users = Object.fromEntries(data.promoters.map((u) => [u.id, u.full_name]));
 
@@ -37,6 +40,7 @@ export default function Flags({ data }) {
             exportName={`flags_${status}`} columns={[
               { key: 'flag_date', label: 'Date', fmt: fmt.date },
               { key: 'promoter', label: 'Promoter' },
+              { key: 'market', label: 'Market' },
               { key: 'severity', label: 'Severity', render: (r) => <Badge tone={{ high: 'red', medium: 'amber', low: 'grey' }[r.severity]}>{r.severity}</Badge> },
               { key: 'type', label: 'Flag' },
               { key: 'reason', label: 'Reason' },

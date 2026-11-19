@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { supabase } from '../lib/supabase.js';
 import { rpc, selectAll, friendly } from '../lib/api.js';
 import { useAsync, Panel, Loading, DataTable, Modal, Field, Badge, Tabs } from './ui.jsx';
+import { loadReportMarketLookup } from '../lib/reportMarketData.js';
+import { requireFieldUserMarket } from '../../../supabase/functions/_shared/fieldUserMarket.mjs';
 
 async function adminCall(body) {
   const { data, error } = await supabase.functions.invoke('admin-users', { body });
@@ -32,9 +34,10 @@ export default function Users({ data, reloadData }) {
   const [deleteUser, setDeleteUser] = useState(null);
   const [err, setErr] = useState('');
   const us = useAsync(async () => {
+    const market = await loadReportMarketLookup();
     const [users, promoters, people, deleted] = await Promise.all([selectAll('app_users', '*', (q) => q.order('full_name')), selectAll('promoters', '*'), selectAll('org_people', '*'), rpc('get_deleted_field_users')]);
     // Keep disabled users available for reactivation; deleted users stay hidden.
-    return users.filter((u) => !deleted.includes(u.id)).map((u) => ({ ...u, ...(promoters.find((p) => p.user_id === u.id) || {}), org_profile: people.find((p) => p.auth_user_id === u.id) }));
+    return users.filter((u) => !deleted.includes(u.id)).map((u) => ({ ...u, market: market(u.id), ...(promoters.find((p) => p.user_id === u.id) || {}), org_profile: people.find((p) => p.auth_user_id === u.id) }));
   }, []);
   if (!us.data) return <div className="s-page"><Loading state={us} /></div>;
   const sups = us.data.filter((u) => u.role === 'supervisor' && u.is_active);
@@ -69,7 +72,7 @@ export default function Users({ data, reloadData }) {
             {u.role === 'promoter' && <button className="s-btn danger sm" aria-label={`Delete ${u.full_name}`} onClick={() => setDeleteUser(u)}>Delete</button>}
           </div> }, { key: 'login_id', label: 'Login (mobile / username)' }, { key: 'mobile', label: 'Mobile' },
           ...(role === 'promoter' ? [{ key: 'designation', label: 'Field role', render: (u) => u.org_profile?.designation || 'Not linked' }, { key: 'org_link', label: 'Organization', render: (u) => <Badge tone={u.org_profile?.active ? 'green' : 'red'}>{u.org_profile?.active ? 'Linked' : 'Needs linking'}</Badge> }, { key: 'promoter_code', label: 'Promoter ID' },
-            { key: 'state', label: 'State' }, { key: 'city', label: 'City' }, { key: 'area', label: 'Area' },
+            { key: 'market', label: 'Market' }, { key: 'state', label: 'State' }, { key: 'city', label: 'City' }, { key: 'area', label: 'Area' },
             { key: 'agency_name', label: 'Agency' }, { key: 'supervisor', label: 'Supervisor' }] : []),
           ...(role === 'supervisor' ? [{ key: 'can_approve_outlets', label: 'Approves outlets', fmt: (v) => (v ? 'Yes' : 'No') }] : []),
           ...(role === 'admin' ? [{ key: 'can_override_cost_target', label: 'Can override cost target', fmt: (v) => (v ? 'Yes' : 'No') }] : []),
@@ -132,7 +135,7 @@ function UserModal({ u, data, sups, onClose }) {
   const available = (people.data || []).filter((p) => p.active && !p.auth_user_id && ['PROMOTER', 'TSE', 'MER'].includes(p.designation));
   function choosePerson(e) {
     const person = available.find((p) => p.id === e.target.value);
-    setF({ ...f, person_id: person?.id || '', ...(person ? { full_name: person.employee_name, mobile: person.mobile || '', login_id: person.mobile || f.login_id, designation: person.designation, home_state_id: data.masters.states.find((s) => s.name.toLowerCase() === (person.state_raw || '').toLowerCase() || s.code.toLowerCase() === (person.state_raw || '').toLowerCase() || (s.code === 'MH' && person.state_raw === 'MAHARASHTRA_ROM'))?.id || '' } : {}) });
+    setF({ ...f, person_id: person?.id || '', market: person ? (person.market_override ?? person.market_raw ?? '') : '', ...(person ? { full_name: person.employee_name, mobile: person.mobile || '', login_id: person.mobile || f.login_id, designation: person.designation, home_state_id: data.masters.states.find((s) => s.name.toLowerCase() === (person.state_raw || '').toLowerCase() || s.code.toLowerCase() === (person.state_raw || '').toLowerCase() || (s.code === 'MH' && person.state_raw === 'MAHARASHTRA_ROM'))?.id || '' } : {}) });
   }
   const set = (k) => (e) => setF({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value });
 
@@ -141,13 +144,14 @@ function UserModal({ u, data, sups, onClose }) {
     try {
       if (f.role === 'promoter' && !f.home_state_id && !(u.org_profile?.state_raw || (people.data || []).find((p) => p.id === f.person_id)?.state_raw)) throw new Error('Select a Home state: Maharashtra or Uttar Pradesh.');
       if (isNew) {
+        requireFieldUserMarket(f.role, f.market);
         if (!/^\S{6,}$/.test(f.pin || '')) throw new Error('PIN must be at least 6 characters');
         await adminCall({ action: 'create', role: f.role, login_id: f.login_id, pin: f.pin, full_name: f.full_name, mobile: f.mobile || null,
           can_approve_outlets: !!f.can_approve_outlets, can_override_cost_target: !!f.can_override_cost_target,
           promoter: f.role === 'promoter' ? { promoter_code: f.promoter_code, promoter_type: f.promoter_type, agency_name: f.agency_name || null,
             supervisor_id: f.supervisor_id || null, home_state_id: f.home_state_id || null } : null,
           organization: f.role === 'promoter' ? { person_id: f.person_id || null, designation: f.designation || 'PROMOTER',
-            state: data.masters.states.find((s) => s.id === f.home_state_id)?.name || null, market: f.market || null, area: f.area || null, beat: f.beat || null } : null });
+            state: data.masters.states.find((s) => s.id === f.home_state_id)?.name || null, market: f.market?.trim() || null, area: f.area || null, beat: f.beat || null } : null });
       } else if (u.role === 'promoter') {
         await rpc('update_field_user', { p_user_id: u.id, p_values: {
           full_name: f.full_name, mobile: f.mobile || '', designation: f.designation,
@@ -200,7 +204,10 @@ function UserModal({ u, data, sups, onClose }) {
         {f.role === 'promoter' && <Field label="Home state" hint="Required for outlet request approvals."><select value={f.home_state_id || ''} onChange={(e) => setF({ ...f, home_state_id: e.target.value, territory_id: '' })}>
           <option value="">Select state</option>{data.masters.states.filter((s) => ['MH','UP'].includes(s.code)).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></Field>}
         {(!isNew || f.role !== 'promoter') && <Field label="Mobile"><input value={f.mobile || ''} onChange={set('mobile')} /></Field>}
-        {f.role === 'promoter' && <details open={isNew ? undefined : true}><summary>Optional details — market, area, state and supervisor</summary>
+        {isNew && f.role === 'promoter' && <Field label="Market (required)">
+          <input aria-label="Market" required value={f.market || ''} onChange={set('market')} />
+        </Field>}
+        {f.role === 'promoter' && <details open={isNew ? undefined : true}><summary>Additional details — area, state and supervisor</summary>
           <Field label="Mobile (if different from login)"><input value={f.mobile || ''} onChange={set('mobile')} /></Field>
           <div className="s-grid2">
             <Field label="Employee code" hint="Optional for new users; generated automatically if blank."><input value={f.promoter_code || ''} onChange={set('promoter_code')} /></Field>
@@ -214,7 +221,7 @@ function UserModal({ u, data, sups, onClose }) {
               <option value="">—</option>{data.masters.states.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></Field>
           </div>
         {((isNew && !f.person_id) || (!isNew && u.org_profile)) && <div className="s-grid2">
-          <Field label="City / Market"><input value={f.market || ''} onChange={set('market')} /></Field>
+          {!isNew && <Field label="City / Market"><input value={f.market || ''} onChange={set('market')} /></Field>}
           <Field label="Area"><input value={f.area || ''} onChange={set('area')} /></Field>
           <Field label="Beats / routes (comma separated)"><input value={f.beat || ''} onChange={set('beat')} /></Field>
           {!isNew && <>

@@ -1,6 +1,7 @@
 import { shiftDate } from './reportDates.js';
 import { performanceMetrics } from './performanceMetrics.js';
 import { attachSpinTimes } from './spinTimes.js';
+import { reportMarketLookup } from './reportMarkets.js';
 
 export function accountDate(user, metric) {
   return metric?.account_date || (user.created_at
@@ -25,6 +26,7 @@ export function summarizeActivity(rows) {
 }
 
 function prepare(source) {
+  const market = reportMarketLookup(source);
   const metrics = new Map(source.metrics.map((m) => [m.key, m]));
   const profiles = new Map(source.profiles.map((p) => [p.user_id, p]));
   const people = new Map(source.people.map((p) => [p.auth_user_id, p]));
@@ -41,7 +43,7 @@ function prepare(source) {
   }
   function identity(user) {
     const p = people.get(user.id) || {}, profile = profiles.get(user.id) || {};
-    return { key: user.id, label: user.full_name,
+    return { key: user.id, label: user.full_name, market: market(user.id),
       user_type: ({ PROMOTER: 'Promoter', TSE: 'TSE', MER: 'MER' })[p.designation] || 'Unknown',
       state: p.state_raw || states.get(profile.home_state_id) || '',
       city: p.market_override ?? p.market_raw ?? '', area: p.area_override ?? p.area_raw ?? '',
@@ -75,7 +77,7 @@ export function zeroActivityRows(source, { from, to, today, userType = '', userI
     for (let date = start; date <= userTo; date = shiftDate(date, 1)) {
       if (p.spins.get(user.id)?.has(date)) continue;
       const activity = p.rows.get(user.id)?.get(date);
-      result.push({ ...identity, ...metrics, ...activity, id: `${user.id}:${date}`, key: user.id, date,
+      result.push({ ...identity, ...metrics, ...activity, market: identity.market, id: `${user.id}:${date}`, key: user.id, date,
         spins: 0, units: Number(activity?.units || 0), giveaway_cost: Number(activity?.giveaway_cost || 0),
         avg_cost: activity?.avg_cost ?? 0, active_outlets: Number(activity?.active_outlets || 0), outlets: activity?.outlets || '',
         date_from: start, date_to: userTo, activity: date === today ? 'Today in progress' : 'No spins recorded' });

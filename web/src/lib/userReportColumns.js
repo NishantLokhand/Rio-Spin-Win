@@ -4,7 +4,7 @@ const number = (v) => v == null ? '—' : Number(v).toLocaleString('en-IN', { ma
 const money = (v) => v == null ? '—' : `₹${number(v)}`;
 export const userPerformanceColumns = [
   { key: 'date', label: 'Date' }, { key: 'label', label: 'User' }, { key: 'user_type', label: 'Type' },
-  { key: 'state', label: 'State' }, { key: 'city', label: 'City' }, { key: 'area', label: 'Area' },
+  { key: 'market', label: 'Market' }, { key: 'state', label: 'State' }, { key: 'city', label: 'City' }, { key: 'area', label: 'Area' },
   { key: 'outlets', label: 'Outlets Visited' }, { key: 'active_outlets', label: 'Outlets Covered', align: 'r' },
   { key: 'spins', label: 'Spins', align: 'r', fmt: number }, { key: 'units', label: 'Units Sold', align: 'r', fmt: number },
   { key: 'first_spin_time', label: 'First spin time (IST)' },

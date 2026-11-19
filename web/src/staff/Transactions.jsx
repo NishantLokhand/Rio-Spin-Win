@@ -3,6 +3,8 @@ import { supabase } from '../lib/supabase.js';
 import { exportCSV } from '../lib/exporter.js';
 import { exportTransactionWorkbook } from './transactionExport.js';
 import { fetchTransactionReport, REPORT_VIEWS } from './transactionReport.js';
+import { loadReportMarketLookup } from '../lib/reportMarketData.js';
+import { attachReportMarkets } from '../lib/reportMarkets.js';
 import FilterBar from './FilterBar.jsx';
 import { Panel, Loading, DataTable, Badge, Tabs, Kpi, fmt } from './ui.jsx';
 import './Transactions.css';
@@ -13,7 +15,7 @@ export const TXN_COLUMNS = [
   { key: 'tse_code', label: 'TSE Code' }, { key: 'tse_name', label: 'TSE Name' }, { key: 'outlet_code', label: 'Outlet Code' },
   { key: 'outlet_name', label: 'Outlet Name' }, { key: 'outlet_address', label: 'Outlet Address' },
   { key: 'outlet_license_no', label: 'Licence No.' }, { key: 'area', label: 'Area' }, { key: 'city', label: 'City' }, { key: 'distributor', label: 'Distributor' },
-  { key: 'promoter_code', label: 'Promoter ID' }, { key: 'promoter_name', label: 'Promoter Name' }, { key: 'promoter_type', label: 'Promoter Type' },
+  { key: 'promoter_code', label: 'Promoter ID' }, { key: 'promoter_name', label: 'Promoter Name' }, { key: 'market', label: 'Market' }, { key: 'promoter_type', label: 'Promoter Type' },
   { key: 'sku_code', label: 'SKU Code' }, { key: 'sku', label: 'SKU' }, { key: 'quantity', label: 'Quantity' },
   { key: 'prize_name', label: 'Prize' }, { key: 'prize_cost', label: 'Prize Cost' }, { key: 'substituted', label: 'Substituted' },
   { key: 'redemption_status', label: 'Redemption Status' }, { key: 'inventory_status', label: 'Inventory Status' },
@@ -40,7 +42,9 @@ export default function Transactions({ data, filters, setFilters }) {
   useEffect(() => {
     const controller = new AbortController();
     setReport({ loading: true, data: null, error: null }); setExportError('');
-    fetchTransactionReport(supabase, JSON.parse(filterKey), controller.signal)
+    Promise.all([fetchTransactionReport(supabase, JSON.parse(filterKey), controller.signal), loadReportMarketLookup()])
+      .then(([result, market]) => ({ ...result, ...Object.fromEntries(REPORT_VIEWS.map(v =>
+        [v.key, attachReportMarkets(result[v.key], market, 'promoter_id')])) }))
       .then(result => { if (!controller.signal.aborted) setReport({ loading: false, data: result, error: null }); })
       .catch(error => { if (!controller.signal.aborted) setReport({ loading: false, data: null, error }); });
     return () => controller.abort();
@@ -63,11 +67,11 @@ export default function Transactions({ data, filters, setFilters }) {
     'handed_over', 'pending', 'not_redeemed', 'spin_no', 'spin_count', 'quantity']);
   const tone = { handed_over: 'green', pending: 'amber', not_redeemed: 'red' };
   const screenKeys = {
-    bills: ['bill_date', 'bill_recorded_date', 'bill_time', 'promoter_name', 'state', 'city', 'area', 'outlet_name', 'sku_basket', 'sales_units',
+    bills: ['bill_date', 'bill_recorded_date', 'bill_time', 'promoter_name', 'market', 'state', 'city', 'area', 'outlet_name', 'sku_basket', 'sales_units',
       'spins_recorded', 'handed_over', 'pending', 'handed_over_cost', 'sale_status', 'data_check', 'transaction_id'],
-    spins: ['spin_id', 'spin_date', 'spin_time', 'promoter_name', 'state', 'city', 'area', 'outlet_name', 'prize_name', 'prize_cost',
+    spins: ['spin_id', 'spin_date', 'spin_time', 'promoter_name', 'market', 'state', 'city', 'area', 'outlet_name', 'prize_name', 'prize_cost',
       'redemption_status', 'distribution_version', 'distribution_mode', 'config_version', 'handover_date', 'handover_time', 'transaction_id', 'spin_no'],
-    skus: ['bill_date', 'promoter_name', 'state', 'city', 'area', 'outlet_name', 'sku_code', 'product_name', 'sales_units', 'sale_status', 'data_check', 'transaction_id'],
+    skus: ['bill_date', 'promoter_name', 'market', 'state', 'city', 'area', 'outlet_name', 'sku_code', 'product_name', 'sales_units', 'sale_status', 'data_check', 'transaction_id'],
   };
   const columns = screenKeys[view].map(key => selected.columns.find(c => c.key === key)).map(c => c.key === 'redemption_status'
     ? { ...c, render: r => <Badge tone={tone[r.redemption_status]}>{r.redemption_status?.replaceAll('_', ' ') || 'Not recorded'}</Badge> }

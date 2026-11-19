@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { rpc, friendly } from '../lib/api.js';
 import { exportWorkbook } from '../lib/exporter.js';
 import { DataTable, Modal } from './ui.jsx';
+import { loadReportMarketLookup } from '../lib/reportMarketData.js';
+import { attachReportMarkets } from '../lib/reportMarkets.js';
 
 const columns = [
   { key: 'full_name', label: 'User' }, { key: 'mode', label: 'Version 7 Rule' },
-  { key: 'state', label: 'State' }, { key: 'city', label: 'City' }, { key: 'area', label: 'Area' },
+  { key: 'market', label: 'Market' }, { key: 'state', label: 'State' }, { key: 'city', label: 'City' }, { key: 'area', label: 'Area' },
   { key: 'spins', label: 'Spins', align: 'r' }, { key: 'giveaway_cost', label: 'Giveaway Cost', align: 'r' },
   { key: 'snack5', label: '₹5 Snacks Remaining', align: 'r' }, { key: 'snack10', label: '₹10 Snacks Remaining', align: 'r' },
   { key: 'shades', label: 'Rio Shades Remaining', align: 'r' }, { key: 'speakers', label: 'Speakers Remaining', align: 'r' },
@@ -19,7 +21,8 @@ export default function V7ExpiryReport() {
   async function load() {
     setOpen(true); setBusy(true); setError('');
     try {
-      const data = await rpc('report_v7_expiry_users', {});
+      const [loaded, market] = await Promise.all([rpc('report_v7_expiry_users', {}), loadReportMarketLookup()]);
+      const data = attachReportMarkets(loaded || [], market, 'user_id');
       setRows((data || []).map((r) => ({ ...r, mode: r.effective_rule || label(r.mode), snack5: r.stock?.SNACK5 ?? 0, snack10: r.stock?.SNACK10 ?? 0, shades: r.stock?.SHADES ?? 0, speakers: r.speakers_remaining ?? null })));
     } catch (e) { setError(friendly(e)); } finally { setBusy(false); }
   }

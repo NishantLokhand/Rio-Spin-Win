@@ -5,6 +5,8 @@ import { reportingExclusions, applyReportingScope, withoutExcluded } from '../li
 import FilterBar from './FilterBar.jsx';
 import { Panel } from './ui.jsx';
 import { TXN_COLUMNS, applyTxnFilters } from './Transactions.jsx';
+import { loadReportMarketLookup } from '../lib/reportMarketData.js';
+import { attachReportMarkets } from '../lib/reportMarkets.js';
 
 const report = (group) => async (f) => rpc('report_summary', { p_group: group, p_filters: f });
 
@@ -15,25 +17,25 @@ export default function Exports({ data, filters, setFilters }) {
   const users = Object.fromEntries(data.promoters.map((u) => [u.id, u.full_name]));
 
   const ITEMS = [
-    { key: 'transactions', label: 'Transactions / spins', uses: true, run: async (f) => {
+    { key: 'transactions', label: 'Transactions / spins', userKey: 'promoter_id', uses: true, run: async (f) => {
       const excluded = await reportingExclusions();
       return selectAll('v_transactions', '*', (q) => applyReportingScope(applyTxnFilters(q, f), excluded).order('spun_at'));
     }, cols: TXN_COLUMNS },
-    { key: 'promoter_performance', label: 'Promoter performance', uses: true, run: report('promoter') },
+    { key: 'promoter_performance', label: 'Promoter performance', userKey: 'key', uses: true, run: report('promoter') },
     { key: 'tse_performance', label: 'TSE performance', uses: true, run: report('tse') },
     { key: 'outlet_performance', label: 'Outlet performance', uses: true, run: report('outlet') },
     { key: 'prize_usage', label: 'Prize usage', uses: true, run: report('prize') },
     { key: 'campaign_spend_daily', label: 'Campaign spend (daily)', uses: true, run: report('date') },
     { key: 'sku_performance', label: 'SKU performance', uses: true, run: report('product') },
-    { key: 'inventory_balances', label: 'Inventory — current balances', run: async () => {
+    { key: 'inventory_balances', label: 'Inventory — current balances', run: async (f, market) => {
       const excluded = await reportingExclusions();
       return withoutExcluded(await selectAll('promoter_inventory', '*'), excluded)
-        .map((i) => ({ promoter: users[i.promoter_id], prize: prizes[i.prize_id], on_hand: i.on_hand, reserved_pending_handover: i.reserved, updated_at: i.updated_at }));
+        .map((i) => ({ promoter: users[i.promoter_id], market: market(i.promoter_id), prize: prizes[i.prize_id], on_hand: i.on_hand, reserved_pending_handover: i.reserved, updated_at: i.updated_at }));
     } },
-    { key: 'inventory_movements', label: 'Inventory — movement log', run: async () => {
+    { key: 'inventory_movements', label: 'Inventory — movement log', run: async (f, market) => {
       const excluded = await reportingExclusions();
       return withoutExcluded(await selectAll('inventory_movements', '*', (q) => q.order('created_at')), excluded)
-        .map((m) => ({ date_time: m.created_at, promoter: users[m.promoter_id], prize: prizes[m.prize_id], type: m.movement_type, qty: m.qty,
+        .map((m) => ({ date_time: m.created_at, promoter: users[m.promoter_id], market: market(m.promoter_id), prize: prizes[m.prize_id], type: m.movement_type, qty: m.qty,
           stock_after: m.on_hand_after, issued_by: m.performed_by, reference: m.reference, note: m.note }));
     } },
     { key: 'outlet_master', label: 'Outlet master', run: async () => data.outletsFull.map((o) => {
@@ -46,9 +48,13 @@ export default function Exports({ data, filters, setFilters }) {
   async function go(item, kind) {
     setBusy(item.key + kind); setErr('');
     try {
-      const rows = await item.run(filters);
+      const needsMarket = item.userKey || item.key.startsWith('inventory_');
+      const market = needsMarket ? await loadReportMarketLookup() : null;
+      const loaded = await item.run(filters, market);
+      const rows = item.userKey ? attachReportMarkets(loaded, market, item.userKey) : loaded;
       if (!rows.length) throw new Error('No rows for the selected filters');
-      (kind === 'csv' ? exportCSV : exportXLSX)(rows, item.cols || null, `${item.key}_${filters.date_from || 'all'}`);
+      const columns = item.cols || Object.keys(rows[0]).map(key => ({ key, label: key === 'market' ? 'Market' : key }));
+      (kind === 'csv' ? exportCSV : exportXLSX)(rows, columns, `${item.key}_${filters.date_from || 'all'}`);
     } catch (e) { setErr(friendly(e)); } finally { setBusy(''); }
   }
 

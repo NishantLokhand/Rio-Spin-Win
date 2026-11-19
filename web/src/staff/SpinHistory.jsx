@@ -6,6 +6,7 @@ import { loadUserActivityData } from '../lib/userActivityData.js';
 import { userReportColumns } from '../lib/userReportColumns.js';
 import { attachMetrics } from '../lib/performanceMetrics.js';
 import { attachSpinTimes } from '../lib/spinTimes.js';
+import { reportMarketLookup } from '../lib/reportMarkets.js';
 import { exportWorkbook } from '../lib/exporter.js';
 import { Modal, DataTable, Tabs } from './ui.jsx';
 
@@ -47,9 +48,10 @@ export default function SpinHistory({ filters, userType }) {
       const report = spinHistory(source.rows.filter((r) => !user || r.key === user), { ...range, today: source.today }, source.people, source.metrics);
       const users = new Map(source.users.map((u) => [u.id, u]));
       const profiles = new Map(source.profiles.map((p) => [p.user_id, p]));
+      const market = reportMarketLookup(source);
       return Object.fromEntries(Object.entries(report).map(([key, rows]) => [key,
         attachSpinTimes(attachMetrics(rows, source.metrics, range.from, range.to, source.today), source.spinTimes, key === 'summary').map((r) => ({ ...r,
-          user_code: r.user_code || profiles.get(r.key)?.promoter_code || '',
+          user_code: r.user_code || profiles.get(r.key)?.promoter_code || '', market: market(r.key, r),
           mobile: users.get(r.key)?.mobile || users.get(r.key)?.login_id || '',
           account_status: users.get(r.key)?.is_active ? 'Active' : 'Disabled',
         })),

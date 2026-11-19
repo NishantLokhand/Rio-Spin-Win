@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { rpc, friendly } from '../lib/api.js';
 import FilterBar from './FilterBar.jsx';
+import { loadReportMarketLookup } from '../lib/reportMarketData.js';
+import { attachReportMarkets } from '../lib/reportMarkets.js';
 import { useAsync, Kpi, Panel, Loading, DataTable, BarList, ColumnChart, Modal, Field, fmt } from './ui.jsx';
 
 const LEVELS = [
@@ -20,7 +22,11 @@ export default function Dashboard({ data, filters, setFilters, go }) {
   const [bulkReplenishOpen, setBulkReplenishOpen] = useState(false);
   const level = LEVELS[Math.min(path.length, LEVELS.length - 1)];
   const drillFilters = { ...filters, ...Object.fromEntries(path.map((p) => [LEVELS[p.level].filter, p.key])) };
-  const drill = useAsync(() => rpc('report_summary', { p_group: level.group, p_filters: drillFilters }), [JSON.stringify(drillFilters), level.group]);
+  const drill = useAsync(async () => {
+    if (level.group !== 'promoter') return rpc('report_summary', { p_group: level.group, p_filters: drillFilters });
+    const [rows, market] = await Promise.all([rpc('report_summary', { p_group: level.group, p_filters: drillFilters }), loadReportMarketLookup()]);
+    return attachReportMarkets(rows, market);
+  }, [JSON.stringify(drillFilters), level.group]);
 
   const K = k.data;
   const t = K?.totals || {};
@@ -112,6 +118,7 @@ export default function Dashboard({ data, filters, setFilters, go }) {
                 onRowClick={path.length < LEVELS.length - 1 ? (r) => setPath([...path, { level: path.length, key: r.key, label: r.label }]) : undefined}
                 columns={[
                   { key: 'label', label: level.label },
+                  ...(level.group === 'promoter' ? [{ key: 'market', label: 'Market' }] : []),
                   ...(level.group === 'outlet' ? [{ key: 'outlet_code', label: 'Code' }] : []),
                   { key: 'spins', label: 'Spins', align: 'r', fmt: fmt.num },
                   { key: 'sales', label: 'Sales', align: 'r', fmt: fmt.num },

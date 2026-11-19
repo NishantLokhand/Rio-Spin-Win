@@ -1,6 +1,7 @@
 // A stand-in for the Supabase JS client used in DEMO MODE (no backend).
 // Implements only the query/auth/rpc surface this app uses; data lives in this browser's localStorage.
 import { Engine, DemoError } from './engine.js';
+import { requireFieldUserMarket } from '../../../../supabase/functions/_shared/fieldUserMarket.mjs';
 
 const LATENCY = 120;
 const wait = (v) => new Promise((r) => setTimeout(() => r(v), LATENCY));
@@ -165,6 +166,7 @@ export function createDemoClient() {
             if (db._auth.some((x) => x.email === login)) throw new Error('That login ID already exists');
             if (!body.pin || body.pin.length < 6) throw new Error('PIN must be at least 6 characters');
             const org = body.organization || {}; const designation = org.designation || 'PROMOTER';
+            const market = requireFieldUserMarket(body.role, org.market);
             const mobile = body.mobile || login;
             const person = org.person_id ? db.org_people.find((p) => p.id === org.person_id) : null;
             if (body.role === 'promoter') {
@@ -179,8 +181,8 @@ export function createDemoClient() {
               can_approve_outlets: !!body.can_approve_outlets, can_override_cost_target: !!body.can_override_cost_target, created_at: ts, updated_at: ts });
             if (body.role === 'promoter') {
               db.promoters.push({ user_id: id, ...body.promoter, promoter_code: body.promoter?.promoter_code || `${designation}-${id}`, joined_on: null, notes: null, created_at: ts, updated_at: ts });
-              if (person) person.auth_user_id = id;
-              else db.org_people.push({ id: crypto.randomUUID(), designation, employee_name: body.full_name, mobile, auth_user_id: id, active: true, state_raw: org.state, market_raw: org.market, area_raw: org.area, beat_values: org.beat ? [org.beat] : [] });
+              if (person) { person.auth_user_id = id; person.market_override = market; }
+              else db.org_people.push({ id: crypto.randomUUID(), designation, employee_name: body.full_name, mobile, auth_user_id: id, active: true, state_raw: org.state, market_raw: market, area_raw: org.area, beat_values: org.beat ? [org.beat] : [] });
             }
             E.audit('USER_CREATED', 'app_users', id, { role: body.role, login_id: login });
           } else if (body.action === 'reset_pin') {

@@ -3,7 +3,7 @@ export const NOT_RECORDED = 'Not recorded';
 const column = (key, label, extra = {}) => ({ key, label, ...extra });
 const identityColumns = [
   column('promoter_name', 'User'), column('promoter_code', 'User Code'),
-  column('state', 'State'), column('city', 'City'), column('area', 'Area'),
+  column('market', 'Market'), column('state', 'State'), column('city', 'City'), column('area', 'Area'),
   column('outlet_name', 'Outlet'), column('outlet_code', 'Outlet Code'), column('outlet_license_no', 'Licence No.'),
 ];
 const extraIdentityColumns = [

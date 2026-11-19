@@ -1,6 +1,7 @@
 import { zeroActivityRows } from './userActivity.js';
 import { attachMetrics } from './performanceMetrics.js';
 import { attachSpinTimes } from './spinTimes.js';
+import { attachReportMarkets, reportMarketLookup } from './reportMarkets.js';
 
 // Add roster gaps only when no recorded activity exists for that user/date.
 // Transaction filters cannot be assigned to a date without a transaction.
@@ -12,7 +13,7 @@ const stateKey = (value) => String(value ?? '').trim().replace(/\s+/g, ' ').toLo
 export function completeUserPerformance(source, recorded, filters, userType, today, prizeBreakdown = null) {
   const to = filters.date_to && filters.date_to < today ? filters.date_to : today;
   const users = new Map(source.users.map((u) => [u.id, u]));
-  const rows = attachMetrics(recorded, source.metrics, filters.date_from, filters.date_to, today)
+  const rows = attachReportMarkets(attachMetrics(recorded, source.metrics, filters.date_from, filters.date_to, today), reportMarketLookup(source))
     .map((r) => ({ ...r, prizes_given: prizeBreakdown?.get(r.key) || '',
       account_status: users.get(r.key)?.is_active === false ? 'Disabled' : 'Active',
       activity: Number(r.spins) > 0 ? 'Spins recorded' : r.date === today ? 'Today in progress' : 'No spins recorded' }));
