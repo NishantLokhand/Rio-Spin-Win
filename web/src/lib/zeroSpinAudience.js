@@ -22,3 +22,10 @@ export function zeroSpinAudience(users, people, userType = '') {
 export function zeroSpinReportSource(source) {
   return { ...source, users: zeroSpinAudience(source.users, source.people) };
 }
+
+// The missing-dates follow-up list is for currently active accounts only.
+// Keep the shared summary and historical reporting audiences unchanged.
+export function zeroSpinActivitySource(source) {
+  const filtered = zeroSpinReportSource(source);
+  return { ...filtered, users: filtered.users.filter(user => user.is_active === true) };
+}

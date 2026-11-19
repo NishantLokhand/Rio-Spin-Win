@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { isZeroSpinDemoAccount, isZeroSpinExcludedAccount, zeroSpinAudience, zeroSpinReportSource } from '../web/src/lib/zeroSpinAudience.js';
+import { isZeroSpinDemoAccount, isZeroSpinExcludedAccount, zeroSpinAudience, zeroSpinReportSource, zeroSpinActivitySource } from '../web/src/lib/zeroSpinAudience.js';
 import { zeroActivityRows, zeroCohortRows, zeroPeriod } from '../web/src/lib/userActivity.js';
 import { completeUserPerformance } from '../web/src/lib/userPerformance.js';
 
@@ -20,6 +20,36 @@ const source = { users, people, profiles: [], states: [], rows: [], spinTimes: [
   cutoffs: new Map([['disabled', '2026-11-04T09:00:00+05:30']]),
 };
 const range = { from: '2026-11-01', to: '2026-11-05', today: '2026-11-06' };
+
+test('missing-dates follow-up excludes disabled accounts from every period and user selection', () => {
+  const filtered = zeroSpinActivitySource(source);
+  assert.deepEqual(zeroSpinAudience(filtered.users, filtered.people).map(u => u.id), ['real', 'name']);
+  assert.deepEqual(zeroSpinAudience(filtered.users, filtered.people, 'TSE'), []);
+  for (const period of [range,
+    zeroPeriod('day', { day: '2026-11-02' }, range.today),
+    zeroPeriod('week', { week: '2026-W45' }, range.today),
+    zeroPeriod('month', { month: '2026-11' }, range.today),
+    zeroPeriod('custom', { from: range.from, to: range.to }, range.today),
+    zeroPeriod('day', { day: range.today }, range.today, true)]) {
+    const options = { ...period, today: range.today };
+    const rows = zeroActivityRows(filtered, options);
+    assert.ok(rows.length > 0);
+    assert.ok(rows.every(r => r.account_status === 'Active'));
+    assert.equal(zeroActivityRows(filtered, { ...options, userId: 'disabled' }).length, 0);
+  }
+  assert.equal(zeroActivityRows(filtered, range).length, 10);
+  assert.ok(zeroCohortRows(zeroSpinReportSource(source), range).some(r => r.key === 'disabled'));
+});
+
+test('follow-up filtering preserves historical activity, cutoffs and the original source', () => {
+  const historical = { ...source, rows: [{ key: 'disabled', date: '2026-11-02', spins: 2, units: 3, giveaway_cost: 10 }] };
+  const before = JSON.stringify(historical);
+  const filtered = zeroSpinActivitySource(historical);
+  for (const field of ['rows', 'metrics', 'spinTimes', 'cutoffs']) assert.equal(filtered[field], historical[field]);
+  assert.equal(JSON.stringify(historical), before);
+  assert.ok(completeUserPerformance(historical, [], { date_from: range.from, date_to: range.to }, '', range.today)
+    .some(r => r.key === 'disabled'));
+});
 
 test('recognizes demo/test logins and names without excluding similarly named real people', () => {
   assert.ok(demo.every(isZeroSpinDemoAccount));

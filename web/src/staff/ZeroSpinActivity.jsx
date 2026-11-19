@@ -5,7 +5,7 @@ import { shiftDate } from '../lib/reportDates.js';
 import { isoWeek, zeroPeriod, zeroActivityRows } from '../lib/userActivity.js';
 import { loadUserActivityData } from '../lib/userActivityData.js';
 import { userReportColumns } from '../lib/userReportColumns.js';
-import { zeroSpinAudience, zeroSpinReportSource } from '../lib/zeroSpinAudience.js';
+import { zeroSpinAudience, zeroSpinActivitySource } from '../lib/zeroSpinAudience.js';
 import { Modal, DataTable } from './ui.jsx';
 
 const columns = userReportColumns([
@@ -25,7 +25,7 @@ export default function ZeroSpinActivity({ dates, userType, userId }) {
     setMode('day'); setType(userType || ''); setUser(userId || ''); setIncludeToday(false);
     setOpen(true); setBusy(true); setError(''); setSource(null);
     try {
-      const loaded = zeroSpinReportSource(await loadUserActivityData());
+      const loaded = zeroSpinActivitySource(await loadUserActivityData());
       const allowedUsers = zeroSpinAudience(loaded.users, loaded.people, userType || '');
       setUser(allowedUsers.some(u => u.id === userId) ? userId : '');
       setSource({ ...loaded, today });
@@ -45,7 +45,7 @@ export default function ZeroSpinActivity({ dates, userType, userId }) {
   return <>
     <button className="s-btn ghost sm" disabled={busy} onClick={load}>Zero-spin activity</button>
     {open && <Modal wide title="Zero-spin activity — users and missing dates" onClose={() => setOpen(false)}>
-      <p>One row per user per date without a recorded spin, including users who spun on other days and users who never spun. Dates before account creation are excluded. Disabled users are included and labelled.</p>
+      <p>One row per user per date without a recorded spin, including users who spun on other days and users who never spun. Dates before account creation are excluded. Only currently active accounts are included.</p>
       <p className="muted">Choose a day, full calendar week (Monday–Sunday), month or custom range. Current weeks/months stop at yesterday unless you include today. Type and User start from the dashboard selection; other dashboard filters do not apply.</p>
       <div className="row-actions">
         <label>Report by <select aria-label="Zero-spin period" value={mode} onChange={(e) => setMode(e.target.value)}>
