@@ -9,6 +9,7 @@ import SpinHistory from './SpinHistory.jsx';
 import V7ExpiryReport from './V7ExpiryReport.jsx';
 import V8SpeakerReport from './V8SpeakerReport.jsx';
 import ZeroSpinDownload from './ZeroSpinDownload.jsx';
+import LessThanTenSpins from './LessThanTenSpins.jsx';
 import { reportTotal, reportPeriod } from '../lib/reportTotals.js';
 import { useAsync, Panel, Loading, DataTable, Tabs, BarList, Kpi, fmt } from './ui.jsx';
 
@@ -114,7 +115,7 @@ export default function Reports({ data, filters, setFilters }) {
     <div className="s-page">
       <FilterBar data={data} filters={filters} setFilters={setFilters}
         userPerformance={userDaily} userType={userType} setUserType={setUserType} userPeople={people.data || []} />
-      <div className="pad row-actions"><ZeroSpinDownload users={data.promoters} dates={filters} userType={userType} userId={filters.promoter_id} /><SpinHistory filters={filters} userType={userType} /><V7ExpiryReport /><V8SpeakerReport /></div>
+      <div className="pad row-actions"><ZeroSpinDownload users={data.promoters} dates={filters} userType={userType} userId={filters.promoter_id} /><LessThanTenSpins dates={filters} /><SpinHistory filters={filters} userType={userType} /><V7ExpiryReport /><V8SpeakerReport /></div>
       <Tabs tabs={TABS} value={tab} onChange={setTab} />
       <Panel title={TABS.find((t) => t.key === tab).label}
              actions={totals

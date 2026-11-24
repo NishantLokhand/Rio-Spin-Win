@@ -1,0 +1,4 @@
+{
+  "compilerOptions": { "allowJs": true, "strict": false },
+  "lint": { "exclude": ["../_shared/*.mjs"] }
+}
