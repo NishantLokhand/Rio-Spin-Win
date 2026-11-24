@@ -5,10 +5,11 @@ import { shiftDate } from '../lib/reportDates.js';
 import { userReportColumns } from '../lib/userReportColumns.js';
 import { Modal, DataTable, Kpi } from './ui.jsx';
 
+const excludedReportColumns = new Set(['login', 'user_code', 'city', 'area']);
 const columns = userReportColumns([
   { key: 'mobile', label: 'Mobile Number' }, { key: 'login', label: 'Login' },
   { key: 'account_status', label: 'Account Status' }, { key: 'account_date', label: 'Account Created' },
-]);
+]).filter(column => !excludedReportColumns.has(column.key));
 export default function LessThanTenSpins({ dates }) {
   const [open, setOpen] = useState(false), [date, setDate] = useState('');
   const [result, setResult] = useState(null), [error, setError] = useState(''), [busy, setBusy] = useState(false);

@@ -3,13 +3,13 @@ export const BURGUNDY = '#722F37';
 export const REPORT_TO = 'sanjay.waghela@gooddropwine.com';
 export const REPORT_CC = ['shiv.kumar@gooddropwine.com', 'chandra.mohan@gooddropwine.com'];
 export const REPORT_COLUMNS = [
-  ['date','Date'],['label','User'],['user_type','Type'],['market','Market'],['state','State'],['city','City'],['area','Area'],
+  ['date','Date'],['label','User'],['user_type','Type'],['market','Market'],['state','State'],
   ['outlets','Outlets Visited'],['active_outlets','Outlets Covered'],['spins','Spins'],['units','Units Sold'],
   ['first_spin_time','First spin time (IST)'],['last_spin_time','Last spin time (IST)'],['activity_span','Activity span'],
-  ['giveaway_cost','Giveaway Cost'],['avg_cost','Average Cost'],['prizes_given','Prizes Given'],['user_code','User Code'],
+  ['giveaway_cost','Giveaway Cost'],['avg_cost','Average Cost'],['prizes_given','Prizes Given'],
   ['active_days','Days With Spins'],['no_spin_days','Days Without Spins'],['activity_pct','Activity %'],
   ['snack5_used_pct','₹5 Snack Used % (Current)'],['snack10_used_pct','₹10 Snack Used % (Current)'],
-  ['mobile','Mobile Number'],['login','Login'],['account_status','Account Status'],['account_date','Account Created'],
+  ['mobile','Mobile Number'],['account_status','Account Status'],['account_date','Account Created'],
 ];
 const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
 const num = value => Number(value || 0).toLocaleString('en-IN', { maximumFractionDigits: 1 });
