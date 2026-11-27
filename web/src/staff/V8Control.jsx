@@ -27,7 +27,7 @@ export default function V8Control({ campaignId, isAdmin }) {
         <b>Version 8 {status.effective ? 'Active' : status.enabled ? 'Enabled (outside date window)' : 'Disabled'}</b>
       </label>
       <p>{status.selected_users} selected users · {status.speakers_awarded_today} speakers awarded today.</p>
-      <p>One speaker on each selected user's daily spin {status.speaker_spin_number ?? 3}, when available. Maximum one per day; no repeat at later spins. All other spins follow their existing Version 7 or Version 6 rule.</p>
+      <p>One speaker on each selected user's daily spin {status.speaker_spin_number ?? 10}, when available. During the temporary Thane/Mumbai weekend rule, selected users in those markets use spin 8; all other selected users stay on spin {status.speaker_spin_number ?? 10}. Maximum one per day; no repeat at later spins.</p>
       <p>Turn off to roll back to ordinary prizes. Previous speaker wins and inventory records are retained.</p>
     </>}
     {error && <div className="s-err">{error}</div>}

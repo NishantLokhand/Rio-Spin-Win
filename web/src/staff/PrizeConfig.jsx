@@ -4,6 +4,7 @@ import { rpc, friendly, selectAll } from '../lib/api.js';
 import { useAsync, Panel, Loading, DataTable, Field, fmt } from './ui.jsx';
 import V7Control from './V7Control.jsx';
 import V8Control from './V8Control.jsx';
+import WeekendMarketControl from './WeekendMarketControl.jsx';
 
 export default function PrizeConfig({ data }) {
   const [campaign, setCampaign] = useState(data.campaigns[0]?.id);
@@ -131,6 +132,7 @@ export default function PrizeConfig({ data }) {
         <div className="s-form">
           {c?.code === 'RSW-2026' && <V7Control campaignId={campaign} isAdmin={data.profile.role === 'admin'} />}
           {c?.code === 'RSW-2026' && <V8Control campaignId={campaign} isAdmin={data.profile.role === 'admin'} />}
+          {c?.code === 'RSW-2026' && <WeekendMarketControl campaignId={campaign} isAdmin={data.profile.role === 'admin'} />}
           <p className="muted" style={{ margin: '0 0 12px' }}>
             The system continuously allocates prizes using <b>Controlled Cumulative Random Allocation</b> across any spin volume (200, 500, 1000+ spins).
             Percentages must sum to exactly 100%. Reference quantities correspond to the 200-spin benchmark.
