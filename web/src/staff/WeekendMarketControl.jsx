@@ -79,12 +79,12 @@ export default function WeekendMarketControl({ campaignId, isAdmin }) {
           {' · '}<b>Ends:</b> {formatIst(status.ends_at)}
         </p>
         <p style={{ margin: '0 0 8px' }}>
-          Ordinary prizes: <b>66% ₹5 snacks, 24% ₹10 snacks, 10% sunglasses</b> when sunglasses are in stock;
-          without sunglasses stock, the existing <b>75% / 25%</b> snack fallback applies. The 66/24/10 balancing is shared across Thane and Mumbai spins with sunglasses stock.
+          Ordinary prizes: <b>50% ₹5 snacks, 20% ₹10 snacks, 30% sunglasses</b> when sunglasses are in stock;
+          without sunglasses stock, the existing <b>75% / 25%</b> snack fallback applies. The 50/20/30 balancing is shared across Thane and Mumbai spins with sunglasses stock.
         </p>
         <p style={{ margin: '0 0 8px' }}>
           While the regular Version 8 switch is enabled, existing Version 8 selected users in these markets get one speaker on daily spin 8 when available.
-          That spin uses the speaker instead of an ordinary prize; no later speaker is scheduled that day.
+          The speaker is a separate Version 8 award, outside the 50/20/30 ordinary-prize mix. That spin uses the speaker instead of an ordinary prize; no later speaker is scheduled that day.
           Other selected users keep the existing spin-10 rule. Completed spins and stock movements are retained on rollback.
         </p>
         {status.starts_at && <p style={{ margin: '0 0 8px' }}><b>Started:</b> {formatIst(status.starts_at)}</p>}
